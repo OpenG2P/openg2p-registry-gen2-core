@@ -1,0 +1,1 @@
+from .g2p_register_farmer_domain_service import G2PRegisterFarmerDomainService

@@ -1,0 +1,1 @@
+from .g2p_register_controller import G2PRegisterController
