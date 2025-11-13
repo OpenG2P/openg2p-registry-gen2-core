@@ -1,5 +1,7 @@
 import logging
 import uuid
+import importlib
+
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
@@ -10,6 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation
 from ..schemas import ChangeLogRequest
+from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
 _engine = dbengine.get()
@@ -21,7 +24,7 @@ class G2PRegisterService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate the change log before creating
-            self.validate_change_log(change_log_request.request_body.request_payload.operation_id)
+            await self.validate_change_log(change_log_request.request_body.request_payload.operation_id)
             
             g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request.request_body.request_payload.register_id, session)
             g2p_register_operation: G2PRegisterOperation = await self.validate_operation(change_log_request.request_body.request_payload.operation_id, session)
@@ -49,13 +52,18 @@ class G2PRegisterService(BaseService):
         pass
 
     async def validate_register_definition(self, register_id: str, session) -> G2PRegisterDefinition:
-        g2p_register_definition: G2PRegisterDefinition = await session.execute(
-            select(G2PRegisterDefinition).where(
-                G2PRegisterDefinition.register_id == register_id
+        g2p_register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == register_id
+                )
             )
-        )
+        ).scalar()
         if not g2p_register_definition:
-            raise ValueError(f"Register with ID {register_id} does not exist.")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+            )
             
         return g2p_register_definition
 
@@ -76,16 +84,27 @@ class G2PRegisterService(BaseService):
 
     async def validate_internal_record(self, g2p_register_definition: G2PRegisterDefinition, internal_record_id: str, session: Session) -> None:
         
+        module = importlib.import_module("openg2p_registry_extensions.models")
+
         register_class_prefix = "G2PRegister"
         implementation_class_name = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
 
-        internal_record = await session.execute(
-            select(implementation_class_name).where(
-                implementation_class_name.internal_record_id == internal_record_id
+        implementation_class = getattr(module, implementation_class_name)
+        _logger.debug(f"Validating internal record for class: {implementation_class}")
+
+        internal_record = (
+            await session.execute(
+                select(implementation_class).where(
+                    implementation_class.internal_record_id == internal_record_id
+                )
             )
-        )
+        ).scalar()
+        _logger.debug(f"Internal record fetched: {internal_record}")
         if not internal_record:
-            raise ValueError(f"Internal record with ID {internal_record_id} does not exist in register {g2p_register_definition.register_mnemonic}.")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
+            )
 
     async def construct_change_log(self, change_log_request: ChangeLogRequest, g2p_register_operation: G2PRegisterOperation) -> G2PRegisterChangeLog:
         change_log_id = str(uuid.uuid4())
