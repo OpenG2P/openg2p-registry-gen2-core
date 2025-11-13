@@ -9,10 +9,10 @@ class RegisterPayload(BaseModel):
 
 
 class ChangeLogPayload(RegisterPayload):
-    register_id: str
-    register_mnemonic: str
-    operation_id: str
-    change_payload: dict
+    register_id: Optional[str] = None
+    register_mnemonic: Optional[str] = None
+    operation_id: Optional[str] = None
+    change_payload: Optional[dict] = None
 
     # Not sent from Partners
     no_of_verifications_required: Optional[int] = 0

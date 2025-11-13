@@ -6,22 +6,14 @@ from . import __version__
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="spar_mapper_api_", env_file=".env", extra="allow"
+        env_prefix="registry_core_", env_file=".env", extra="allow"
     )
 
-    openapi_title: str = "OpenG2P Registry Staff Portal API"
+    openapi_title: str = "OpenG2P Registry Core"
     openapi_description: str = """
-        FastAPI Service for OpenG2P Registry Staff Portal API
+        FastAPI Service for OpenG2P Registry Core
         ***********************************
         Further details goes here
         ***********************************
         """
     openapi_version: str = __version__
-
-    # SPAR Database
-    db_username: str = "postgres"
-    db_password: str = "password"
-    db_hostname: str = "localhost"
-    db_port: int = 5432
-    db_dbname: str = "registrydb"
-
