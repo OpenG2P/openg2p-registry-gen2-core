@@ -1,0 +1,1 @@
+from .g2p_register_service import G2PRegisterService
