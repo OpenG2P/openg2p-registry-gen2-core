@@ -42,6 +42,13 @@ class G2PRegisterController(BaseController):
             methods=["POST"],
         )
 
+        self.router.add_api_route(
+            "/reject_change_log",
+            self.reject_change_log,
+            responses={200: {"model": ChangeLogResponse}},
+            methods=["POST"],
+        )
+
 
     async def create_change_log(self, change_log_request: ChangeLogRequest) -> ChangeLogResponse:
         #TODO: Validate Staff Token here with auth: Annotated[AuthCredentials, Depends(AuthFactory())]
@@ -75,5 +82,21 @@ class G2PRegisterController(BaseController):
             return error_response
         except Exception as e:
             _logger.error(f"Error in approve_change_log: {str(e)}")
+            error_response: G2PResponse = self.helper.construct_error_response(e, change_log_request)
+            return error_response
+    
+    async def reject_change_log(self, change_log_request: ChangeLogRequest) -> ChangeLogResponse:
+        try:
+            change_log_payload: ChangeLogPayload = await self.g2p_register_controller_service.reject_change_log(change_log_request.request_body.request_payload.change_log_id)
+            change_log_response: ChangeLogResponse = self.helper.construct_change_log_success_response(
+                change_log_payload=change_log_payload, g2p_request=change_log_request
+            )
+            return change_log_response
+        except G2PRegistryException as gre:
+            _logger.error(f"G2PRegistryException in reject_change_log: {str(gre)}")
+            error_response: G2PResponse = self.helper.construct_registry_error_response(gre, change_log_request)
+            return error_response
+        except Exception as e:
+            _logger.error(f"Error in reject_change_log: {str(e)}")
             error_response: G2PResponse = self.helper.construct_error_response(e, change_log_request)
             return error_response

@@ -34,6 +34,13 @@ class G2PRegisterControllerService(BaseService):
         change_log: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
         return change_log
 
+    async def reject_change_log(self, change_log_id: str) -> ChangeLogPayload:
+        g2p_register_service = G2PRegisterService.get_component()
+        g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.reject_change_log(change_log_id)
+        change_log_payload = ChangeLogPayload()
+        change_log: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
+        return change_log
+
     async def _enrich_change_log_payload(self, change_log_payload: ChangeLogPayload , g2p_register_change_log: G2PRegisterChangeLog) -> ChangeLogPayload:
         
         change_log_payload.change_log_id = g2p_register_change_log.change_log_id

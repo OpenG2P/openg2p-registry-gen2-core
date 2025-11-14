@@ -67,6 +67,21 @@ class G2PRegisterService(BaseService):
             await session.commit()
             await session.refresh(change_log)
             return change_log
+    
+    async def reject_change_log(self, change_log_id: str, reason: str):
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate change log exists and is pending approval
+            change_log = await self.validate_change_log_exists(change_log_id, session)
+            _logger.info(f"Validated change log for rejection: {change_log}")
+            # Mark change log as rejected
+            change_log.approval_status = ApprovalStatusEnum.REJECTED.value
+            change_log.approved_by = "system" # TODO: Replace with actual user info
+            change_log.approved_at = func.now()
+            change_log.rejection_reason = reason
+            await session.commit()
+            await session.refresh(change_log)
+            return change_log
 
     async def validate_change_log_operation(self, g2p_register_change_log: G2PRegisterChangeLog, session) -> None:
         g2p_register_operation: G2PRegisterOperation = (
