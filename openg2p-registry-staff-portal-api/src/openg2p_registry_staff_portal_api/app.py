@@ -26,5 +26,9 @@ class Initializer(BaseInitializer):
         G2PRegisterController().post_init()
 
     def migrate_database(self, args):
+        _logger.info("Starting database migration")
+
         CoreInitializer().get_component().migrate_database(args)
         ExtensionsInitializer().get_component().migrate_database(args)
+
+        _logger.info("Database migration completed")
