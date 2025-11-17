@@ -6,7 +6,7 @@ from .config import Settings
 
 _config = Settings.get_config()
 
-from openg2p_registry_core.app import Initializer as BaseInitializer
+from openg2p_fastapi_common.app import Initializer as BaseInitializer
 
 from .models import G2PRegisterFarmer, G2PRegisterHistoryFarmer
 from .factory import G2PRegisterDomainFactory
@@ -23,7 +23,6 @@ class Initializer(BaseInitializer):
         G2PRegisterDomainFactory()
       
     def migrate_database(self, args):
-        super().migrate_database(args)
 
         async def migrate():
             _logger.info("Migrating database")
