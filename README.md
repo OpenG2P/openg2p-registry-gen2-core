@@ -27,7 +27,10 @@ Registry - Gen 2
     # For Service 1
     - Receive ingest_id
     - Fetch IncomingRawData and IncomingRawDataPayload for the ingest_id
-    - Iterate through IncomingModelSemanticPatterns for that data_model and determine incoming register_id and opertion_id
+    - Iterate through IncomingModelSemanticPatterns for that data_model and determine incoming register_id and opertion_id for that data_model_id
+    - See if there is a record in IncomingPayloadEnricher for that data_model_id, register_id and operation_id
+        - If yes, use that to enrich the payload and persist into IncomingEnrichedDataPayload
+        - If no, use the raw payload as is
     - Persist into IncomingClassifiedData and update the IncomingRawData as PROCESSED
 
     # For Service 2

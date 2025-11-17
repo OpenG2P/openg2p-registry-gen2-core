@@ -41,17 +41,19 @@ class IncomingTemplate(BaseORMModel):
     template_file: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('register_id', 'operation_id', 'data_model_id', name='uix_register_operation_data_model'),
+        UniqueConstraint(data_model_id, 'register_id', 'operation_id', name='uix_dro_1'),
     )
 
+class IncomingPayloadEnricher(BaseORMModel):
 
-class IncomingFactoryClass(BaseORMModel):
-
-    __tablename__ = "incoming_factory_classes"
+    __tablename__ = "incoming_payload_enrichers"
 
     incoming_factory_id: Mapped[str] = mapped_column(String, primary_key=True)
-    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    business_processing_class: Mapped[str] = mapped_column(String, nullable=False)
+    raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
     
+    __table_args__ = (
+        UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_2'),
+    )

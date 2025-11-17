@@ -25,8 +25,15 @@ class IncomingRawDataPayload(BaseORMModel):
     __tablename__ = "incoming_raw_data_payloads"
 
     ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
-    raw_data_json: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    raw_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
     raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+
+class IncomingEnrichedDataPayload(BaseORMModel):
+    __tablename__ = "incoming_enriched_data_payloads"
+
+    ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    enriched_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    enriched_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
 
 class IncomingClassifiedData(BaseORMModel):
 
