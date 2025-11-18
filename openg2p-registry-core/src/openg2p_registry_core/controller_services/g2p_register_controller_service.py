@@ -2,7 +2,7 @@ import logging
 from openg2p_fastapi_common.service import BaseService
 
 from openg2p_registry_core.models import G2PRegisterChangeLog
-from openg2p_registry_extensions.factory import G2PRegisterDomainFactory # Use importlib
+import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
 from ..schemas import ChangeLogRequest, ChangeLogPayload
@@ -16,7 +16,9 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         change_log_payload: ChangeLogPayload = change_log_request.request_body.request_payload
 
-        g2p_registry_domain_factory = G2PRegisterDomainFactory.get_component()
+        module = importlib.import_module("openg2p_registry_extensions.factory")
+        domain_factory_class_name = "G2PRegisterDomainFactory"
+        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(change_log_payload.register_mnemonic)
         await domain_service.validate_domain_attributes(change_log_payload)
 
