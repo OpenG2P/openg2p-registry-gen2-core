@@ -7,7 +7,8 @@ from openg2p_registry_core.schemas import (
     RegisterSummaryDataResponse, RegisterSummaryData,
     AllRegistersResponse, RegisterData,
     ChildRegistersResponse, ChildRegisterData,
-    ChildRegisterRequest
+    ChildRegisterRequest,
+    SearchResultsResponse, SearchResultData
 )
 from openg2p_registry_core.errors import G2PRegistryException
 from openg2p_fastapi_common.schemas import G2PResponse
@@ -68,6 +69,13 @@ class G2PRegisterController(BaseController):
             "/get_child_registers",
             self.get_child_registers,
             responses={200: {"model": ChildRegistersResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/search_in_a_register",
+            self.search_in_a_register,
+            responses={200: {"model": SearchResultsResponse}},
             methods=["POST"],
         )
 
@@ -157,4 +165,16 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_child_registers: {str(error_exception)}")
             error_response: ChildRegistersResponse = self.helper.construct_child_registers_error_response(error_exception)
+            return error_response
+
+    async def search_in_a_register(self, register_id: str, search_text: str) -> SearchResultsResponse:
+        try:
+            search_results_list: list[SearchResultData] = await self.g2p_register_controller_service.search_in_a_register(register_id, search_text)
+            search_results_response: SearchResultsResponse = self.helper.construct_search_results_success_response(
+                search_results_list=search_results_list
+            )
+            return search_results_response
+        except Exception as error_exception:
+            _logger.error(f"Error in search_in_a_register: {str(error_exception)}")
+            error_response: SearchResultsResponse = self.helper.construct_search_results_error_response(error_exception)
             return error_response

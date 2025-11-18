@@ -30,6 +30,20 @@ class ChildRegisterData(BaseModel):
     register_description: Optional[str] = None
 
 
+class SearchResultData(BaseModel):
+    internal_record_id: str
+    functional_record_id: str
+    link_record_id: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    last_approved_at: Optional[str] = None
+    last_approved_by: Optional[str] = None
+    additional_fields: Optional[dict] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
 class ChangeLogPayload(RegisterPayload):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None

@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -60,6 +60,12 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         child_registers_list: list[ChildRegisterData] = await g2p_register_service.get_child_registers(register_id)
         return child_registers_list
+
+    async def search_in_a_register(self, register_id: str, search_text: str) -> list[SearchResultData]:
+        _logger.info(f"Searching in register_id: {register_id} with search_text: {search_text} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        search_results_list: list[SearchResultData] = await g2p_register_service.search_in_a_register(register_id, search_text)
+        return search_results_list
 
     async def _enrich_change_log_payload(self, change_log_payload: ChangeLogPayload , g2p_register_change_log: G2PRegisterChangeLog) -> ChangeLogPayload:
         

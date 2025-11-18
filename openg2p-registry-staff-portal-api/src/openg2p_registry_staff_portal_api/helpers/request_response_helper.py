@@ -6,7 +6,8 @@ from openg2p_registry_core.schemas import (
     ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
-    ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody
+    ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
+    SearchResultData, SearchResultsResponse, SearchResultsResponseBody
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -180,6 +181,44 @@ class RequestResponseHelper(BaseService):
         )
 
         error_response: ChildRegistersResponse = ChildRegistersResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return error_response
+
+    def construct_search_results_success_response(self, search_results_list: List[SearchResultData]) -> SearchResultsResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: SearchResultsResponseBody = SearchResultsResponseBody(
+            response_payload=search_results_list
+        )
+
+        search_results_response: SearchResultsResponse = SearchResultsResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return search_results_response
+
+    def construct_search_results_error_response(self, error_exception: Exception) -> SearchResultsResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code="500",
+            response_error_message=str(error_exception),
+            response_timestamp=datetime.now()
+        )
+
+        response_body: SearchResultsResponseBody = SearchResultsResponseBody(
+            response_payload=None
+        )
+
+        error_response: SearchResultsResponse = SearchResultsResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )

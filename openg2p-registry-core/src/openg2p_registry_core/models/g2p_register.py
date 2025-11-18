@@ -2,7 +2,7 @@ from enum import unique
 from operator import index
 import uuid
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -18,3 +18,8 @@ class G2PRegister(BaseORMModel):
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     last_approved_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     last_approved_by: Mapped[str] = mapped_column(String, nullable=False)
+    search_text: Mapped[str] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('idx_search_text_trigram', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
+    )

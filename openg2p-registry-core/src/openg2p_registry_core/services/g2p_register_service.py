@@ -9,9 +9,10 @@ from openg2p_registry_core.schemas.payload import ChangeLogPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -57,6 +58,13 @@ class G2PRegisterService(BaseService):
             await self.validate_register_definition(register_id, session)
             child_registers_list: list[ChildRegisterData] = await self._fetch_child_registers(register_id, session)
             return child_registers_list
+
+    async def search_in_a_register(self, register_id: str, search_text: str) -> list[SearchResultData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            search_results_list: list[SearchResultData] = await self._search_in_register(register_id, search_text, session)
+            return search_results_list
 
     async def get_change_logs(self, internal_record_id: str):
         pass
@@ -425,3 +433,70 @@ class G2PRegisterService(BaseService):
             child_registers_list.append(child_register_data)
 
         return child_registers_list
+
+    async def _search_in_register(self, register_id: str, search_text: str, session) -> list[SearchResultData]:
+        g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+
+        # Get the implementation class for this register
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix: str = "G2PRegister"
+            implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+            implementation_class = getattr(module, implementation_class_name)
+        except (AttributeError, ModuleNotFoundError) as error:
+            _logger.error(f"Could not find register class for mnemonic {g2p_register_definition.register_mnemonic}: {str(error)}")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
+            )
+
+        # Search using LIKE with trigram index optimization
+        search_query: str = f"%{search_text}%"
+        search_results = (
+            await session.execute(
+                select(implementation_class).where(
+                    implementation_class.search_text.ilike(search_query)
+                )
+            )
+        ).scalars().all()
+
+        search_results_list: list[SearchResultData] = []
+
+        # Convert ORM objects to SearchResultData while still in session context
+        for result in search_results:
+            # Get all attributes from the ORM object using mapper
+            mapper = inspect(result.__class__)
+            additional_fields: dict = {}
+
+            # Base fields
+            base_fields: set = {
+                'internal_record_id', 'functional_record_id', 'link_record_id',
+                'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
+            }
+
+            for column in mapper.columns:
+                column_name: str = column.name
+                value = getattr(result, column_name, None)
+
+                # Convert datetime objects to strings
+                if value is not None and hasattr(value, 'isoformat'):
+                    value = value.isoformat()
+
+                # Add to additional_fields if not a base field
+                if column_name not in base_fields:
+                    additional_fields[column_name] = value
+
+            # Create SearchResultData object
+            search_result_data: SearchResultData = SearchResultData(
+                internal_record_id=result.internal_record_id,
+                functional_record_id=result.functional_record_id,
+                link_record_id=result.link_record_id,
+                created_by=result.created_by,
+                created_at=str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None,
+                last_approved_at=str(result.last_approved_at.isoformat()) if result.last_approved_at and hasattr(result.last_approved_at, 'isoformat') else None,
+                last_approved_by=result.last_approved_by,
+                additional_fields=additional_fields if additional_fields else None
+            )
+            search_results_list.append(search_result_data)
+
+        return search_results_list
