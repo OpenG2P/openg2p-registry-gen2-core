@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -498,5 +498,51 @@ class G2PRegisterService(BaseService):
                 additional_fields=additional_fields if additional_fields else None
             )
             search_results_list.append(search_result_data)
+
+        return search_results_list
+
+    async def search_in_change_log(self, search_text: str) -> list[ChangeLogSearchResultData]:
+        """Search in change logs using search_text field"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            search_results: list[ChangeLogSearchResultData] = await self._search_in_change_log(search_text, session)
+            return search_results
+
+    async def _search_in_change_log(self, search_text: str, session) -> list[ChangeLogSearchResultData]:
+        """Helper method to search in change logs"""
+        search_query = f"%{search_text}%"
+
+        result = await session.execute(
+            select(G2PRegisterChangeLog).where(
+                G2PRegisterChangeLog.search_text.ilike(search_query)
+            )
+        )
+        search_results = result.scalars().all()
+
+        search_results_list: list[ChangeLogSearchResultData] = []
+
+        # Convert ORM objects to ChangeLogSearchResultData while still in session context
+        for result in search_results:
+            # Convert datetime objects to strings
+            created_at_str = str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None
+            approved_at_str = str(result.approved_at.isoformat()) if result.approved_at and hasattr(result.approved_at, 'isoformat') else None
+
+            # Create ChangeLogSearchResultData object
+            change_log_search_result: ChangeLogSearchResultData = ChangeLogSearchResultData(
+                change_log_id=result.change_log_id,
+                register_id=result.register_id,
+                internal_record_id=result.internal_record_id,
+                operation_id=result.operation_id,
+                source_partner_id=result.source_partner_id,
+                created_by=result.created_by,
+                created_at=created_at_str,
+                no_of_verifications_required=result.no_of_verifications_required,
+                no_of_verifications_done=result.no_of_verifications_done,
+                approval_status=result.approval_status,
+                approved_by=result.approved_by,
+                approved_at=approved_at_str,
+                change_payload=result.change_payload
+            )
+            search_results_list.append(change_log_search_result)
 
         return search_results_list

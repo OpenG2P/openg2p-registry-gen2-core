@@ -1,9 +1,10 @@
 import enum
 from operator import index
 import uuid
+import json
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Index
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 class ApprovalStatusEnum(enum.Enum):
@@ -28,6 +29,22 @@ class G2PRegisterChangeLog(BaseORMModel):
     approval_status: Mapped[str] = mapped_column(String, nullable=False, default=ApprovalStatusEnum.PENDING.value)
     approved_by: Mapped[str] = mapped_column(String, nullable=True)
     approved_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    search_text: Mapped[str] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('ix_g2p_register_change_logs_search_text_gin', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
+    )
+
+    @validates('change_payload')
+    def update_search_text(self, key, value):
+        """Automatically populate search_text from change_payload JSON"""
+        if value:
+            # Convert JSON to string representation for searching
+            if isinstance(value, dict):
+                self.search_text = json.dumps(value)
+            else:
+                self.search_text = str(value)
+        return value
 
 class G2PRegisterChangeLogDocuments(BaseORMModel):
     __tablename__ = "g2p_register_change_log_documents"

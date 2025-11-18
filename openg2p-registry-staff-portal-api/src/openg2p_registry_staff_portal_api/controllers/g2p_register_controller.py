@@ -8,7 +8,8 @@ from openg2p_registry_core.schemas import (
     AllRegistersResponse, RegisterData,
     ChildRegistersResponse, ChildRegisterData,
     ChildRegisterRequest,
-    SearchResultsResponse, SearchResultData
+    SearchResultsResponse, SearchResultData,
+    ChangeLogSearchResultsResponse, ChangeLogSearchResultData
 )
 from openg2p_registry_core.errors import G2PRegistryException
 from openg2p_fastapi_common.schemas import G2PResponse
@@ -76,6 +77,13 @@ class G2PRegisterController(BaseController):
             "/search_in_a_register",
             self.search_in_a_register,
             responses={200: {"model": SearchResultsResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/search_in_change_log",
+            self.search_in_change_log,
+            responses={200: {"model": ChangeLogSearchResultsResponse}},
             methods=["POST"],
         )
 
@@ -177,4 +185,16 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in search_in_a_register: {str(error_exception)}")
             error_response: SearchResultsResponse = self.helper.construct_search_results_error_response(error_exception)
+            return error_response
+
+    async def search_in_change_log(self, search_text: str) -> ChangeLogSearchResultsResponse:
+        try:
+            search_results_list: list[ChangeLogSearchResultData] = await self.g2p_register_controller_service.search_in_change_log(search_text)
+            search_results_response: ChangeLogSearchResultsResponse = self.helper.construct_change_log_search_results_success_response(
+                search_results_list=search_results_list
+            )
+            return search_results_response
+        except Exception as error_exception:
+            _logger.error(f"Error in search_in_change_log: {str(error_exception)}")
+            error_response: ChangeLogSearchResultsResponse = self.helper.construct_change_log_search_results_error_response(error_exception)
             return error_response

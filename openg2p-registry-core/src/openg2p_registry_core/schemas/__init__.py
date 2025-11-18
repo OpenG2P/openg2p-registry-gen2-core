@@ -4,8 +4,9 @@ from .response import (
     RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
     AllRegistersResponse, AllRegistersResponseBody,
     ChildRegistersResponse, ChildRegistersResponseBody,
-    SearchResultsResponse, SearchResultsResponseBody
+    SearchResultsResponse, SearchResultsResponseBody,
+    ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

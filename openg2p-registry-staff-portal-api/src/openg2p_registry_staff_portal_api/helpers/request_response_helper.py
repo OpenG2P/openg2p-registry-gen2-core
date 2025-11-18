@@ -7,7 +7,8 @@ from openg2p_registry_core.schemas import (
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
     ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
-    SearchResultData, SearchResultsResponse, SearchResultsResponseBody
+    SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
+    ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -219,6 +220,44 @@ class RequestResponseHelper(BaseService):
         )
 
         error_response: SearchResultsResponse = SearchResultsResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return error_response
+
+    def construct_change_log_search_results_success_response(self, search_results_list: List[ChangeLogSearchResultData]) -> ChangeLogSearchResultsResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChangeLogSearchResultsResponseBody = ChangeLogSearchResultsResponseBody(
+            response_payload=search_results_list
+        )
+
+        change_log_search_results_response: ChangeLogSearchResultsResponse = ChangeLogSearchResultsResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return change_log_search_results_response
+
+    def construct_change_log_search_results_error_response(self, error_exception: Exception) -> ChangeLogSearchResultsResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code="500",
+            response_error_message=str(error_exception),
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChangeLogSearchResultsResponseBody = ChangeLogSearchResultsResponseBody(
+            response_payload=None
+        )
+
+        error_response: ChangeLogSearchResultsResponse = ChangeLogSearchResultsResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
