@@ -15,6 +15,21 @@ class RegisterSummaryData(BaseModel):
     total_record_count: int
 
 
+class RegisterData(BaseModel):
+    register_id: str
+    register_mnemonic: str
+    register_subject: Optional[str] = None
+    register_description: Optional[str] = None
+    master_register_id: Optional[str] = None
+
+
+class ChildRegisterData(BaseModel):
+    register_id: str
+    register_mnemonic: str
+    register_subject: Optional[str] = None
+    register_description: Optional[str] = None
+
+
 class ChangeLogPayload(RegisterPayload):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None

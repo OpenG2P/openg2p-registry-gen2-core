@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -48,6 +48,18 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         register_summary_data_list: list[RegisterSummaryData] = await g2p_register_service.get_register_summary_data()
         return register_summary_data_list
+
+    async def get_all_registers(self) -> list[RegisterData]:
+        _logger.info("Fetching all registers through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        all_registers_list: list[RegisterData] = await g2p_register_service.get_all_registers()
+        return all_registers_list
+
+    async def get_child_registers(self, register_id: str) -> list[ChildRegisterData]:
+        _logger.info(f"Fetching child registers for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        child_registers_list: list[ChildRegisterData] = await g2p_register_service.get_child_registers(register_id)
+        return child_registers_list
 
     async def _enrich_change_log_payload(self, change_log_payload: ChangeLogPayload , g2p_register_change_log: G2PRegisterChangeLog) -> ChangeLogPayload:
         

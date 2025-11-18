@@ -2,7 +2,13 @@ import logging
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PRegisterControllerService
-from openg2p_registry_core.schemas import ChangeLogRequest, ChangeLogResponse, ChangeLogPayload, RegisterSummaryDataResponse, RegisterSummaryData
+from openg2p_registry_core.schemas import (
+    ChangeLogRequest, ChangeLogResponse, ChangeLogPayload,
+    RegisterSummaryDataResponse, RegisterSummaryData,
+    AllRegistersResponse, RegisterData,
+    ChildRegistersResponse, ChildRegisterData,
+    ChildRegisterRequest
+)
 from openg2p_registry_core.errors import G2PRegistryException
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -49,6 +55,20 @@ class G2PRegisterController(BaseController):
             self.get_register_summary_data,
             responses={200: {"model": RegisterSummaryDataResponse}},
             methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_all_registers",
+            self.get_all_registers,
+            responses={200: {"model": AllRegistersResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_child_registers",
+            self.get_child_registers,
+            responses={200: {"model": ChildRegistersResponse}},
+            methods=["POST"],
         )
 
 
@@ -113,4 +133,28 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_register_summary_data: {str(error_exception)}")
             error_response: RegisterSummaryDataResponse = self.helper.construct_register_summary_data_error_response(error_exception)
+            return error_response
+
+    async def get_all_registers(self) -> AllRegistersResponse:
+        try:
+            all_registers_list: list[RegisterData] = await self.g2p_register_controller_service.get_all_registers()
+            all_registers_response: AllRegistersResponse = self.helper.construct_all_registers_success_response(
+                all_registers_list=all_registers_list
+            )
+            return all_registers_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_all_registers: {str(error_exception)}")
+            error_response: AllRegistersResponse = self.helper.construct_all_registers_error_response(error_exception)
+            return error_response
+
+    async def get_child_registers(self, register_id: str) -> ChildRegistersResponse:
+        try:
+            child_registers_list: list[ChildRegisterData] = await self.g2p_register_controller_service.get_child_registers(register_id)
+            child_registers_response: ChildRegistersResponse = self.helper.construct_child_registers_success_response(
+                child_registers_list=child_registers_list
+            )
+            return child_registers_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_child_registers: {str(error_exception)}")
+            error_response: ChildRegistersResponse = self.helper.construct_child_registers_error_response(error_exception)
             return error_response

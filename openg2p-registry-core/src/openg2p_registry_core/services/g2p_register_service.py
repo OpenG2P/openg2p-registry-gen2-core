@@ -11,7 +11,7 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -44,6 +44,19 @@ class G2PRegisterService(BaseService):
         async with session_maker() as session:
             register_summary_data_list: list[RegisterSummaryData] = await self._fetch_register_summary_data(session)
             return register_summary_data_list
+
+    async def get_all_registers(self) -> list[RegisterData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            all_registers_list: list[RegisterData] = await self._fetch_all_registers(session)
+            return all_registers_list
+
+    async def get_child_registers(self, register_id: str) -> list[ChildRegisterData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            child_registers_list: list[ChildRegisterData] = await self._fetch_child_registers(register_id, session)
+            return child_registers_list
 
     async def get_change_logs(self, internal_record_id: str):
         pass
@@ -371,3 +384,44 @@ class G2PRegisterService(BaseService):
         except (AttributeError, ModuleNotFoundError) as error:
             _logger.warning(f"Could not find register class for mnemonic {register_definition.register_mnemonic}: {str(error)}")
             return 0
+
+    async def _fetch_all_registers(self, session) -> list[RegisterData]:
+        register_definitions: list[G2PRegisterDefinition] = (
+            await session.execute(select(G2PRegisterDefinition))
+        ).scalars().all()
+
+        all_registers_list: list[RegisterData] = []
+
+        for register_definition in register_definitions:
+            register_data: RegisterData = RegisterData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_definition.register_description,
+                master_register_id=register_definition.master_register_id
+            )
+            all_registers_list.append(register_data)
+
+        return all_registers_list
+
+    async def _fetch_child_registers(self, parent_register_id: str, session) -> list[ChildRegisterData]:
+        child_register_definitions: list[G2PRegisterDefinition] = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.master_register_id == parent_register_id
+                )
+            )
+        ).scalars().all()
+
+        child_registers_list: list[ChildRegisterData] = []
+
+        for register_definition in child_register_definitions:
+            child_register_data: ChildRegisterData = ChildRegisterData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_definition.register_description
+            )
+            child_registers_list.append(child_register_data)
+
+        return child_registers_list

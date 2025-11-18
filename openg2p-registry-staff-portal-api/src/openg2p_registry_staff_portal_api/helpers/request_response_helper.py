@@ -2,7 +2,12 @@ from datetime import datetime
 from typing import List
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
-from openg2p_registry_core.schemas import ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody, RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody
+from openg2p_registry_core.schemas import (
+    ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody,
+    RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
+    RegisterData, AllRegistersResponse, AllRegistersResponseBody,
+    ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody
+)
 from openg2p_registry_core.errors import G2PRegistryException
 
 
@@ -99,6 +104,82 @@ class RequestResponseHelper(BaseService):
         )
 
         error_response: RegisterSummaryDataResponse = RegisterSummaryDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return error_response
+
+    def construct_all_registers_success_response(self, all_registers_list: List[RegisterData]) -> AllRegistersResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: AllRegistersResponseBody = AllRegistersResponseBody(
+            response_payload=all_registers_list
+        )
+
+        all_registers_response: AllRegistersResponse = AllRegistersResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return all_registers_response
+
+    def construct_all_registers_error_response(self, error_exception: Exception) -> AllRegistersResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code="500",
+            response_error_message=str(error_exception),
+            response_timestamp=datetime.now()
+        )
+
+        response_body: AllRegistersResponseBody = AllRegistersResponseBody(
+            response_payload=None
+        )
+
+        error_response: AllRegistersResponse = AllRegistersResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return error_response
+
+    def construct_child_registers_success_response(self, child_registers_list: List[ChildRegisterData]) -> ChildRegistersResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChildRegistersResponseBody = ChildRegistersResponseBody(
+            response_payload=child_registers_list
+        )
+
+        child_registers_response: ChildRegistersResponse = ChildRegistersResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return child_registers_response
+
+    def construct_child_registers_error_response(self, error_exception: Exception) -> ChildRegistersResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code="500",
+            response_error_message=str(error_exception),
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChildRegistersResponseBody = ChildRegistersResponseBody(
+            response_payload=None
+        )
+
+        error_response: ChildRegistersResponse = ChildRegistersResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
