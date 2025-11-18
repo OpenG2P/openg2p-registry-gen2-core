@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 
 from ..models import ApprovalStatusEnum
@@ -6,6 +6,13 @@ from ..models import ApprovalStatusEnum
 
 class RegisterPayload(BaseModel):
     pass
+
+
+class RegisterSummaryData(BaseModel):
+    register_id: str
+    register_mnemonic: str
+    register_subject: Optional[str] = None
+    total_record_count: int
 
 
 class ChangeLogPayload(RegisterPayload):

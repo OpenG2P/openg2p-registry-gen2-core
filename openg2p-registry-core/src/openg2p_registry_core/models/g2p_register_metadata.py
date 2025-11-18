@@ -4,7 +4,7 @@ from site import venv
 import uuid
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 
@@ -13,8 +13,22 @@ class G2PRegisterDefinition(BaseORMModel):
 
     register_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_mnemonic: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    register_subject: Mapped[str] = mapped_column(String, nullable=True)
     register_description: Mapped[Text] = mapped_column(Text, nullable=True)
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
+    @validates('register_mnemonic')
+    def set_register_subject(self, _key: str, register_mnemonic_value: str) -> str:
+        """
+        Automatically set register_subject to the plural form of register_mnemonic
+        with the first letter capitalized.
+        Example: 'farmer' -> 'Farmers'
+        """
+        if register_mnemonic_value:
+            plural_form: str = register_mnemonic_value + 's'
+            capitalized_plural: str = plural_form[0].upper() + plural_form[1:]
+            self.register_subject = capitalized_plural
+        return register_mnemonic_value
 
 
 class G2PRegisterOperation(BaseORMModel):

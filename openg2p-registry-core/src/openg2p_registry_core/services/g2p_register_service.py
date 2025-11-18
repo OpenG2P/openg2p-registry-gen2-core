@@ -11,7 +11,7 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest
+from ..schemas import ChangeLogRequest, RegisterSummaryData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -38,6 +38,12 @@ class G2PRegisterService(BaseService):
             await session.refresh(g2p_register_change_log)
 
             return g2p_register_change_log
+
+    async def get_register_summary_data(self) -> list[RegisterSummaryData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            register_summary_data_list: list[RegisterSummaryData] = await self._fetch_register_summary_data(session)
+            return register_summary_data_list
 
     async def get_change_logs(self, internal_record_id: str):
         pass
@@ -325,5 +331,43 @@ class G2PRegisterService(BaseService):
             no_of_verifications_required=g2p_register_operation.no_of_verifications_required,
             no_of_verifications_done=0,
             approval_status=change_log_request.request_body.request_payload.approval_status.value,
-        )    
+        )
         return g2p_register_change_log
+
+    async def _fetch_register_summary_data(self, session) -> list[RegisterSummaryData]:
+        register_definitions: list[G2PRegisterDefinition] = (
+            await session.execute(select(G2PRegisterDefinition))
+        ).scalars().all()
+
+        register_summary_data_list: list[RegisterSummaryData] = []
+
+        for register_definition in register_definitions:
+            total_record_count: int = await self._count_records_for_register(register_definition, session)
+
+            register_summary_data: RegisterSummaryData = RegisterSummaryData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                total_record_count=total_record_count
+            )
+            register_summary_data_list.append(register_summary_data)
+
+        return register_summary_data_list
+
+    async def _count_records_for_register(self, register_definition: G2PRegisterDefinition, session) -> int:
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.models")
+            register_class_prefix = "G2PRegister"
+            implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+            register_class = getattr(module, implementation_class_name)
+
+            total_record_count: int = (
+                await session.execute(
+                    select(func.count()).select_from(register_class)
+                )
+            ).scalar_one()
+
+            return total_record_count
+        except (AttributeError, ModuleNotFoundError) as error:
+            _logger.warning(f"Could not find register class for mnemonic {register_definition.register_mnemonic}: {str(error)}")
+            return 0

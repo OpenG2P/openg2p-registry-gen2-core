@@ -1,13 +1,8 @@
 import logging
 from openg2p_fastapi_common.controller import BaseController
-from typing import Annotated
-from fastapi import Depends
-
-from openg2p_fastapi_auth.auth.factory import AuthFactory
-from openg2p_fastapi_auth_models.schemas import AuthCredentials
 
 from openg2p_registry_core.controller_services import G2PRegisterControllerService
-from openg2p_registry_core.schemas import ChangeLogRequest, ChangeLogResponse, ChangeLogPayload
+from openg2p_registry_core.schemas import ChangeLogRequest, ChangeLogResponse, ChangeLogPayload, RegisterSummaryDataResponse, RegisterSummaryData
 from openg2p_registry_core.errors import G2PRegistryException
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -47,6 +42,13 @@ class G2PRegisterController(BaseController):
             self.reject_change_log,
             responses={200: {"model": ChangeLogResponse}},
             methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_summary_data",
+            self.get_register_summary_data,
+            responses={200: {"model": RegisterSummaryDataResponse}},
+            methods=["GET"],
         )
 
 
@@ -99,4 +101,16 @@ class G2PRegisterController(BaseController):
         except Exception as e:
             _logger.error(f"Error in reject_change_log: {str(e)}")
             error_response: G2PResponse = self.helper.construct_error_response(e, change_log_request)
+            return error_response
+
+    async def get_register_summary_data(self) -> RegisterSummaryDataResponse:
+        try:
+            register_summary_data_list: list[RegisterSummaryData] = await self.g2p_register_controller_service.get_register_summary_data()
+            register_summary_data_response: RegisterSummaryDataResponse = self.helper.construct_register_summary_data_success_response(
+                register_summary_data_list=register_summary_data_list
+            )
+            return register_summary_data_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_summary_data: {str(error_exception)}")
+            error_response: RegisterSummaryDataResponse = self.helper.construct_register_summary_data_error_response(error_exception)
             return error_response

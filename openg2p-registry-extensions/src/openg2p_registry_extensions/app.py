@@ -8,9 +8,9 @@ _config = Settings.get_config()
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 
-from .models import G2PRegisterFarmer, G2PRegisterHistoryFarmer
-from .factory import G2PRegisterDomainFactory
-from .services import G2PRegisterFarmerDomainService
+from .register_domain.models import G2PRegisterFarmer, G2PRegisterHistoryFarmer
+from .register_domain.factory import G2PRegisterDomainFactory
+from .register_domain.services import G2PRegisterFarmerDomainService
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
 

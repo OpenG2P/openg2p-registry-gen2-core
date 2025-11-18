@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import List
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
-from openg2p_registry_core.schemas import ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody
+from openg2p_registry_core.schemas import ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody, RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody
 from openg2p_registry_core.errors import G2PRegistryException
 
 
@@ -63,4 +64,42 @@ class RequestResponseHelper(BaseService):
 
         )
 
+        return error_response
+
+    def construct_register_summary_data_success_response(self, register_summary_data_list: List[RegisterSummaryData]) -> RegisterSummaryDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterSummaryDataResponseBody = RegisterSummaryDataResponseBody(
+            response_payload=register_summary_data_list
+        )
+
+        register_summary_data_response: RegisterSummaryDataResponse = RegisterSummaryDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_summary_data_response
+
+    def construct_register_summary_data_error_response(self, error_exception: Exception) -> RegisterSummaryDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code="500",
+            response_error_message=str(error_exception),
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterSummaryDataResponseBody = RegisterSummaryDataResponseBody(
+            response_payload=None
+        )
+
+        error_response: RegisterSummaryDataResponse = RegisterSummaryDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
         return error_response
