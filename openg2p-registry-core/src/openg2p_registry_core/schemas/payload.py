@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel
 
 from ..models import ApprovalStatusEnum
@@ -80,3 +81,7 @@ class ChangeLogPayload(RegisterPayload):
     created_at: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
+
+
+class IngestDataPayload(BaseModel):
+    ingest_id: str
