@@ -1,2 +1,3 @@
 from .g2p_register_service import G2PRegisterService
 from .g2p_register_domain_service import G2PRegisterDomainService
+from .g2p_partner_service import G2PPartnerService

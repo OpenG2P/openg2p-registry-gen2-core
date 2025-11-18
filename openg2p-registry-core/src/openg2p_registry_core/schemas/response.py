@@ -4,7 +4,8 @@ from openg2p_fastapi_common.schemas import (
     G2PResponse,
     G2PResponseBody,
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload
+
 
 class ChangeLogResponseBody(G2PResponseBody):
     response_payload: Optional[ChangeLogPayload] = None
@@ -12,7 +13,7 @@ class ChangeLogResponseBody(G2PResponseBody):
 class ChangeLogResponse(G2PResponse):
     response_body: Optional[ChangeLogResponseBody] = None
 
-
+# Register Summary Data
 class RegisterSummaryDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterSummaryData]] = None
 
@@ -46,3 +47,9 @@ class ChangeLogSearchResultsResponseBody(G2PResponseBody):
 
 class ChangeLogSearchResultsResponse(G2PResponse):
     response_body: Optional[ChangeLogSearchResultsResponseBody] = None
+
+class IngestDataResponseBody(G2PResponseBody):
+    response_payload: Optional[IngestDataPayload] = None
+
+class IngestDataResponse(G2PResponse):
+    response_body: Optional[IngestDataResponseBody] = None
