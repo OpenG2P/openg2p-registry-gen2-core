@@ -17,8 +17,8 @@ class IncomingRawData(BaseORMModel):
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     receipt_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    process_status: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    process_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    classification_status: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    classification_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
 
 class IncomingRawDataPayload(BaseORMModel):
 
@@ -28,12 +28,14 @@ class IncomingRawDataPayload(BaseORMModel):
     raw_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
     raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
 
-class IncomingEnrichedDataPayload(BaseORMModel):
-    __tablename__ = "incoming_enriched_data_payloads"
+class IncomingEnrichedTransformedData(BaseORMModel):
+    __tablename__ = "incoming_enriched_transformed_data"
 
     ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
     enriched_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
     enriched_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+    transformed_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    transformed_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
 
 class IncomingClassifiedData(BaseORMModel):
 
@@ -43,6 +45,7 @@ class IncomingClassifiedData(BaseORMModel):
     inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    process_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
-    process_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
-    sender_processor_class: Mapped[str] = mapped_column(String, nullable=False)
+    transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
+    transformation_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    ingestion_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
+    ingestion_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
