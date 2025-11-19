@@ -44,7 +44,7 @@ class IncomingTemplate(BaseORMModel):
     template_file: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_1'),
+        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_2'),
     )
 
 class IncomingPayloadEnricher(BaseORMModel):
@@ -58,5 +58,5 @@ class IncomingPayloadEnricher(BaseORMModel):
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
     
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_2'),
+        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_3'),
     )

@@ -1,15 +1,29 @@
+from fastapi import Request
+from typing import Dict
 from datetime import datetime
 from openg2p_fastapi_common.service import BaseService
-from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
+from openg2p_fastapi_common.schemas import G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
 from openg2p_registry_core.schemas import IngestDataPayload, IngestDataRequest, IngestDataResponse, IngestDataResponseBody
 from openg2p_registry_core.errors import G2PRegistryException
-from fastapi import Request
 
 class RequestResponseHelper(BaseService):
-    def construct_ingest_data_success_response(self, ingest_data_payload: IngestDataPayload, ingest_data_request: Request) -> IngestDataResponse:
-        
+    async def construct_http_request(self, request: Request) -> Dict:
+        try:
+            request_body: Dict = await request.json()
+            request_headers: Dict = dict(request.headers)
+
+            http_request: Dict = {
+                "headers": request_headers,
+                "body": request_body
+            }
+            return http_request
+
+        except Exception as _:
+            raise Exception("Request body is empty or invalid JSON")
+
+    def construct_ingest_data_success_response(self, ingest_data_payload: IngestDataPayload, ingest_data_request: IngestDataRequest) -> IngestDataResponse:
         g2p_response_header = G2PResponseHeader(
-            request_id=ingest_data_request.request_header.request_id,
+            request_id="",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -26,13 +40,25 @@ class RequestResponseHelper(BaseService):
         )
         return ingest_data_response
     
-    def construct_registry_error_response(self, registry_exception: G2PRegistryException, g2p_request: G2PRequest) -> G2PResponse:
+    def construct_error_response(self, error: Exception, g2p_request: IngestDataRequest = None) -> G2PResponse:
+        """
+        Unified error response constructor that handles both G2PRegistryException and generic exceptions.
+        For G2PRegistryException, uses the exception's code and message.
+        For other exceptions, uses error code "500" and the exception message.
+        g2p_request is optional - if not provided, request_id will be empty string.
+        """
+        if isinstance(error, G2PRegistryException):
+            error_code = error.code
+            error_message = error.message
+        else:
+            error_code = "500"
+            error_message = str(error)
 
         g2p_response_header = G2PResponseHeader(
-            request_id=g2p_request.request_header.request_id,
+            request_id="",
             response_status=G2PResponseStatus.ERROR,
-            response_error_code=registry_exception.code,
-            response_error_message=registry_exception.message,
+            response_error_code=error_code,
+            response_error_message=error_message,
             response_timestamp=datetime.now()
         )
         error_response = G2PResponse(
@@ -41,26 +67,6 @@ class RequestResponseHelper(BaseService):
                 pagination_response=None,
                 response_payload=None
             )
-        )
-
-        return error_response
-
-    def construct_error_response(self, error: Exception, g2p_request: G2PRequest) -> G2PResponse:
-
-        g2p_response_header = G2PResponseHeader(
-            request_id=g2p_request.request_header.request_id,
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error),
-            response_timestamp=datetime.now()
-        )
-        error_response = G2PResponse(
-            response_header=g2p_response_header,
-            response_body=G2PResponseBody(
-                pagination_response=None,
-                response_payload=None
-            )
-
         )
 
         return error_response
