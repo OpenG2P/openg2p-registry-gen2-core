@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
 
-class IncomingPartners(BaseORMModel):
+class IncomingPartner(BaseORMModel):
    
     __tablename__ = "incoming_partners"
 
@@ -15,10 +15,9 @@ class IncomingModelSignaturePattern(BaseORMModel):
     
     __tablename__ = "incoming_model_signature_patterns"
     signature_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
-    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     pattern_for_sender: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_signature: Mapped[str] = mapped_column(String, nullable=False)
-    pattern_for_data_model: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingModelSemanticPattern(BaseORMModel):
     
@@ -30,18 +29,22 @@ class IncomingModelSemanticPattern(BaseORMModel):
     inbound_register_id: Mapped[str] = mapped_column(String, nullable=False)
     inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False)
 
+    __table_args__ = (
+        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_1'),
+    )
+
 class IncomingTemplate(BaseORMModel):
     
     __tablename__ = "incoming_templates"
 
     template_id: Mapped[str] = mapped_column(String, primary_key=True)
-    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     template_file: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint(data_model_id, 'register_id', 'operation_id', name='uix_dro_1'),
+        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_1'),
     )
 
 class IncomingPayloadEnricher(BaseORMModel):
@@ -50,10 +53,10 @@ class IncomingPayloadEnricher(BaseORMModel):
 
     incoming_factory_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
     
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_2'),
+        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_2'),
     )

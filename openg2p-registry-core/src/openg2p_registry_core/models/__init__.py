@@ -3,6 +3,6 @@ from .g2p_register import G2PRegister
 from .g2p_register_history import G2PRegisterHistory
 from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterOperation
 from .g2p_register_verifications import G2PRegisterVerification
-from .ingestion_configuration import IncomingPayloadEnricher, IncomingModelSemanticPattern, IncomingModelSignaturePattern, IncomingPartners, IncomingTemplate
-from .ingestion_pipeline import IncomingClassifiedData, IncomingRawData, IncomingRawDataPayload, ProcessStatusEnum, IncomingEnrichedDataPayload
+from .ingestion_configuration import IncomingPayloadEnricher, IncomingModelSemanticPattern, IncomingModelSignaturePattern, IncomingPartner, IncomingTemplate
+from .ingestion_pipeline import IncomingClassifiedData, IncomingRawData, IncomingRawDataPayload, ProcessStatusEnum, IncomingEnrichedTransformedData
 from .data_models import DataModel
