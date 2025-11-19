@@ -1,5 +1,6 @@
 import logging
-from typing import Dict
+from typing import Dict, Optional
+from fastapi import Request
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PPartnerControllerService
@@ -29,20 +30,18 @@ class G2PPartnerController(BaseController):
             responses={200: {"model": IngestDataResponse}},
             methods=["POST"],
         )
-    
-    async def ingest_data(self, ingest_data_request: IngestDataRequest) -> IngestDataResponse:
+
+    async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: str) -> IngestDataResponse:
         try:
-            ingest_data: Dict = await ingest_data_request.json()
-            ingest_data_payload: IngestDataPayload = await self.g2p_partner_controller_service.ingest_data(ingest_data)
+            _logger.info(f"Data ingestion request received for data_model: {data_model}")
+
+            ingest_data: Dict = await self.request_response_helper.construct_http_request(ingest_data_request)
+
+            ingest_data_payload: IngestDataPayload = await self.g2p_partner_controller_service.ingest_data(data_model, ingest_data)
             injest_data_response = self.request_response_helper.construct_ingest_data_success_response(ingest_data_payload, ingest_data_request)
             return injest_data_response
-        
-        except G2PRegistryException as gre:
-            _logger.error(f"G2PRegistryException in ingest_data: {str(gre)}")
-            error_response: G2PResponse = self.request_response_helper.construct_registry_error_response(gre, ingest_data_request)
-            return error_response
-        
-        except Exception as e:
-            _logger.error(f"Error in ingest_data: {str(e)}")
-            error_response: G2PResponse = self.request_response_helper.construct_error_response(e, ingest_data_request)
+
+        except Exception as error_exception:
+            _logger.error(f"Error in ingest_data: {str(error_exception)}")
+            error_response: G2PResponse = self.request_response_helper.construct_error_response(error_exception, ingest_data_request)
             return error_response
