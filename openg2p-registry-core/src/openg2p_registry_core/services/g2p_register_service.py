@@ -11,7 +11,7 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
-from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
+from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
 from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -23,17 +23,20 @@ class G2PRegisterService(BaseService):
     async def create_change_log(self, change_log_request: ChangeLogRequest):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            
+
             g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request.request_body.request_payload.register_id, session)
             g2p_register_operation: G2PRegisterOperation = await self.validate_operation(change_log_request.request_body.request_payload.operation_id, session)
 
             if not g2p_register_operation.is_new_operation:
                 # Check whether the record exists with given internal_record_id
                 await self.validate_internal_record(g2p_register_definition, change_log_request.request_body.request_payload.internal_record_id, session)
-                    
+
             g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_request, g2p_register_operation)
-            
+
             session.add(g2p_register_change_log)
+            # Add the payload object if it exists
+            if hasattr(g2p_register_change_log, '_payload_to_add'):
+                session.add(g2p_register_change_log._payload_to_add)
             await session.commit()
             # Refresh to get any DB defaults
             await session.refresh(g2p_register_change_log)
@@ -206,8 +209,17 @@ class G2PRegisterService(BaseService):
         schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
         history_schema_class = getattr(schema_module, schema_class_name)
 
+        # Fetch the payload from the database
+        payload_result = await session.execute(
+            select(G2PRegisterChangeLogPayload).where(
+                G2PRegisterChangeLogPayload.change_log_id == change_log.change_log_id
+            )
+        )
+        payload = payload_result.scalar()
+        change_payload = payload.change_payload if payload else {}
+
         # Serialize change log payload to history schema
-        history_schema_instance = history_schema_class(**(change_log.change_payload or {}))
+        history_schema_instance = history_schema_class(**(change_payload or {}))
 
         history_schema_instance.history_record_id = str(uuid.uuid4())
         history_schema_instance.internal_record_id = change_log.internal_record_id
@@ -249,8 +261,17 @@ class G2PRegisterService(BaseService):
         schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
         schema_class = getattr(schema_module, schema_class_name)
 
+        # Fetch the payload from the database
+        payload_result = await session.execute(
+            select(G2PRegisterChangeLogPayload).where(
+                G2PRegisterChangeLogPayload.change_log_id == change_log.change_log_id
+            )
+        )
+        payload = payload_result.scalar()
+        change_payload = payload.change_payload if payload else {}
+
         # Serialize change log payload to register schema
-        register_schema_instance = schema_class(**(change_log.change_payload or {}))
+        register_schema_instance = schema_class(**(change_payload or {}))
         if existing:
             for key, value in register_schema_instance.dict().items():
                 setattr(existing, key, value)
@@ -340,12 +361,19 @@ class G2PRegisterService(BaseService):
         change_log_id = str(uuid.uuid4())
         if g2p_register_operation.is_new_operation:
             change_log_request.request_body.request_payload.internal_record_id = str(uuid.uuid4())
+
+        # Create the payload object
+        change_log_payload = G2PRegisterChangeLogPayload(
+            change_log_id=change_log_id,
+            change_payload=change_log_request.request_body.request_payload.change_payload,
+        )
+
+        # Create the change log object
         g2p_register_change_log = G2PRegisterChangeLog(
             change_log_id=change_log_id,
             register_id=change_log_request.request_body.request_payload.register_id,
             internal_record_id=change_log_request.request_body.request_payload.internal_record_id,
             operation_id=change_log_request.request_body.request_payload.operation_id,
-            change_payload=change_log_request.request_body.request_payload.change_payload,
             source_partner_id=change_log_request.request_header.sender_app_mnemonic,
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
@@ -353,6 +381,10 @@ class G2PRegisterService(BaseService):
             no_of_verifications_done=0,
             approval_status=change_log_request.request_body.request_payload.approval_status.value,
         )
+
+        # Add both objects to session so they're persisted together
+        # The payload will be added when the change log is added
+        g2p_register_change_log._payload_to_add = change_log_payload
         return g2p_register_change_log
 
     async def _fetch_register_summary_data(self, session) -> list[RegisterSummaryData]:
@@ -512,36 +544,43 @@ class G2PRegisterService(BaseService):
         """Helper method to search in change logs"""
         search_query = f"%{search_text}%"
 
+        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload and search on search_text
         result = await session.execute(
-            select(G2PRegisterChangeLog).where(
-                G2PRegisterChangeLog.search_text.ilike(search_query)
+            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
+                G2PRegisterChangeLogPayload,
+                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+            ).where(
+                G2PRegisterChangeLogPayload.search_text.ilike(search_query)
             )
         )
-        search_results = result.scalars().all()
+        search_results = result.all()
 
         search_results_list: list[ChangeLogSearchResultData] = []
 
         # Convert ORM objects to ChangeLogSearchResultData while still in session context
-        for result in search_results:
+        for change_log, payload in search_results:
             # Convert datetime objects to strings
-            created_at_str = str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None
-            approved_at_str = str(result.approved_at.isoformat()) if result.approved_at and hasattr(result.approved_at, 'isoformat') else None
+            created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
+            approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+
+            # Get change_payload from the payload object
+            change_payload = payload.change_payload if payload else None
 
             # Create ChangeLogSearchResultData object
             change_log_search_result: ChangeLogSearchResultData = ChangeLogSearchResultData(
-                change_log_id=result.change_log_id,
-                register_id=result.register_id,
-                internal_record_id=result.internal_record_id,
-                operation_id=result.operation_id,
-                source_partner_id=result.source_partner_id,
-                created_by=result.created_by,
+                change_log_id=change_log.change_log_id,
+                register_id=change_log.register_id,
+                internal_record_id=change_log.internal_record_id,
+                operation_id=change_log.operation_id,
+                source_partner_id=change_log.source_partner_id,
+                created_by=change_log.created_by,
                 created_at=created_at_str,
-                no_of_verifications_required=result.no_of_verifications_required,
-                no_of_verifications_done=result.no_of_verifications_done,
-                approval_status=result.approval_status,
-                approved_by=result.approved_by,
+                no_of_verifications_required=change_log.no_of_verifications_required,
+                no_of_verifications_done=change_log.no_of_verifications_done,
+                approval_status=change_log.approval_status,
+                approved_by=change_log.approved_by,
                 approved_at=approved_at_str,
-                change_payload=result.change_payload
+                change_payload=change_payload
             )
             search_results_list.append(change_log_search_result)
 

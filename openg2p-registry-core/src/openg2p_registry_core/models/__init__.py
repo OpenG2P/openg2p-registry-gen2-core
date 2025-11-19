@@ -1,4 +1,4 @@
-from .g2p_register_change_log import G2PRegisterChangeLog, ApprovalStatusEnum, G2PRegisterChangeLogDocuments
+from .g2p_register_change_log import G2PRegisterChangeLog, ApprovalStatusEnum, G2PRegisterChangeLogDocuments, G2PRegisterChangeLogPayload
 from .g2p_register import G2PRegister
 from .g2p_register_history import G2PRegisterHistory
 from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterOperation

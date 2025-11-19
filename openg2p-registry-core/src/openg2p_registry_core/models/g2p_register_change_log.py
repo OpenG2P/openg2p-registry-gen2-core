@@ -3,7 +3,7 @@ from operator import index
 import uuid
 import json
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Index
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Index, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -20,7 +20,6 @@ class G2PRegisterChangeLog(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
@@ -29,10 +28,17 @@ class G2PRegisterChangeLog(BaseORMModel):
     approval_status: Mapped[str] = mapped_column(String, nullable=False, default=ApprovalStatusEnum.PENDING.value)
     approved_by: Mapped[str] = mapped_column(String, nullable=True)
     approved_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+
+
+class G2PRegisterChangeLogPayload(BaseORMModel):
+    __tablename__ = "g2p_register_change_log_payloads"
+
+    change_log_id: Mapped[str] = mapped_column(String, ForeignKey("g2p_register_change_logs.change_log_id"), primary_key=True)
+    change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
-        Index('ix_g2p_register_change_logs_search_text_gin', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
+        Index('ix_g2p_register_change_log_payloads_search_text_gin', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
     )
 
     @validates('change_payload')
@@ -45,6 +51,7 @@ class G2PRegisterChangeLog(BaseORMModel):
             else:
                 self.search_text = str(value)
         return value
+
 
 class G2PRegisterChangeLogDocuments(BaseORMModel):
     __tablename__ = "g2p_register_change_log_documents"
