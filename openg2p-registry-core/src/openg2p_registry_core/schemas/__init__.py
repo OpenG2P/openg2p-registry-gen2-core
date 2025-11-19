@@ -6,8 +6,9 @@ from .response import (
     ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultsResponse, SearchResultsResponseBody,
     ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
-    IngestDataResponse, IngestDataResponseBody
+    IngestDataResponse, IngestDataResponseBody,
+    NumberOfVersionsResponse, NumberOfVersionsResponseBody
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

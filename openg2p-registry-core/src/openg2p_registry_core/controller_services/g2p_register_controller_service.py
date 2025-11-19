@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -72,6 +72,12 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         search_results_list: list[ChangeLogSearchResultData] = await g2p_register_service.search_in_change_log(search_text)
         return search_results_list
+
+    async def get_number_of_versions(self, register_id: str, internal_record_id: str) -> NumberOfVersionsData:
+        _logger.info(f"Getting number of versions for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id)
+        return number_of_versions_data
 
     async def _enrich_change_log_payload(self, change_log_payload: ChangeLogPayload , g2p_register_change_log: G2PRegisterChangeLog) -> ChangeLogPayload:
         

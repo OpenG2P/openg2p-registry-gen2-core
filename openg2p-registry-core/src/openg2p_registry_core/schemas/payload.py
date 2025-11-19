@@ -83,5 +83,11 @@ class ChangeLogPayload(RegisterPayload):
     approved_at: Optional[str] = None
 
 
+class NumberOfVersionsData(BaseModel):
+    register_id: str
+    internal_record_id: str
+    number_of_versions: int
+
+
 class IngestDataPayload(BaseModel):
     ingest_id: str

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -199,12 +199,12 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
             )
-        module = importlib.import_module("openg2p_registry_extensions.models")
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
         history_class_prefix = "G2PRegisterHistory"
         implementation_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
         history_class = getattr(module, implementation_class_name)
 
-        schema_module = importlib.import_module("openg2p_registry_extensions.schemas")
+        schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
         schema_class_prefix = "G2PRegisterHistorySchema"
         schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
         history_schema_class = getattr(schema_module, schema_class_name)
@@ -243,7 +243,7 @@ class G2PRegisterService(BaseService):
                 )
             )
         ).scalar()
-        module = importlib.import_module("openg2p_registry_extensions.models")
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
         register_class_prefix = "G2PRegister"
         implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
         register_class = getattr(module, implementation_class_name)
@@ -334,8 +334,8 @@ class G2PRegisterService(BaseService):
 
 
     async def validate_internal_record(self, g2p_register_definition: G2PRegisterDefinition, internal_record_id: str, session: Session) -> None:
-        
-        module = importlib.import_module("openg2p_registry_extensions.models")
+
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
 
         register_class_prefix = "G2PRegister"
         implementation_class_name = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
@@ -409,7 +409,7 @@ class G2PRegisterService(BaseService):
 
     async def _count_records_for_register(self, register_definition: G2PRegisterDefinition, session) -> int:
         try:
-            module = importlib.import_module("openg2p_registry_extensions.models")
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
             register_class_prefix = "G2PRegister"
             implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
             register_class = getattr(module, implementation_class_name)
@@ -585,3 +585,41 @@ class G2PRegisterService(BaseService):
             search_results_list.append(change_log_search_result)
 
         return search_results_list
+
+    async def get_number_of_versions(self, register_id: str, internal_record_id: str) -> NumberOfVersionsData:
+        """Get the number of versions (history records) for a given register and internal_record_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            implementation_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, implementation_class_name)
+
+            # Count history records for the given internal_record_id
+            count_result = await session.execute(
+                select(func.count()).select_from(history_class).where(
+                    history_class.internal_record_id == internal_record_id
+                )
+            )
+            number_of_versions = count_result.scalar_one()
+
+            return NumberOfVersionsData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                number_of_versions=number_of_versions
+            )

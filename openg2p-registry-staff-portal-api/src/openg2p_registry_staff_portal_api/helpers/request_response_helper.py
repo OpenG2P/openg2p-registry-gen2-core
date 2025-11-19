@@ -8,7 +8,8 @@ from openg2p_registry_core.schemas import (
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
     ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
-    ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody
+    ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
+    NumberOfVersionsData, NumberOfVersionsResponse, NumberOfVersionsResponseBody
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -34,13 +35,27 @@ class RequestResponseHelper(BaseService):
         )
         return change_log_response
     
-    def construct_registry_error_response(self, registry_exception: G2PRegistryException, g2p_request: G2PRequest) -> G2PResponse:
+    def construct_error_response(self, error: Exception, g2p_request: G2PRequest = None) -> G2PResponse:
+        """
+        Unified error response constructor that handles both G2PRegistryException and generic exceptions.
+        For G2PRegistryException, uses the exception's code and message.
+        For other exceptions, uses error code "500" and the exception message.
+        g2p_request is optional - if not provided, request_id will be empty string.
+        """
+        if isinstance(error, G2PRegistryException):
+            error_code = error.code
+            error_message = error.message
+        else:
+            error_code = "500"
+            error_message = str(error)
+
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
 
         g2p_response_header = G2PResponseHeader(
-            request_id=g2p_request.request_header.request_id,
+            request_id=request_id,
             response_status=G2PResponseStatus.ERROR,
-            response_error_code=registry_exception.code,
-            response_error_message=registry_exception.message,
+            response_error_code=error_code,
+            response_error_message=error_message,
             response_timestamp=datetime.now()
         )
         error_response = G2PResponse(
@@ -49,26 +64,6 @@ class RequestResponseHelper(BaseService):
                 pagination_response=None,
                 response_payload=None
             )
-        )
-
-        return error_response
-
-    def construct_error_response(self, error: Exception, g2p_request: G2PRequest) -> G2PResponse:
-
-        g2p_response_header = G2PResponseHeader(
-            request_id=g2p_request.request_header.request_id,
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error),
-            response_timestamp=datetime.now()
-        )
-        error_response = G2PResponse(
-            response_header=g2p_response_header,
-            response_body=G2PResponseBody(
-                pagination_response=None,
-                response_payload=None
-            )
-
         )
 
         return error_response
@@ -92,25 +87,6 @@ class RequestResponseHelper(BaseService):
         )
         return register_summary_data_response
 
-    def construct_register_summary_data_error_response(self, error_exception: Exception) -> RegisterSummaryDataResponse:
-        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error_exception),
-            response_timestamp=datetime.now()
-        )
-
-        response_body: RegisterSummaryDataResponseBody = RegisterSummaryDataResponseBody(
-            response_payload=None
-        )
-
-        error_response: RegisterSummaryDataResponse = RegisterSummaryDataResponse(
-            response_header=g2p_response_header,
-            response_body=response_body
-        )
-        return error_response
-
     def construct_all_registers_success_response(self, all_registers_list: List[RegisterData]) -> AllRegistersResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id="",
@@ -129,25 +105,6 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return all_registers_response
-
-    def construct_all_registers_error_response(self, error_exception: Exception) -> AllRegistersResponse:
-        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error_exception),
-            response_timestamp=datetime.now()
-        )
-
-        response_body: AllRegistersResponseBody = AllRegistersResponseBody(
-            response_payload=None
-        )
-
-        error_response: AllRegistersResponse = AllRegistersResponse(
-            response_header=g2p_response_header,
-            response_body=response_body
-        )
-        return error_response
 
     def construct_child_registers_success_response(self, child_registers_list: List[ChildRegisterData]) -> ChildRegistersResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -168,25 +125,6 @@ class RequestResponseHelper(BaseService):
         )
         return child_registers_response
 
-    def construct_child_registers_error_response(self, error_exception: Exception) -> ChildRegistersResponse:
-        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error_exception),
-            response_timestamp=datetime.now()
-        )
-
-        response_body: ChildRegistersResponseBody = ChildRegistersResponseBody(
-            response_payload=None
-        )
-
-        error_response: ChildRegistersResponse = ChildRegistersResponse(
-            response_header=g2p_response_header,
-            response_body=response_body
-        )
-        return error_response
-
     def construct_search_results_success_response(self, search_results_list: List[SearchResultData]) -> SearchResultsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id="",
@@ -205,25 +143,6 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return search_results_response
-
-    def construct_search_results_error_response(self, error_exception: Exception) -> SearchResultsResponse:
-        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error_exception),
-            response_timestamp=datetime.now()
-        )
-
-        response_body: SearchResultsResponseBody = SearchResultsResponseBody(
-            response_payload=None
-        )
-
-        error_response: SearchResultsResponse = SearchResultsResponse(
-            response_header=g2p_response_header,
-            response_body=response_body
-        )
-        return error_response
 
     def construct_change_log_search_results_success_response(self, search_results_list: List[ChangeLogSearchResultData]) -> ChangeLogSearchResultsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -244,21 +163,23 @@ class RequestResponseHelper(BaseService):
         )
         return change_log_search_results_response
 
-    def construct_change_log_search_results_error_response(self, error_exception: Exception) -> ChangeLogSearchResultsResponse:
+    def construct_number_of_versions_success_response(self, number_of_versions_data: NumberOfVersionsData) -> NumberOfVersionsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id="",
-            response_status=G2PResponseStatus.ERROR,
-            response_error_code="500",
-            response_error_message=str(error_exception),
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
             response_timestamp=datetime.now()
         )
 
-        response_body: ChangeLogSearchResultsResponseBody = ChangeLogSearchResultsResponseBody(
-            response_payload=None
+        response_body: NumberOfVersionsResponseBody = NumberOfVersionsResponseBody(
+            response_payload=number_of_versions_data
         )
 
-        error_response: ChangeLogSearchResultsResponse = ChangeLogSearchResultsResponse(
+        number_of_versions_response: NumberOfVersionsResponse = NumberOfVersionsResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return error_response
+        return number_of_versions_response
+
+
