@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -69,11 +69,21 @@ class G2PRegisterService(BaseService):
             search_results_list: list[SearchResultData] = await self._search_in_register(register_id, search_text, session)
             return search_results_list
 
-    async def get_change_logs(self, internal_record_id: str):
-        pass
+    async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsData:
+        """Get all change logs for a specific internal record"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+            change_logs_data: ChangeLogsData = await self._fetch_change_logs(register_id, internal_record_id, session)
+            return change_logs_data
 
-    async def get_change_log(self, change_log_id: str):
-        pass
+    async def get_change_log(self, change_log_id: str) -> ChangeLogData:
+        """Get a single change log by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_log_data: ChangeLogData = await self._fetch_change_log(change_log_id, session)
+            return change_log_data
 
     async def approve_change_log(self, change_log_id: str):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -623,3 +633,217 @@ class G2PRegisterService(BaseService):
                 internal_record_id=internal_record_id,
                 number_of_versions=number_of_versions
             )
+
+    async def _fetch_change_logs(self, register_id: str, internal_record_id: str, session) -> ChangeLogsData:
+        """Helper method to fetch all change logs for a specific internal record"""
+        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload
+        result = await session.execute(
+            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
+                G2PRegisterChangeLogPayload,
+                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+            ).where(
+                (G2PRegisterChangeLog.register_id == register_id) &
+                (G2PRegisterChangeLog.internal_record_id == internal_record_id)
+            ).order_by(G2PRegisterChangeLog.created_at.desc())
+        )
+        change_logs = result.all()
+
+        change_logs_list: list[ChangeLogData] = []
+
+        # Convert ORM objects to ChangeLogData while still in session context
+        for change_log, payload in change_logs:
+            # Convert datetime objects to strings
+            created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
+            approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+
+            # Get change_payload from the payload object
+            change_payload = payload.change_payload if payload else None
+
+            # Create ChangeLogData object
+            change_log_data: ChangeLogData = ChangeLogData(
+                change_log_id=change_log.change_log_id,
+                register_id=change_log.register_id,
+                internal_record_id=change_log.internal_record_id,
+                operation_id=change_log.operation_id,
+                source_partner_id=change_log.source_partner_id,
+                created_by=change_log.created_by,
+                created_at=created_at_str,
+                no_of_verifications_required=change_log.no_of_verifications_required,
+                no_of_verifications_done=change_log.no_of_verifications_done,
+                approval_status=change_log.approval_status,
+                approved_by=change_log.approved_by,
+                approved_at=approved_at_str,
+                change_payload=change_payload
+            )
+            change_logs_list.append(change_log_data)
+
+        return ChangeLogsData(change_logs=change_logs_list)
+
+    async def _fetch_change_log(self, change_log_id: str, session) -> ChangeLogData:
+        """Helper method to fetch a single change log by ID"""
+        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload
+        result = await session.execute(
+            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
+                G2PRegisterChangeLogPayload,
+                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+            ).where(
+                G2PRegisterChangeLog.change_log_id == change_log_id
+            )
+        )
+        change_log_row = result.first()
+
+        if not change_log_row:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+            )
+
+        change_log, payload = change_log_row
+
+        # Convert datetime objects to strings
+        created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
+        approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+
+        # Get change_payload from the payload object
+        change_payload = payload.change_payload if payload else None
+
+        # Create ChangeLogData object
+        change_log_data: ChangeLogData = ChangeLogData(
+            change_log_id=change_log.change_log_id,
+            register_id=change_log.register_id,
+            internal_record_id=change_log.internal_record_id,
+            operation_id=change_log.operation_id,
+            source_partner_id=change_log.source_partner_id,
+            created_by=change_log.created_by,
+            created_at=created_at_str,
+            no_of_verifications_required=change_log.no_of_verifications_required,
+            no_of_verifications_done=change_log.no_of_verifications_done,
+            approval_status=change_log.approval_status,
+            approved_by=change_log.approved_by,
+            approved_at=approved_at_str,
+            change_payload=change_payload
+        )
+
+        return change_log_data
+
+    async def get_record(self, register_id: str, internal_record_id: str) -> RecordData:
+        """Get a single register record by internal_record_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+
+            # Get the implementation class for this register
+            try:
+                module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+                register_class_prefix: str = "G2PRegister"
+                implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+                implementation_class = getattr(module, implementation_class_name)
+            except (AttributeError, ModuleNotFoundError) as error:
+                _logger.error(f"Could not find register class for mnemonic {g2p_register_definition.register_mnemonic}: {str(error)}")
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                    message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
+                )
+
+            # Fetch the record by internal_record_id
+            record = (
+                await session.execute(
+                    select(implementation_class).where(
+                        implementation_class.internal_record_id == internal_record_id
+                    )
+                )
+            ).scalar()
+
+            if not record:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
+                )
+
+            # Convert ORM object to RecordData while still in session context
+            mapper = inspect(record.__class__)
+            additional_fields: dict = {}
+
+            # Base fields
+            base_fields: set = {
+                'internal_record_id', 'functional_record_id', 'link_record_id',
+                'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
+            }
+
+            for column in mapper.columns:
+                column_name: str = column.name
+                value = getattr(record, column_name, None)
+
+                # Convert datetime objects to strings
+                if value is not None and hasattr(value, 'isoformat'):
+                    value = value.isoformat()
+
+                # Add to additional_fields if not a base field
+                if column_name not in base_fields:
+                    additional_fields[column_name] = value
+
+            # Create RecordData object
+            record_data: RecordData = RecordData(
+                internal_record_id=record.internal_record_id,
+                functional_record_id=record.functional_record_id,
+                link_record_id=record.link_record_id,
+                created_by=record.created_by,
+                created_at=str(record.created_at.isoformat()) if record.created_at and hasattr(record.created_at, 'isoformat') else None,
+                last_approved_at=str(record.last_approved_at.isoformat()) if record.last_approved_at and hasattr(record.last_approved_at, 'isoformat') else None,
+                last_approved_by=record.last_approved_by,
+                additional_fields=additional_fields if additional_fields else None
+            )
+
+            return record_data
+
+    async def get_verifications_for_change_log(self, change_log_id: str) -> VerificationsData:
+        """Get all verifications for a specific change log"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate change log exists (without checking approval status)
+            change_log: G2PRegisterChangeLog = (
+                await session.execute(
+                    select(G2PRegisterChangeLog).where(
+                        G2PRegisterChangeLog.change_log_id == change_log_id
+                    )
+                )
+            ).scalar()
+            if not change_log:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                )
+
+            # Fetch all verifications for this change log, ordered by verified_at descending
+            verifications = (
+                await session.execute(
+                    select(G2PRegisterVerification).where(
+                        G2PRegisterVerification.change_log_id == change_log_id
+                    ).order_by(G2PRegisterVerification.verified_at.desc())
+                )
+            ).scalars().all()
+
+            verifications_list: list[VerificationData] = []
+
+            # Convert ORM objects to VerificationData while still in session context
+            for verification in verifications:
+                verified_at_str = str(verification.verified_at.isoformat()) if verification.verified_at and hasattr(verification.verified_at, 'isoformat') else None
+
+                verification_data: VerificationData = VerificationData(
+                    verification_id=verification.verification_id,
+                    register_id=verification.register_id,
+                    internal_record_id=verification.internal_record_id,
+                    operation_id=verification.operation_id,
+                    change_log_id=verification.change_log_id,
+                    verified_by=verification.verified_by,
+                    verified_at=verified_at_str,
+                    verification_observations=verification.verification_observations
+                )
+                verifications_list.append(verification_data)
+
+            verifications_data: VerificationsData = VerificationsData(
+                verifications=verifications_list
+            )
+
+            return verifications_data

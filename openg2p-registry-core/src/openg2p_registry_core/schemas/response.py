@@ -4,7 +4,7 @@ from openg2p_fastapi_common.schemas import (
     G2PResponse,
     G2PResponseBody,
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData
 
 
 class ChangeLogResponseBody(G2PResponseBody):
@@ -60,3 +60,31 @@ class NumberOfVersionsResponseBody(G2PResponseBody):
 
 class NumberOfVersionsResponse(G2PResponse):
     response_body: Optional[NumberOfVersionsResponseBody] = None
+
+
+class ChangeLogDataResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeLogData] = None
+
+class ChangeLogDataResponse(G2PResponse):
+    response_body: Optional[ChangeLogDataResponseBody] = None
+
+
+class ChangeLogsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeLogsData] = None
+
+class ChangeLogsDataResponse(G2PResponse):
+    response_body: Optional[ChangeLogsDataResponseBody] = None
+
+
+class RecordDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RecordData] = None
+
+class RecordDataResponse(G2PResponse):
+    response_body: Optional[RecordDataResponseBody] = None
+
+
+class VerificationsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[VerificationsData] = None
+
+class VerificationsDataResponse(G2PResponse):
+    response_body: Optional[VerificationsDataResponseBody] = None

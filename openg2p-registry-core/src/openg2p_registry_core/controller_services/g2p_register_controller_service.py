@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -79,6 +79,18 @@ class G2PRegisterControllerService(BaseService):
         number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id)
         return number_of_versions_data
 
+    async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsData:
+        _logger.info(f"Getting change logs for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        change_logs_data: ChangeLogsData = await g2p_register_service.get_change_logs(register_id, internal_record_id)
+        return change_logs_data
+
+    async def get_change_log(self, change_log_id: str) -> ChangeLogData:
+        _logger.info(f"Getting change log for change_log_id: {change_log_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        change_log_data: ChangeLogData = await g2p_register_service.get_change_log(change_log_id)
+        return change_log_data
+
     async def _enrich_change_log_payload(self, change_log_payload: ChangeLogPayload , g2p_register_change_log: G2PRegisterChangeLog) -> ChangeLogPayload:
         
         change_log_payload.change_log_id = g2p_register_change_log.change_log_id
@@ -90,5 +102,17 @@ class G2PRegisterControllerService(BaseService):
         change_log_payload.created_at = str(g2p_register_change_log.created_at)
         change_log_payload.approved_by = g2p_register_change_log.approved_by
         change_log_payload.approved_at = str(g2p_register_change_log.approved_at) if g2p_register_change_log.approved_at else None
-        
+
         return change_log_payload
+
+    async def get_record(self, register_id: str, internal_record_id: str) -> RecordData:
+        _logger.info(f"Getting record for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        record_data: RecordData = await g2p_register_service.get_record(register_id, internal_record_id)
+        return record_data
+
+    async def get_verifications_for_change_log(self, change_log_id: str) -> VerificationsData:
+        _logger.info(f"Getting verifications for change_log_id: {change_log_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        verifications_data: VerificationsData = await g2p_register_service.get_verifications_for_change_log(change_log_id)
+        return verifications_data

@@ -10,7 +10,11 @@ from openg2p_registry_core.schemas import (
     ChildRegisterRequest,
     SearchResultsResponse, SearchResultData,
     ChangeLogSearchResultsResponse, ChangeLogSearchResultData,
-    NumberOfVersionsResponse, NumberOfVersionsData
+    NumberOfVersionsResponse, NumberOfVersionsData,
+    ChangeLogDataResponse, ChangeLogData,
+    ChangeLogsDataResponse, ChangeLogsData,
+    RecordDataResponse, RecordData,
+    VerificationsDataResponse, VerificationsData
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -91,6 +95,34 @@ class G2PRegisterController(BaseController):
             "/get_number_of_versions",
             self.get_number_of_versions,
             responses={200: {"model": NumberOfVersionsResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_change_logs",
+            self.get_change_logs,
+            responses={200: {"model": ChangeLogsDataResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_change_log",
+            self.get_change_log,
+            responses={200: {"model": ChangeLogDataResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_record",
+            self.get_record,
+            responses={200: {"model": RecordDataResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_verifications_for_change_log",
+            self.get_verifications_for_change_log,
+            responses={200: {"model": VerificationsDataResponse}},
             methods=["GET"],
         )
 
@@ -204,4 +236,52 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_number_of_versions: {str(error_exception)}")
             error_response: NumberOfVersionsResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsDataResponse:
+        try:
+            change_logs_data: ChangeLogsData = await self.g2p_register_controller_service.get_change_logs(register_id, internal_record_id)
+            change_logs_response: ChangeLogsDataResponse = self.helper.construct_change_logs_success_response(
+                change_logs_data=change_logs_data
+            )
+            return change_logs_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_change_logs: {str(error_exception)}")
+            error_response: ChangeLogsDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_change_log(self, change_log_id: str) -> ChangeLogDataResponse:
+        try:
+            change_log_data: ChangeLogData = await self.g2p_register_controller_service.get_change_log(change_log_id)
+            change_log_response: ChangeLogDataResponse = self.helper.construct_change_log_success_response(
+                change_log_data=change_log_data
+            )
+            return change_log_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_change_log: {str(error_exception)}")
+            error_response: ChangeLogDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_record(self, register_id: str, internal_record_id: str) -> RecordDataResponse:
+        try:
+            record_data: RecordData = await self.g2p_register_controller_service.get_record(register_id, internal_record_id)
+            record_response: RecordDataResponse = self.helper.construct_record_success_response(
+                record_data=record_data
+            )
+            return record_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_record: {str(error_exception)}")
+            error_response: RecordDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_verifications_for_change_log(self, change_log_id: str) -> VerificationsDataResponse:
+        try:
+            verifications_data: VerificationsData = await self.g2p_register_controller_service.get_verifications_for_change_log(change_log_id)
+            verifications_response: VerificationsDataResponse = self.helper.construct_verifications_success_response(
+                verifications_data=verifications_data
+            )
+            return verifications_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_verifications_for_change_log: {str(error_exception)}")
+            error_response: VerificationsDataResponse = self.helper.construct_error_response(error_exception)
             return error_response
