@@ -4,9 +4,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
 class ProcessStatusEnum(enum.Enum):
+    BLOCKED = "BLOCKED"
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
-    PROCESSED = "PROCESSED"
+    PROCESSED = "PROCESSED"     # COMPLETED
     FAILED = "FAILED"
 
 class IncomingRawData(BaseORMModel):
@@ -42,8 +43,8 @@ class IncomingClassifiedData(BaseORMModel):
     __tablename__ = "incoming_classified_data"
 
     ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
-    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
     transformation_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)

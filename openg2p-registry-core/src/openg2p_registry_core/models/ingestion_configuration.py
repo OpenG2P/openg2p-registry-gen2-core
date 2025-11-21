@@ -25,12 +25,14 @@ class IncomingModelSemanticPattern(BaseORMModel):
 
     semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    pattern : Mapped[str] = mapped_column(String, nullable=False)
-    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False)
-    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False)
+    register_id: Mapped[str] = mapped_column(String, nullable=False)
+    operation_id: Mapped[str] = mapped_column(String, nullable=False)
+    pattern_for_register: Mapped[str] = mapped_column(String, nullable=False)
+    pattern_for_operation: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_1'),
+        UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_1'),
     )
 
 class IncomingTemplate(BaseORMModel):
@@ -38,13 +40,13 @@ class IncomingTemplate(BaseORMModel):
     __tablename__ = "incoming_templates"
 
     template_id: Mapped[str] = mapped_column(String, primary_key=True)
-    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     template_file: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_2'),
+        UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_2'),
     )
 
 class IncomingPayloadEnricher(BaseORMModel):
@@ -53,10 +55,11 @@ class IncomingPayloadEnricher(BaseORMModel):
 
     incoming_factory_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    inbound_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    inbound_operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     __table_args__ = (
-        UniqueConstraint('data_model_id', 'inbound_register_id', 'inbound_operation_id', name='uix_dro_3'),
+        UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_3'),
     )
