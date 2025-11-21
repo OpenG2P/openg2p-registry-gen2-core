@@ -14,7 +14,9 @@ from openg2p_registry_core.schemas import (
     ChangeLogDataResponse, ChangeLogData,
     ChangeLogsDataResponse, ChangeLogsData,
     RecordDataResponse, RecordData,
-    VerificationsDataResponse, VerificationsData
+    VerificationsDataResponse, VerificationsData,
+    VerificationDataResponse, VerificationData,
+    AddVerificationPayload
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -124,6 +126,13 @@ class G2PRegisterController(BaseController):
             self.get_verifications_for_change_log,
             responses={200: {"model": VerificationsDataResponse}},
             methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/add_verification_for_change_log",
+            self.add_verification_for_change_log,
+            responses={200: {"model": VerificationDataResponse}},
+            methods=["POST"],
         )
 
 
@@ -284,4 +293,16 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_verifications_for_change_log: {str(error_exception)}")
             error_response: VerificationsDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def add_verification_for_change_log(self, payload: AddVerificationPayload) -> VerificationDataResponse:
+        try:
+            verification_data: VerificationData = await self.g2p_register_controller_service.add_verification_for_change_log(payload)
+            verification_response: VerificationDataResponse = self.helper.construct_verification_success_response(
+                verification_data=verification_data
+            )
+            return verification_response
+        except Exception as error_exception:
+            _logger.error(f"Error in add_verification_for_change_log: {str(error_exception)}")
+            error_response: VerificationDataResponse = self.helper.construct_error_response(error_exception)
             return error_response

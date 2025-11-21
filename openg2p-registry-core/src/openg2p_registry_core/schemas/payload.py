@@ -151,5 +151,11 @@ class VerificationsData(BaseModel):
         from_attributes: bool = True
 
 
+class AddVerificationPayload(BaseModel):
+    change_log_id: str
+    verification_observations: Optional[str] = None
+    is_approved: bool
+
+
 class IngestDataPayload(BaseModel):
     ingest_id: str

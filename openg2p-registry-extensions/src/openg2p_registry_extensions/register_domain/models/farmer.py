@@ -47,4 +47,13 @@ class G2PRegisterFarmer(G2PRegisterFarmerBase, G2PRegister):
 # All Register History classes should have the prefix G2PRegisterHistory
 class G2PRegisterHistoryFarmer(G2PRegisterFarmerBase, G2PRegisterHistory):
     __tablename__ = "g2p_register_history_farmers"
-    pass
+
+    # Override all columns from G2PRegisterFarmerBase to make them nullable for history
+    first_name: Mapped[str] = mapped_column(String, nullable=True)
+    last_name: Mapped[str] = mapped_column(String, nullable=True)
+    date_of_birth: Mapped[str] = mapped_column(Date, nullable=True)
+    address_line_1: Mapped[str] = mapped_column(String, nullable=True)
+    address_line_2: Mapped[str] = mapped_column(String, nullable=True)
+    geo_administrative_area_small: Mapped[str] = mapped_column(String, nullable=True)
+    geo_administrative_area_large: Mapped[str] = mapped_column(String, nullable=True)
+    post_code: Mapped[str] = mapped_column(String, nullable=True)

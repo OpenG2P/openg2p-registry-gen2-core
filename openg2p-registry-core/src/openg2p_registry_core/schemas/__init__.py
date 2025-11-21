@@ -11,8 +11,9 @@ from .response import (
     ChangeLogDataResponse, ChangeLogDataResponseBody,
     ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordDataResponse, RecordDataResponseBody,
-    VerificationsDataResponse, VerificationsDataResponseBody
+    VerificationsDataResponse, VerificationsDataResponseBody,
+    VerificationDataResponse, VerificationDataResponseBody
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

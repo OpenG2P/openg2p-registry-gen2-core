@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload, VerificationData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -16,10 +16,11 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         change_log_payload: ChangeLogPayload = change_log_request.request_body.request_payload
 
-        module = importlib.import_module("openg2p_registry_extensions.factory")
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
         g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(change_log_payload.register_mnemonic)
+        print(f"Validating domain attributes for register mnemonic: {change_log_payload.register_mnemonic}")
         await domain_service.validate_domain_attributes(change_log_payload)
 
         g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.create_change_log(change_log_request)
@@ -116,3 +117,9 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         verifications_data: VerificationsData = await g2p_register_service.get_verifications_for_change_log(change_log_id)
         return verifications_data
+
+    async def add_verification_for_change_log(self, payload: AddVerificationPayload) -> VerificationData:
+        _logger.info(f"Adding verification for change_log_id: {payload.change_log_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        verification_data: VerificationData = await g2p_register_service.add_verification_for_change_log(payload)
+        return verification_data

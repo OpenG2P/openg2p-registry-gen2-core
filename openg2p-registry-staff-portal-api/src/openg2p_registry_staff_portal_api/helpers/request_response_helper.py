@@ -13,7 +13,8 @@ from openg2p_registry_core.schemas import (
     ChangeLogData, ChangeLogDataResponse, ChangeLogDataResponseBody,
     ChangeLogsData, ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
-    VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody
+    VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody,
+    VerificationData, VerificationDataResponse, VerificationDataResponseBody
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -186,24 +187,6 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_versions_response
 
-    def construct_change_log_success_response(self, change_log_data: ChangeLogData) -> ChangeLogDataResponse:
-        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
-            response_status=G2PResponseStatus.SUCCESS,
-            response_error_code="",
-            response_error_message="",
-            response_timestamp=datetime.now()
-        )
-
-        response_body: ChangeLogDataResponseBody = ChangeLogDataResponseBody(
-            response_payload=change_log_data
-        )
-
-        change_log_response: ChangeLogDataResponse = ChangeLogDataResponse(
-            response_header=g2p_response_header,
-            response_body=response_body
-        )
-        return change_log_response
 
     def construct_change_logs_success_response(self, change_logs_data: ChangeLogsData) -> ChangeLogsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -261,5 +244,24 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return verifications_response
+
+    def construct_verification_success_response(self, verification_data: VerificationData) -> VerificationDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: VerificationDataResponseBody = VerificationDataResponseBody(
+            response_payload=verification_data
+        )
+
+        verification_response: VerificationDataResponse = VerificationDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return verification_response
 
 

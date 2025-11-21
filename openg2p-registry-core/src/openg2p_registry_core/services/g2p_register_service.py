@@ -1,6 +1,7 @@
 import logging
 import uuid
 import importlib
+from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData
+from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -268,7 +269,7 @@ class G2PRegisterService(BaseService):
             )
         ).scalar()
 
-        schema_module = importlib.import_module("openg2p_registry_extensions.schemas")
+        schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
         schema_class_prefix = "G2PRegisterSchema"
         schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
         schema_class = getattr(schema_module, schema_class_name)
@@ -286,7 +287,9 @@ class G2PRegisterService(BaseService):
         register_schema_instance = schema_class(**(change_payload or {}))
         if existing:
             for key, value in register_schema_instance.dict().items():
-                setattr(existing, key, value)
+                # Only update values in change log payload
+                if key in change_payload:
+                    setattr(existing, key, value)
             setattr(existing, "last_approved_at", func.now())
             setattr(existing, "last_approved_by", "system")
             new_instance = existing
@@ -850,3 +853,68 @@ class G2PRegisterService(BaseService):
             )
 
             return verifications_data
+
+    async def add_verification_for_change_log(
+        self,
+        payload: AddVerificationPayload
+    ) -> VerificationData:
+        """
+        Add a new verification for a change log.
+
+        Args:
+            payload: AddVerificationPayload containing change_log_id, verification_observations, is_approved
+
+        Returns:
+            VerificationData: The created verification
+
+        Raises:
+            G2PRegistryException: If change log not found or other validation errors
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate change log exists
+            change_log_result = await session.execute(
+                select(G2PRegisterChangeLog).where(
+                    G2PRegisterChangeLog.change_log_id == payload.change_log_id
+                )
+            )
+            change_log = change_log_result.scalar_one_or_none()
+
+            if not change_log:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                )
+
+            # Create new verification
+            verification_id = str(uuid.uuid4())
+            verification = G2PRegisterVerification(
+                verification_id=verification_id,
+                register_id=change_log.register_id,
+                internal_record_id=change_log.internal_record_id,
+                operation_id=change_log.operation_id,
+                change_log_id=payload.change_log_id,
+                verified_by="system",  # Will be set by controller with actual user
+                verified_at=datetime.utcnow(),
+                verification_observations=payload.verification_observations,
+                is_approved=payload.is_approved
+            )
+
+            session.add(verification)
+            await session.commit()
+            await session.refresh(verification)
+
+            # Return verification data
+            verification_data = VerificationData(
+                verification_id=verification.verification_id,
+                register_id=verification.register_id,
+                internal_record_id=verification.internal_record_id,
+                operation_id=verification.operation_id,
+                change_log_id=verification.change_log_id,
+                verified_by=verification.verified_by,
+                verified_at=verification.verified_at.isoformat() if verification.verified_at else None,
+                verification_observations=verification.verification_observations,
+                is_approved=verification.is_approved
+            )
+
+            return verification_data
