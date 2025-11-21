@@ -138,6 +138,7 @@ class VerificationData(BaseModel):
     verified_by: str
     verified_at: Optional[str] = None
     verification_observations: Optional[str] = None
+    is_approved: bool
 
     class Config:
         from_attributes: bool = True

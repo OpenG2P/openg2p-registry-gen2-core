@@ -16,3 +16,4 @@ class G2PRegisterVerification(BaseORMModel):
     verified_by: Mapped[str] = mapped_column(String, nullable=False)
     verified_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     verification_observations: Mapped[Text] = mapped_column(Text, nullable=True)
+    is_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

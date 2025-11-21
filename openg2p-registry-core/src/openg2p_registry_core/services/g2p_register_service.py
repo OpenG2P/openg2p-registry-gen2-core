@@ -166,14 +166,16 @@ class G2PRegisterService(BaseService):
         return change_log
 
     async def validate_change_log_verifications(self, change_log: G2PRegisterChangeLog, session) -> None:
-        verifications_count = (
+        # Count only approved verifications
+        approved_verifications_count = (
             await session.execute(
                 select(func.count()).select_from(G2PRegisterVerification).where(
-                    G2PRegisterVerification.change_log_id == change_log.change_log_id
+                    G2PRegisterVerification.change_log_id == change_log.change_log_id,
+                    G2PRegisterVerification.is_approved == True
                 )
             )
-        ).scalar_one() # TODO: Check if we need to call this or check no_of_verifications_done field
-        if verifications_count < (change_log.no_of_verifications_required or 0):
+        ).scalar_one()
+        if approved_verifications_count < (change_log.no_of_verifications_required or 0):
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[1],
                 message=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[0]
@@ -838,7 +840,8 @@ class G2PRegisterService(BaseService):
                     change_log_id=verification.change_log_id,
                     verified_by=verification.verified_by,
                     verified_at=verified_at_str,
-                    verification_observations=verification.verification_observations
+                    verification_observations=verification.verification_observations,
+                    is_approved=verification.is_approved
                 )
                 verifications_list.append(verification_data)
 
