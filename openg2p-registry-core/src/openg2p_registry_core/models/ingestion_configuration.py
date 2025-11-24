@@ -17,8 +17,8 @@ class IncomingModelSignaturePattern(BaseORMModel):
     __tablename__ = "incoming_model_signature_patterns"
     signature_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
-    pattern_for_sender: Mapped[str] = mapped_column(String, nullable=False)
-    pattern_for_signature: Mapped[str] = mapped_column(String, nullable=False)
+    key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
+    key_path_for_signature: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingModelSemanticPattern(BaseORMModel):
     
@@ -30,7 +30,6 @@ class IncomingModelSemanticPattern(BaseORMModel):
     operation_id: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_register: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_operation: Mapped[str] = mapped_column(String, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_1'),
@@ -59,7 +58,6 @@ class IncomingPayloadEnricher(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_3'),
