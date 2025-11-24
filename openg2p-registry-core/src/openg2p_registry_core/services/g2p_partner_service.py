@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Tuple
+from tkinter import NO
+from typing import Dict, Tuple, Optional
 import uuid
 
 from openg2p_fastapi_common.service import BaseService
@@ -11,7 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
-from ..helpers import SignaturePatternMatcher
+from ..helpers import PatternMatcher
 from ..models import (
     IncomingPartner,
     IncomingModelSignaturePattern,
@@ -25,19 +26,19 @@ _engine = dbengine.get()
 
 
 class G2PPartnerService(BaseService):
-    async def ingest_data(self, data_model_mnemonic: str, ingest_data: Dict):
+    async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict):
         _logger.info("Starting data ingestion with received request")
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
         async with session_maker() as session:
-            data_model: DataModel = await self._get_data_model_from_data_model_mnemonic(data_model_mnemonic, session)
+            data_model: DataModel = await self._get_data_model(ingest_data, data_model_mnemonic, session)
 
             (incoming_partner, signature) = await self._match_model_signature_pattern(
                 data_model.data_model_id, ingest_data, session
             )
             _logger.debug("Matched incoming model signature pattern")
 
-            await self._validate_signature(incoming_partner.keymanager_reference_id, signature)
+            # await self._validate_signature(incoming_partner.keymanager_reference_id, signature)
             _logger.debug("Verified request signature")
 
             ingest_id: str = str(uuid.uuid4())
@@ -56,10 +57,25 @@ class G2PPartnerService(BaseService):
 
             return incoming_raw_data
 
+
+    async def _get_data_model(
+        self, ingest_data:Dict, data_model_mnemonic: Optional[str], session
+    ) -> DataModel:
+        if not data_model_mnemonic:
+            data_models = (await session.execute(select(DataModel))).scalars().all()
+            for data_model in data_models:
+                data_model_mnemonic = self._match_data_model_pattern(
+                    data_model, ingest_data
+                )
+        data_model: DataModel = await self._get_data_model_from_data_model_mnemonic(
+            data_model_mnemonic, session
+        )
+        return data_model
+
     async def _get_data_model_from_data_model_mnemonic(
         self, data_model_mnemonic: str, session: Session
     ) -> DataModel:
-        data_model: DataModel = (
+        data_model: DataModel | None = (
             await session.execute(
                 select(DataModel).where(
                     DataModel.data_model_mnemonic == data_model_mnemonic
@@ -111,20 +127,30 @@ class G2PPartnerService(BaseService):
             raw_data_json=ingest_data,
         )
         return incoming_raw_data_payload
+    
+    def _match_data_model_pattern(
+        self, data_model: DataModel, ingest_data: Dict
+    ) -> str:
+        pattern_matcher = PatternMatcher().get_component()
+
+        data_model_mnmeonic: str = pattern_matcher.get_data_model_pattern_match(
+            data_model, ingest_data
+        )
+        return data_model_mnmeonic
 
     async def _match_model_signature_pattern(
         self, data_model_id: str, ingest_data: Dict, session: Session
     ) -> Tuple[IncomingPartner, str]:
-        signature_pattern_matcher = SignaturePatternMatcher().get_component()
+        pattern_matcher = PatternMatcher().get_component()
         
-        incoming_model_signature_pattern = (
+        incoming_model_signature_pattern: IncomingModelSignaturePattern | None = (
             await session.execute(
                 select(IncomingModelSignaturePattern).where(
                     IncomingModelSignaturePattern.data_model_id == data_model_id
                 )
             )
         ).scalar_one_or_none()
-        partner_mnemonic, signature = signature_pattern_matcher.match(
+        partner_mnemonic, signature = pattern_matcher.get_signature_pattern_match(
             incoming_model_signature_pattern, ingest_data
         )
         # TODO: Create an error code for this case

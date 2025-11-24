@@ -1,11 +1,9 @@
 import logging
 from typing import Dict, Optional
-from fastapi import Request
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PPartnerControllerService
 from openg2p_registry_core.schemas import IngestDataPayload, IngestDataRequest, IngestDataResponse
-from openg2p_registry_core.errors import G2PRegistryException
 from openg2p_fastapi_common.schemas import G2PResponse
 
 from ..helpers import RequestResponseHelper
@@ -31,9 +29,9 @@ class G2PPartnerController(BaseController):
             methods=["POST"],
         )
 
-    async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: str) -> IngestDataResponse:
+    async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: Optional[str] = None) -> IngestDataResponse:
         try:
-            _logger.info(f"Data ingestion request received for data_model: {data_model}")
+            _logger.info(f"Data ingestion request received for data_model: {data_model if data_model else 'No data_model detected in query params...'}")
 
             ingest_data: Dict = await self.request_response_helper.construct_http_request(ingest_data_request)
 
