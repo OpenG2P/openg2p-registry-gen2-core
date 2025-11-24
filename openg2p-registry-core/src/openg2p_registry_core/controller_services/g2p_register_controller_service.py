@@ -33,19 +33,20 @@ class G2PRegisterControllerService(BaseService):
         return enriched_change_log_payload
 
     async def approve_change_log(self, change_log_id: str) -> ChangeLogPayload:
-
+        _logger.info(f"Approving change log with change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.approve_change_log(change_log_id)
-        change_log_payload = ChangeLogPayload()
-        change_log: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
-        return change_log
+        change_log_payload: ChangeLogPayload = ChangeLogPayload()
+        enriched_change_log_payload: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
+        return enriched_change_log_payload
 
-    async def reject_change_log(self, change_log_id: str) -> ChangeLogPayload:
+    async def reject_change_log(self, change_log_id: str, reason: str = None) -> ChangeLogPayload:
+        _logger.info(f"Rejecting change log with change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.reject_change_log(change_log_id)
-        change_log_payload = ChangeLogPayload()
-        change_log: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
-        return change_log
+        g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.reject_change_log(change_log_id, reason)
+        change_log_payload: ChangeLogPayload = ChangeLogPayload()
+        enriched_change_log_payload: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
+        return enriched_change_log_payload
 
     async def get_register_summary_data(self) -> list[RegisterSummaryData]:
         _logger.info("Fetching register summary data through controller service")
@@ -121,8 +122,8 @@ class G2PRegisterControllerService(BaseService):
         verifications_data: VerificationsData = await g2p_register_service.get_verifications_for_change_log(change_log_id)
         return verifications_data
 
-    async def add_verification_for_change_log(self, payload: AddVerificationPayload) -> VerificationData:
-        _logger.info(f"Adding verification for change_log_id: {payload.change_log_id} through controller service")
+    async def add_verification_for_change_log(self, add_verification_payload: AddVerificationPayload) -> VerificationData:
+        _logger.info(f"Adding verification for change_log_id: {add_verification_payload.change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        verification_data: VerificationData = await g2p_register_service.add_verification_for_change_log(payload)
+        verification_data: VerificationData = await g2p_register_service.add_verification_for_change_log(add_verification_payload)
         return verification_data

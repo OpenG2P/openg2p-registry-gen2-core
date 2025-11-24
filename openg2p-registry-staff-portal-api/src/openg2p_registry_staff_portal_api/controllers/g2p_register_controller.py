@@ -165,7 +165,11 @@ class G2PRegisterController(BaseController):
     
     async def reject_change_log(self, change_log_request: ChangeLogRequest) -> ChangeLogResponse:
         try:
-            change_log_payload: ChangeLogPayload = await self.g2p_register_controller_service.reject_change_log(change_log_request.request_body.request_payload.change_log_id)
+            rejection_reason: str = getattr(change_log_request.request_body.request_payload, 'rejection_reason', None)
+            change_log_payload: ChangeLogPayload = await self.g2p_register_controller_service.reject_change_log(
+                change_log_request.request_body.request_payload.change_log_id,
+                reason=rejection_reason
+            )
             change_log_response: ChangeLogResponse = self.helper.construct_change_log_success_response(
                 change_log_payload=change_log_payload, g2p_request=change_log_request
             )
