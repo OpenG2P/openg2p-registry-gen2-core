@@ -60,3 +60,129 @@ class IncomingModelSignaturePatternData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+
+# IncomingModelSemanticPattern Schemas
+class IncomingModelSemanticPatternPayload(BaseModel):
+    semantic_pattern_id: Optional[str] = None
+    data_model_id: str
+    register_id: str
+    operation_id: str
+    pattern_for_register: str
+    pattern_for_operation: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingModelSemanticPatternUpdatePayload(BaseModel):
+    """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
+    pattern_for_register: Optional[str] = None
+    pattern_for_operation: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingModelSemanticPatternData(BaseModel):
+    semantic_pattern_id: str
+    data_model_id: str
+    register_id: str
+    operation_id: str
+    pattern_for_register: str
+    pattern_for_operation: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+# IncomingTemplate Schemas
+class IncomingTemplatePayload(BaseModel):
+    template_id: Optional[str] = None
+    register_id: str
+    operation_id: str
+    data_model_id: str
+    template_file_id: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingTemplateUpdatePayload(BaseModel):
+    """Update payload for IncomingTemplate - only allows updating specific fields"""
+    template_file_id: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingTemplateData(BaseModel):
+    template_id: str
+    register_id: str
+    operation_id: str
+    data_model_id: str
+    template_file_id: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+# IncomingPayloadEnricher Schemas
+class IncomingPayloadEnricherPayload(BaseModel):
+    incoming_factory_id: Optional[str] = None
+    data_model_id: str
+    register_id: str
+    operation_id: str
+    raw_payload_enricher_class: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingPayloadEnricherUpdatePayload(BaseModel):
+    """Update payload for IncomingPayloadEnricher - only allows updating specific fields"""
+    raw_payload_enricher_class: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class IncomingPayloadEnricherData(BaseModel):
+    incoming_factory_id: str
+    data_model_id: str
+    register_id: str
+    operation_id: str
+    raw_payload_enricher_class: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+# DataModel Schemas
+class DataModelPayload(BaseModel):
+    data_model_id: Optional[str] = None
+    data_model_mnemonic: str
+    pattern_for_data_model: str
+    is_active: bool = True
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DataModelUpdatePayload(BaseModel):
+    """Update payload for DataModel - only allows updating specific fields"""
+    data_model_mnemonic: Optional[str] = None
+    pattern_for_data_model: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DataModelData(BaseModel):
+    data_model_id: str
+    data_model_mnemonic: str
+    pattern_for_data_model: str
+    is_active: bool
+
+    class Config:
+        from_attributes: bool = True
+

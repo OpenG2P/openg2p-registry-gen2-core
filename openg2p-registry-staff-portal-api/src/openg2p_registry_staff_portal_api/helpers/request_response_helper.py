@@ -17,6 +17,8 @@ from openg2p_registry_core.schemas import (
     VerificationData, VerificationDataResponse, VerificationDataResponseBody,
     IncomingPartnerData, IncomingPartnerResponseBody,
     IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
+    IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
+    IncomingPayloadEnricherResponseBody, DataModelResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -279,10 +281,19 @@ class RequestResponseHelper(BaseService):
         )
 
         # Determine the response body class based on response_class
-        if response_class.__name__ == 'IncomingPartnerResponse':
+        response_class_name = response_class.__name__
+        if response_class_name == 'IncomingPartnerResponse':
             response_body = IncomingPartnerResponseBody(response_payload=payload_data)
-        elif response_class.__name__ == 'IncomingModelSignaturePatternResponse':
+        elif response_class_name == 'IncomingModelSignaturePatternResponse':
             response_body = IncomingModelSignaturePatternResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingModelSemanticPatternResponse':
+            response_body = IncomingModelSemanticPatternResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingTemplateResponse':
+            response_body = IncomingTemplateResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingPayloadEnricherResponse':
+            response_body = IncomingPayloadEnricherResponseBody(response_payload=payload_data)
+        elif response_class_name == 'DataModelResponse':
+            response_body = DataModelResponseBody(response_payload=payload_data)
         else:
             # Fallback for other response types
             response_body = G2PResponseBody(response_payload=payload_data)

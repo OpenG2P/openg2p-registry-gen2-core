@@ -10,6 +10,18 @@ from openg2p_registry_core.schemas import (
     IncomingModelSignaturePatternRequest,
     IncomingModelSignaturePatternUpdateRequest,
     IncomingModelSignaturePatternResponse,
+    IncomingModelSemanticPatternRequest,
+    IncomingModelSemanticPatternUpdateRequest,
+    IncomingModelSemanticPatternResponse,
+    IncomingTemplateRequest,
+    IncomingTemplateUpdateRequest,
+    IncomingTemplateResponse,
+    IncomingPayloadEnricherRequest,
+    IncomingPayloadEnricherUpdateRequest,
+    IncomingPayloadEnricherResponse,
+    DataModelRequest,
+    DataModelUpdateRequest,
+    DataModelResponse,
 )
 
 from ..helpers import RequestResponseHelper
@@ -76,6 +88,94 @@ class IngestionConfigurationController(BaseController):
             "/signature-patterns/{signature_pattern_id}",
             self.update_signature_pattern,
             responses={200: {"model": IncomingModelSignaturePatternResponse}},
+            methods=["PATCH"],
+        )
+
+        # IncomingModelSemanticPattern endpoints
+        self.router.add_api_route(
+            "/semantic-patterns",
+            self.create_semantic_pattern,
+            responses={200: {"model": IncomingModelSemanticPatternResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/semantic-patterns/{semantic_pattern_id}",
+            self.get_semantic_pattern,
+            responses={200: {"model": IncomingModelSemanticPatternResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/semantic-patterns/{semantic_pattern_id}",
+            self.update_semantic_pattern,
+            responses={200: {"model": IncomingModelSemanticPatternResponse}},
+            methods=["PATCH"],
+        )
+
+        # IncomingTemplate endpoints
+        self.router.add_api_route(
+            "/templates",
+            self.create_template,
+            responses={200: {"model": IncomingTemplateResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/templates/{template_id}",
+            self.get_template,
+            responses={200: {"model": IncomingTemplateResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/templates/{template_id}",
+            self.update_template,
+            responses={200: {"model": IncomingTemplateResponse}},
+            methods=["PATCH"],
+        )
+
+        # IncomingPayloadEnricher endpoints
+        self.router.add_api_route(
+            "/payload-enrichers",
+            self.create_payload_enricher,
+            responses={200: {"model": IncomingPayloadEnricherResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/payload-enrichers/{incoming_factory_id}",
+            self.get_payload_enricher,
+            responses={200: {"model": IncomingPayloadEnricherResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/payload-enrichers/{incoming_factory_id}",
+            self.update_payload_enricher,
+            responses={200: {"model": IncomingPayloadEnricherResponse}},
+            methods=["PATCH"],
+        )
+
+        # DataModel endpoints
+        self.router.add_api_route(
+            "/data-models",
+            self.create_data_model,
+            responses={200: {"model": DataModelResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/data-models/{data_model_id}",
+            self.get_data_model,
+            responses={200: {"model": DataModelResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/data-models/{data_model_id}",
+            self.update_data_model,
+            responses={200: {"model": DataModelResponse}},
             methods=["PATCH"],
         )
 
@@ -161,4 +261,152 @@ class IngestionConfigurationController(BaseController):
             )
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)
+
+    async def create_semantic_pattern(
+        self, pattern_request: IncomingModelSemanticPatternRequest
+    ) -> IncomingModelSemanticPatternResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.create_semantic_pattern(
+                pattern_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelSemanticPatternResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def get_semantic_pattern(
+        self, semantic_pattern_id: str
+    ) -> IncomingModelSemanticPatternResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.get_semantic_pattern(
+                semantic_pattern_id
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelSemanticPatternResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
+
+    async def update_semantic_pattern(
+        self, semantic_pattern_id: str, pattern_request: IncomingModelSemanticPatternUpdateRequest
+    ) -> IncomingModelSemanticPatternResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.update_semantic_pattern(
+                semantic_pattern_id, pattern_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelSemanticPatternResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def create_template(
+        self, template_request: IncomingTemplateRequest
+    ) -> IncomingTemplateResponse:
+        try:
+            template_data = await self.ingestion_config_service.create_template(
+                template_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                template_data, IncomingTemplateResponse, template_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, template_request)
+
+    async def get_template(self, template_id: str) -> IncomingTemplateResponse:
+        try:
+            template_data = await self.ingestion_config_service.get_template(template_id)
+            return self.helper.construct_ingestion_config_success_response(
+                template_data, IncomingTemplateResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
+
+    async def update_template(
+        self, template_id: str, template_request: IncomingTemplateUpdateRequest
+    ) -> IncomingTemplateResponse:
+        try:
+            template_data = await self.ingestion_config_service.update_template(
+                template_id, template_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                template_data, IncomingTemplateResponse, template_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, template_request)
+
+    async def create_payload_enricher(
+        self, enricher_request: IncomingPayloadEnricherRequest
+    ) -> IncomingPayloadEnricherResponse:
+        try:
+            enricher_data = await self.ingestion_config_service.create_payload_enricher(
+                enricher_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                enricher_data, IncomingPayloadEnricherResponse, enricher_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, enricher_request)
+
+    async def get_payload_enricher(
+        self, incoming_factory_id: str
+    ) -> IncomingPayloadEnricherResponse:
+        try:
+            enricher_data = await self.ingestion_config_service.get_payload_enricher(
+                incoming_factory_id
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                enricher_data, IncomingPayloadEnricherResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
+
+    async def update_payload_enricher(
+        self, incoming_factory_id: str, enricher_request: IncomingPayloadEnricherUpdateRequest
+    ) -> IncomingPayloadEnricherResponse:
+        try:
+            enricher_data = await self.ingestion_config_service.update_payload_enricher(
+                incoming_factory_id, enricher_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                enricher_data, IncomingPayloadEnricherResponse, enricher_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, enricher_request)
+
+    async def create_data_model(
+        self, data_model_request: DataModelRequest
+    ) -> DataModelResponse:
+        try:
+            data_model_data = await self.ingestion_config_service.create_data_model(
+                data_model_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                data_model_data, DataModelResponse, data_model_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, data_model_request)
+
+    async def get_data_model(self, data_model_id: str) -> DataModelResponse:
+        try:
+            data_model_data = await self.ingestion_config_service.get_data_model(data_model_id)
+            return self.helper.construct_ingestion_config_success_response(
+                data_model_data, DataModelResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
+
+    async def update_data_model(
+        self, data_model_id: str, data_model_request: DataModelUpdateRequest
+    ) -> DataModelResponse:
+        try:
+            data_model_data = await self.ingestion_config_service.update_data_model(
+                data_model_id, data_model_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                data_model_data, DataModelResponse, data_model_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, data_model_request)
 

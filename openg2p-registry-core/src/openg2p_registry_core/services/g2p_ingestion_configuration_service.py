@@ -8,7 +8,14 @@ from openg2p_fastapi_common.context import dbengine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy import select
 
-from ..models import IncomingPartner, IncomingModelSignaturePattern
+from ..models import (
+    IncomingPartner,
+    IncomingModelSignaturePattern,
+    IncomingModelSemanticPattern,
+    IncomingTemplate,
+    IncomingPayloadEnricher,
+    DataModel,
+)
 from ..schemas import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
@@ -16,6 +23,18 @@ from ..schemas import (
     IncomingModelSignaturePatternPayload,
     IncomingModelSignaturePatternUpdatePayload,
     IncomingModelSignaturePatternData,
+    IncomingModelSemanticPatternPayload,
+    IncomingModelSemanticPatternUpdatePayload,
+    IncomingModelSemanticPatternData,
+    IncomingTemplatePayload,
+    IncomingTemplateUpdatePayload,
+    IncomingTemplateData,
+    IncomingPayloadEnricherPayload,
+    IncomingPayloadEnricherUpdatePayload,
+    IncomingPayloadEnricherData,
+    DataModelPayload,
+    DataModelUpdatePayload,
+    DataModelData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -43,16 +62,16 @@ class G2PIngestionConfigurationService(BaseService):
                 )
 
             partner_id = incoming_partner_payload.partner_id or str(uuid.uuid4())
-            partner = IncomingPartner(
+            incoming_partner = IncomingPartner(
                 partner_id=partner_id,
                 partner_mnemonic=incoming_partner_payload.partner_mnemonic,
                 keymanager_reference_id=incoming_partner_payload.keymanager_reference_id,
                 is_active=incoming_partner_payload.is_active,
             )
-            session.add(partner)
+            session.add(incoming_partner)
             await session.commit()
-            await session.refresh(partner)
-            return IncomingPartnerData.from_orm(partner)
+            await session.refresh(incoming_partner)
+            return IncomingPartnerData.model_validate(incoming_partner)
 
     async def get_incoming_partner(self, partner_id: str) -> IncomingPartnerData:
         """Get incoming partner by ID"""
@@ -67,7 +86,7 @@ class G2PIngestionConfigurationService(BaseService):
                     code="PARTNER_NOT_FOUND",
                     message=f"Partner with ID {partner_id} not found",
                 )
-            return IncomingPartnerData.from_orm(partner_obj)
+            return IncomingPartnerData.model_validate(partner_obj)
 
     async def update_incoming_partner(
         self, partner_id: str, incoming_partner_payload: IncomingPartnerUpdatePayload
@@ -95,7 +114,7 @@ class G2PIngestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(partner_obj)
-            return IncomingPartnerData.from_orm(partner_obj)
+            return IncomingPartnerData.model_validate(partner_obj)
 
     async def delete_incoming_partner(self, partner_id: str) -> None:
         """Soft delete incoming partner"""
@@ -130,7 +149,7 @@ class G2PIngestionConfigurationService(BaseService):
             session.add(pattern)
             await session.commit()
             await session.refresh(pattern)
-            return IncomingModelSignaturePatternData.from_orm(pattern)
+            return IncomingModelSignaturePatternData.model_validate(pattern)
 
     async def get_signature_pattern(
         self, signature_pattern_id: str
@@ -149,7 +168,7 @@ class G2PIngestionConfigurationService(BaseService):
                     code="PATTERN_NOT_FOUND",
                     message=f"Pattern with ID {signature_pattern_id} not found",
                 )
-            return IncomingModelSignaturePatternData.from_orm(pattern_obj)
+            return IncomingModelSignaturePatternData.model_validate(pattern_obj)
 
     async def update_signature_pattern(
         self, signature_pattern_id: str, pattern_payload: IncomingModelSignaturePatternUpdatePayload
@@ -177,5 +196,265 @@ class G2PIngestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(pattern_obj)
-            return IncomingModelSignaturePatternData.from_orm(pattern_obj)
+            return IncomingModelSignaturePatternData.model_validate(pattern_obj)
+
+    # IncomingModelSemanticPattern Methods
+    async def create_semantic_pattern(
+        self, pattern_payload: IncomingModelSemanticPatternPayload
+    ) -> IncomingModelSemanticPatternData:
+        """Create a new semantic pattern"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern_id = pattern_payload.semantic_pattern_id or str(uuid.uuid4())
+            pattern = IncomingModelSemanticPattern(
+                semantic_pattern_id=pattern_id,
+                data_model_id=pattern_payload.data_model_id,
+                register_id=pattern_payload.register_id,
+                operation_id=pattern_payload.operation_id,
+                pattern_for_register=pattern_payload.pattern_for_register,
+                pattern_for_operation=pattern_payload.pattern_for_operation,
+            )
+            session.add(pattern)
+            await session.commit()
+            await session.refresh(pattern)
+            return IncomingModelSemanticPatternData.model_validate(pattern)
+
+    async def get_semantic_pattern(
+        self, semantic_pattern_id: str
+    ) -> IncomingModelSemanticPatternData:
+        """Get semantic pattern by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern = await session.execute(
+                select(IncomingModelSemanticPattern).where(
+                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
+                )
+            )
+            pattern_obj = pattern.scalar_one_or_none()
+            if not pattern_obj:
+                raise G2PRegistryException(
+                    code="SEMANTIC_PATTERN_NOT_FOUND",
+                    message=f"Semantic pattern with ID {semantic_pattern_id} not found",
+                )
+            return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+
+    async def update_semantic_pattern(
+        self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
+    ) -> IncomingModelSemanticPatternData:
+        """Update semantic pattern - only updates provided fields"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern = await session.execute(
+                select(IncomingModelSemanticPattern).where(
+                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
+                )
+            )
+            pattern_obj = pattern.scalar_one_or_none()
+            if not pattern_obj:
+                raise G2PRegistryException(
+                    code="SEMANTIC_PATTERN_NOT_FOUND",
+                    message=f"Semantic pattern with ID {semantic_pattern_id} not found",
+                )
+
+            if pattern_payload.pattern_for_register is not None:
+                pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
+            if pattern_payload.pattern_for_operation is not None:
+                pattern_obj.pattern_for_operation = pattern_payload.pattern_for_operation
+
+            await session.commit()
+            await session.refresh(pattern_obj)
+            return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+
+    # IncomingTemplate Methods
+    async def create_template(
+        self, template_payload: IncomingTemplatePayload
+    ) -> IncomingTemplateData:
+        """Create a new template"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            template_id = template_payload.template_id or str(uuid.uuid4())
+            template = IncomingTemplate(
+                template_id=template_id,
+                register_id=template_payload.register_id,
+                operation_id=template_payload.operation_id,
+                data_model_id=template_payload.data_model_id,
+                template_file_id=template_payload.template_file_id,
+            )
+            session.add(template)
+            await session.commit()
+            await session.refresh(template)
+            return IncomingTemplateData.model_validate(template)
+
+    async def get_template(self, template_id: str) -> IncomingTemplateData:
+        """Get template by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            template = await session.execute(
+                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
+            )
+            template_obj = template.scalar_one_or_none()
+            if not template_obj:
+                raise G2PRegistryException(
+                    code="TEMPLATE_NOT_FOUND",
+                    message=f"Template with ID {template_id} not found",
+                )
+            return IncomingTemplateData.model_validate(template_obj)
+
+    async def update_template(
+        self, template_id: str, template_payload: IncomingTemplateUpdatePayload
+    ) -> IncomingTemplateData:
+        """Update template - only updates provided fields"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            template = await session.execute(
+                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
+            )
+            template_obj = template.scalar_one_or_none()
+            if not template_obj:
+                raise G2PRegistryException(
+                    code="TEMPLATE_NOT_FOUND",
+                    message=f"Template with ID {template_id} not found",
+                )
+
+            if template_payload.template_file_id is not None:
+                template_obj.template_file_id = template_payload.template_file_id
+
+            await session.commit()
+            await session.refresh(template_obj)
+            return IncomingTemplateData.model_validate(template_obj)
+
+    # IncomingPayloadEnricher Methods
+    async def create_payload_enricher(
+        self, enricher_payload: IncomingPayloadEnricherPayload
+    ) -> IncomingPayloadEnricherData:
+        """Create a new payload enricher"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            enricher_id = enricher_payload.incoming_factory_id or str(uuid.uuid4())
+            enricher = IncomingPayloadEnricher(
+                incoming_factory_id=enricher_id,
+                data_model_id=enricher_payload.data_model_id,
+                register_id=enricher_payload.register_id,
+                operation_id=enricher_payload.operation_id,
+                raw_payload_enricher_class=enricher_payload.raw_payload_enricher_class,
+            )
+            session.add(enricher)
+            await session.commit()
+            await session.refresh(enricher)
+            return IncomingPayloadEnricherData.model_validate(enricher)
+
+    async def get_payload_enricher(
+        self, incoming_factory_id: str
+    ) -> IncomingPayloadEnricherData:
+        """Get payload enricher by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            enricher = await session.execute(
+                select(IncomingPayloadEnricher).where(
+                    IncomingPayloadEnricher.incoming_factory_id == incoming_factory_id
+                )
+            )
+            enricher_obj = enricher.scalar_one_or_none()
+            if not enricher_obj:
+                raise G2PRegistryException(
+                    code="PAYLOAD_ENRICHER_NOT_FOUND",
+                    message=f"Payload enricher with ID {incoming_factory_id} not found",
+                )
+            return IncomingPayloadEnricherData.model_validate(enricher_obj)
+
+    async def update_payload_enricher(
+        self, incoming_factory_id: str, enricher_payload: IncomingPayloadEnricherUpdatePayload
+    ) -> IncomingPayloadEnricherData:
+        """Update payload enricher - only updates provided fields"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            enricher = await session.execute(
+                select(IncomingPayloadEnricher).where(
+                    IncomingPayloadEnricher.incoming_factory_id == incoming_factory_id
+                )
+            )
+            enricher_obj = enricher.scalar_one_or_none()
+            if not enricher_obj:
+                raise G2PRegistryException(
+                    code="PAYLOAD_ENRICHER_NOT_FOUND",
+                    message=f"Payload enricher with ID {incoming_factory_id} not found",
+                )
+
+            if enricher_payload.raw_payload_enricher_class is not None:
+                enricher_obj.raw_payload_enricher_class = enricher_payload.raw_payload_enricher_class
+
+            await session.commit()
+            await session.refresh(enricher_obj)
+            return IncomingPayloadEnricherData.model_validate(enricher_obj)
+
+    # DataModel Methods
+    async def create_data_model(
+        self, data_model_payload: DataModelPayload
+    ) -> DataModelData:
+        """Create a new data model"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Check if data model mnemonic already exists
+            existing = await session.execute(
+                select(DataModel).where(
+                    DataModel.data_model_mnemonic == data_model_payload.data_model_mnemonic
+                )
+            )
+            if existing.scalar_one_or_none():
+                raise G2PRegistryException(
+                    code="DATA_MODEL_ALREADY_EXISTS",
+                    message=f"Data model with mnemonic {data_model_payload.data_model_mnemonic} already exists",
+                )
+
+            data_model_id = data_model_payload.data_model_id or str(uuid.uuid4())
+            data_model = DataModel(
+                data_model_id=data_model_id,
+                data_model_mnemonic=data_model_payload.data_model_mnemonic,
+                pattern_for_data_model=data_model_payload.pattern_for_data_model,
+                is_active=data_model_payload.is_active,
+            )
+            session.add(data_model)
+            await session.commit()
+            await session.refresh(data_model)
+            return DataModelData.model_validate(data_model)
+
+    async def get_data_model(self, data_model_id: str) -> DataModelData:
+        """Get data model by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            data_model = await session.execute(
+                select(DataModel).where(DataModel.data_model_id == data_model_id)
+            )
+            data_model_obj = data_model.scalar_one_or_none()
+            if not data_model_obj:
+                raise G2PRegistryException(
+                    code="DATA_MODEL_NOT_FOUND",
+                    message=f"Data model with ID {data_model_id} not found",
+                )
+            return DataModelData.model_validate(data_model_obj)
+
+    async def update_data_model(
+        self, data_model_id: str, data_model_payload: DataModelUpdatePayload
+    ) -> DataModelData:
+        """Update data model - only updates provided fields"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            data_model = await session.execute(
+                select(DataModel).where(DataModel.data_model_id == data_model_id)
+            )
+            data_model_obj = data_model.scalar_one_or_none()
+            if not data_model_obj:
+                raise G2PRegistryException(
+                    code="DATA_MODEL_NOT_FOUND",
+                    message=f"Data model with ID {data_model_id} not found",
+                )
+
+            if data_model_payload.data_model_mnemonic is not None:
+                data_model_obj.data_model_mnemonic = data_model_payload.data_model_mnemonic
+            if data_model_payload.pattern_for_data_model is not None:
+                data_model_obj.pattern_for_data_model = data_model_payload.pattern_for_data_model
+
+            await session.commit()
+            await session.refresh(data_model_obj)
+            return DataModelData.model_validate(data_model_obj)
 
