@@ -1,1 +1,2 @@
 from .g2p_register_controller import G2PRegisterController
+from .ingestion_configuration_controller import IngestionConfigurationController

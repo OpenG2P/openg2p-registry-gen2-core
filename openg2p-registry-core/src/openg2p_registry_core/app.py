@@ -8,10 +8,11 @@ _config = Settings.get_config()
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
-from .services import G2PRegisterDomainService, G2PRegisterService, G2PPartnerService
+from .services import G2PRegisterDomainService, G2PRegisterService, G2PPartnerService, G2PIngestionConfigurationService
 from .controller_services import (
     G2PRegisterControllerService,
     G2PPartnerControllerService,
+    G2PIngestionConfigurationControllerService,
 )
 from .models import (
     DataModel,
@@ -47,10 +48,12 @@ class Initializer(BaseInitializer):
         G2PPartnerService()
         G2PRegisterService()
         G2PRegisterDomainService()
+        G2PIngestionConfigurationService()
 
         # Controller Services
         G2PPartnerControllerService()
         G2PRegisterControllerService()
+        G2PIngestionConfigurationControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)

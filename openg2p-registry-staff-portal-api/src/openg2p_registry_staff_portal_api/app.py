@@ -11,7 +11,7 @@ from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 from openg2p_registry_core.app import Initializer as CoreInitializer
 
 from .helpers import RequestResponseHelper
-from .controllers import G2PRegisterController
+from .controllers import G2PRegisterController, IngestionConfigurationController
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
@@ -24,6 +24,7 @@ class Initializer(BaseInitializer):
         RequestResponseHelper()
 
         G2PRegisterController().post_init()
+        IngestionConfigurationController().post_init()
 
     def migrate_database(self, args):
         _logger.info("Starting database migration")

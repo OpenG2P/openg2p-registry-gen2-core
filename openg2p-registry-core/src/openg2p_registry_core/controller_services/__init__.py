@@ -1,2 +1,3 @@
 from .g2p_register_controller_service import G2PRegisterControllerService
 from .g2p_partner_controller_service import G2PPartnerControllerService
+from .g2p_ingestion_configuration_controller_service import G2PIngestionConfigurationControllerService

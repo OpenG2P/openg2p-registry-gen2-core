@@ -14,7 +14,9 @@ from openg2p_registry_core.schemas import (
     ChangeLogsData, ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
     VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody,
-    VerificationData, VerificationDataResponse, VerificationDataResponseBody
+    VerificationData, VerificationDataResponse, VerificationDataResponseBody,
+    IncomingPartnerData, IncomingPartnerResponseBody,
+    IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -264,4 +266,30 @@ class RequestResponseHelper(BaseService):
         )
         return verification_response
 
+    def construct_ingestion_config_success_response(self, payload_data, response_class, g2p_request=None):
+        """Generic method to construct success response for ingestion configuration endpoints"""
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        # Determine the response body class based on response_class
+        if response_class.__name__ == 'IncomingPartnerResponse':
+            response_body = IncomingPartnerResponseBody(response_payload=payload_data)
+        elif response_class.__name__ == 'IncomingModelSignaturePatternResponse':
+            response_body = IncomingModelSignaturePatternResponseBody(response_payload=payload_data)
+        else:
+            # Fallback for other response types
+            response_body = G2PResponseBody(response_payload=payload_data)
+
+        response = response_class(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return response
 

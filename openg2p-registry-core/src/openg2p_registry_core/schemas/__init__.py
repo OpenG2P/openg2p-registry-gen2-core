@@ -17,3 +17,29 @@ from .response import (
 from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema
+from .ingestion_configuration import (
+    IncomingPartnerPayload,
+    IncomingPartnerUpdatePayload,
+    IncomingPartnerData,
+    IncomingModelSignaturePatternPayload,
+    IncomingModelSignaturePatternUpdatePayload,
+    IncomingModelSignaturePatternData,
+)
+from .ingestion_configuration_request_response import (
+    IncomingPartnerRequest,
+    IncomingPartnerRequestBody,
+    IncomingPartnerUpdateRequest,
+    IncomingPartnerUpdateRequestBody,
+    IncomingPartnerResponse,
+    IncomingPartnerResponseBody,
+    IncomingPartnersResponse,
+    IncomingPartnersResponseBody,
+    IncomingModelSignaturePatternRequest,
+    IncomingModelSignaturePatternRequestBody,
+    IncomingModelSignaturePatternUpdateRequest,
+    IncomingModelSignaturePatternUpdateRequestBody,
+    IncomingModelSignaturePatternResponse,
+    IncomingModelSignaturePatternResponseBody,
+    IncomingModelSignaturePatternsResponse,
+    IncomingModelSignaturePatternsResponseBody,
+)
