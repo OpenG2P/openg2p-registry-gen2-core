@@ -30,7 +30,7 @@ from .models import (
     IncomingPartner,
     IncomingTemplate,
 )
-from .helpers import SignaturePatternMatcher
+from .helpers import PatternMatcher
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
@@ -40,8 +40,8 @@ class Initializer(BaseInitializer):
         super().initialize()
 
         # Helpers
+        PatternMatcher()
         KeymanagerCryptoHelper()
-        SignaturePatternMatcher()
 
         # Services
         G2PPartnerService()
