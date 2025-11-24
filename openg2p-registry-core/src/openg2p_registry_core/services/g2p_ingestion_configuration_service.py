@@ -124,8 +124,8 @@ class G2PIngestionConfigurationService(BaseService):
             pattern = IncomingModelSignaturePattern(
                 signature_pattern_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
-                pattern_for_sender=pattern_payload.pattern_for_sender,
-                pattern_for_signature=pattern_payload.pattern_for_signature,
+                key_path_for_sender=pattern_payload.key_path_for_sender,
+                key_path_for_signature=pattern_payload.key_path_for_signature,
             )
             session.add(pattern)
             await session.commit()
@@ -170,10 +170,10 @@ class G2PIngestionConfigurationService(BaseService):
                 )
 
             # Only update fields that are provided (not None)
-            if pattern_payload.pattern_for_sender is not None:
-                pattern_obj.pattern_for_sender = pattern_payload.pattern_for_sender
-            if pattern_payload.pattern_for_signature is not None:
-                pattern_obj.pattern_for_signature = pattern_payload.pattern_for_signature
+            if pattern_payload.key_path_for_sender is not None:
+                pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
+            if pattern_payload.key_path_for_signature is not None:
+                pattern_obj.key_path_for_signature = pattern_payload.key_path_for_signature
 
             await session.commit()
             await session.refresh(pattern_obj)
