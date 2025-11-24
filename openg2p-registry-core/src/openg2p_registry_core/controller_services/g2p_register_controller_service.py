@@ -23,10 +23,13 @@ class G2PRegisterControllerService(BaseService):
         print(f"Validating domain attributes for register mnemonic: {change_log_payload.register_mnemonic}")
         await domain_service.validate_domain_attributes(change_log_payload)
 
-        g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.create_change_log(change_log_request)
+        g2p_register_change_log: G2PRegisterChangeLog = await g2p_register_service.create_change_log(
+            change_log_payload=change_log_payload,
+            source_partner_id=change_log_request.request_header.sender_app_mnemonic
+        )
 
         enriched_change_log_payload: ChangeLogPayload = await self._enrich_change_log_payload(change_log_payload, g2p_register_change_log)
-        
+
         return enriched_change_log_payload
 
     async def approve_change_log(self, change_log_id: str) -> ChangeLogPayload:

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogRequest, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
+from ..schemas import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -21,18 +21,18 @@ _engine = dbengine.get()
 
 class G2PRegisterService(BaseService):
 
-    async def create_change_log(self, change_log_request: ChangeLogRequest):
+    async def create_change_log(self, change_log_payload: ChangeLogPayload, source_partner_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
-            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request.request_body.request_payload.register_id, session)
-            g2p_register_operation: G2PRegisterOperation = await self.validate_operation(change_log_request.request_body.request_payload.operation_id, session)
+            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_payload.register_id, session)
+            g2p_register_operation: G2PRegisterOperation = await self.validate_operation(change_log_payload.operation_id, session)
 
             if not g2p_register_operation.is_new_operation:
                 # Check whether the record exists with given internal_record_id
-                await self.validate_internal_record(g2p_register_definition, change_log_request.request_body.request_payload.internal_record_id, session)
+                await self.validate_internal_record(g2p_register_definition, change_log_payload.internal_record_id, session)
 
-            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_request, g2p_register_operation)
+            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_payload, g2p_register_operation, source_partner_id)
 
             session.add(g2p_register_change_log)
             # Add the payload object if it exists
@@ -372,34 +372,34 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_log(self, change_log_request: ChangeLogRequest, g2p_register_operation: G2PRegisterOperation) -> G2PRegisterChangeLog:
+    async def construct_change_log(self, change_log_payload: ChangeLogPayload, g2p_register_operation: G2PRegisterOperation, source_partner_id: str = None) -> G2PRegisterChangeLog:
         change_log_id = str(uuid.uuid4())
         if g2p_register_operation.is_new_operation:
-            change_log_request.request_body.request_payload.internal_record_id = str(uuid.uuid4())
+            change_log_payload.internal_record_id = str(uuid.uuid4())
 
         # Create the payload object
-        change_log_payload = G2PRegisterChangeLogPayload(
+        change_log_payload_obj = G2PRegisterChangeLogPayload(
             change_log_id=change_log_id,
-            change_payload=change_log_request.request_body.request_payload.change_payload,
+            change_payload=change_log_payload.change_payload,
         )
 
         # Create the change log object
         g2p_register_change_log = G2PRegisterChangeLog(
             change_log_id=change_log_id,
-            register_id=change_log_request.request_body.request_payload.register_id,
-            internal_record_id=change_log_request.request_body.request_payload.internal_record_id,
-            operation_id=change_log_request.request_body.request_payload.operation_id,
-            source_partner_id=change_log_request.request_header.sender_app_mnemonic,
+            register_id=change_log_payload.register_id,
+            internal_record_id=change_log_payload.internal_record_id,
+            operation_id=change_log_payload.operation_id,
+            source_partner_id=source_partner_id or "system",
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
             no_of_verifications_required=g2p_register_operation.no_of_verifications_required,
             no_of_verifications_done=0,
-            approval_status=change_log_request.request_body.request_payload.approval_status.value,
+            approval_status=change_log_payload.approval_status.value,
         )
 
         # Add both objects to session so they're persisted together
         # The payload will be added when the change log is added
-        g2p_register_change_log._payload_to_add = change_log_payload
+        g2p_register_change_log._payload_to_add = change_log_payload_obj
         return g2p_register_change_log
 
     async def _fetch_register_summary_data(self, session) -> list[RegisterSummaryData]:
