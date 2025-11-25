@@ -11,6 +11,7 @@ from openg2p_registry_core.schemas import (
     SearchResultsResponse, SearchResultData,
     ChangeLogSearchResultsResponse, ChangeLogSearchResultData,
     NumberOfVersionsResponse, NumberOfVersionsData,
+    NumberOfPendingChangeLogsResponse, NumberOfPendingChangeLogsData,
     ChangeLogDataResponse, ChangeLogData,
     ChangeLogsDataResponse, ChangeLogsData,
     RecordDataResponse, RecordData,
@@ -97,6 +98,13 @@ class G2PRegisterController(BaseController):
             "/get_number_of_versions",
             self.get_number_of_versions,
             responses={200: {"model": NumberOfVersionsResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_number_of_pending_change_logs",
+            self.get_number_of_pending_change_logs,
+            responses={200: {"model": NumberOfPendingChangeLogsResponse}},
             methods=["GET"],
         )
 
@@ -249,6 +257,18 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_number_of_versions: {str(error_exception)}")
             error_response: NumberOfVersionsResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_number_of_pending_change_logs(self, register_id: str, internal_record_id: str) -> NumberOfPendingChangeLogsResponse:
+        try:
+            number_of_pending_change_logs_data: NumberOfPendingChangeLogsData = await self.g2p_register_controller_service.get_number_of_pending_change_logs(register_id, internal_record_id)
+            number_of_pending_change_logs_response: NumberOfPendingChangeLogsResponse = self.helper.construct_number_of_pending_change_logs_success_response(
+                number_of_pending_change_logs_data=number_of_pending_change_logs_data
+            )
+            return number_of_pending_change_logs_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_number_of_pending_change_logs: {str(error_exception)}")
+            error_response: NumberOfPendingChangeLogsResponse = self.helper.construct_error_response(error_exception)
             return error_response
 
     async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsDataResponse:

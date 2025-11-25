@@ -4,7 +4,7 @@ from openg2p_fastapi_common.schemas import (
     G2PResponse,
     G2PResponseBody,
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
+from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 
 
 class ChangeLogResponseBody(G2PResponseBody):
@@ -60,6 +60,13 @@ class NumberOfVersionsResponseBody(G2PResponseBody):
 
 class NumberOfVersionsResponse(G2PResponse):
     response_body: Optional[NumberOfVersionsResponseBody] = None
+
+
+class NumberOfPendingChangeLogsResponseBody(G2PResponseBody):
+    response_payload: Optional[NumberOfPendingChangeLogsData] = None
+
+class NumberOfPendingChangeLogsResponse(G2PResponse):
+    response_body: Optional[NumberOfPendingChangeLogsResponseBody] = None
 
 
 class ChangeLogDataResponseBody(G2PResponseBody):

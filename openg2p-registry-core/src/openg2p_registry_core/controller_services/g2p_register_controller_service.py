@@ -5,7 +5,7 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload, VerificationData
+from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload, VerificationData
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -83,6 +83,12 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id)
         return number_of_versions_data
+
+    async def get_number_of_pending_change_logs(self, register_id: str, internal_record_id: str) -> NumberOfPendingChangeLogsData:
+        _logger.info(f"Getting number of pending change logs for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        number_of_pending_change_logs_data: NumberOfPendingChangeLogsData = await g2p_register_service.get_number_of_pending_change_logs(register_id, internal_record_id)
+        return number_of_pending_change_logs_data
 
     async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsData:
         _logger.info(f"Getting change logs for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")

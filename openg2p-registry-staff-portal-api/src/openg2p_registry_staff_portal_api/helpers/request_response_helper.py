@@ -10,6 +10,7 @@ from openg2p_registry_core.schemas import (
     SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
     ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
     NumberOfVersionsData, NumberOfVersionsResponse, NumberOfVersionsResponseBody,
+    NumberOfPendingChangeLogsData, NumberOfPendingChangeLogsResponse, NumberOfPendingChangeLogsResponseBody,
     ChangeLogData, ChangeLogDataResponse, ChangeLogDataResponseBody,
     ChangeLogsData, ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
@@ -191,6 +192,24 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_versions_response
 
+    def construct_number_of_pending_change_logs_success_response(self, number_of_pending_change_logs_data: NumberOfPendingChangeLogsData) -> NumberOfPendingChangeLogsResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: NumberOfPendingChangeLogsResponseBody = NumberOfPendingChangeLogsResponseBody(
+            response_payload=number_of_pending_change_logs_data
+        )
+
+        number_of_pending_change_logs_response: NumberOfPendingChangeLogsResponse = NumberOfPendingChangeLogsResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return number_of_pending_change_logs_response
 
     def construct_change_logs_success_response(self, change_logs_data: ChangeLogsData) -> ChangeLogsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(

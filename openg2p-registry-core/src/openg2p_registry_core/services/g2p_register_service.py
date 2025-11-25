@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
 from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
+from ..schemas import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -637,6 +637,40 @@ class G2PRegisterService(BaseService):
                 register_id=register_id,
                 internal_record_id=internal_record_id,
                 number_of_versions=number_of_versions
+            )
+
+    async def get_number_of_pending_change_logs(self, register_id: str, internal_record_id: str) -> NumberOfPendingChangeLogsData:
+        """Get the number of pending change logs for a given register and internal_record_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Count pending change logs for the given internal_record_id
+            count_result = await session.execute(
+                select(func.count()).select_from(G2PRegisterChangeLog).where(
+                    (G2PRegisterChangeLog.register_id == register_id) &
+                    (G2PRegisterChangeLog.internal_record_id == internal_record_id) &
+                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value)
+                )
+            )
+            number_of_pending_change_logs = count_result.scalar_one()
+
+            return NumberOfPendingChangeLogsData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                number_of_pending_change_logs=number_of_pending_change_logs
             )
 
     async def _fetch_change_logs(self, register_id: str, internal_record_id: str, session) -> ChangeLogsData:

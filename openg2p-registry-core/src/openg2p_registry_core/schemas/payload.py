@@ -103,6 +103,12 @@ class NumberOfVersionsData(BaseModel):
     number_of_versions: int
 
 
+class NumberOfPendingChangeLogsData(BaseModel):
+    register_id: str
+    internal_record_id: str
+    number_of_pending_change_logs: int
+
+
 class ChangeLogData(BaseModel):
     change_log_id: str
     register_id: str
