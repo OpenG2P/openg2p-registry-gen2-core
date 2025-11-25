@@ -20,6 +20,8 @@ class IncomingRawData(BaseORMModel):
     receipt_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     classification_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
     classification_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    classification_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    classification_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
 
 class IncomingRawDataPayload(BaseORMModel):
 
@@ -44,10 +46,15 @@ class IncomingClassifiedData(BaseORMModel):
 
     ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
     transformation_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    transformation_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    transformation_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
     ingestion_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.NOT_APPLICABLE.value)
     ingestion_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    ingestion_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ingestion_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)

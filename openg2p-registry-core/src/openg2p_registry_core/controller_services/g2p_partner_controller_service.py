@@ -17,13 +17,5 @@ class G2PPartnerControllerService(BaseService):
         g2p_partner_service = G2PPartnerService.get_component()
         incoming_raw_data: IncomingRawData = await g2p_partner_service.ingest_data(data_model.upper() if data_model else None, ingest_data)
 
-        ingest_data_payload: IngestDataPayload = await self._construct_ingest_data_payload(incoming_raw_data)
-        return ingest_data_payload
-    
-    
-    async def _construct_ingest_data_payload(self, incoming_raw_data: IncomingRawData) -> IngestDataPayload:
-        ingest_data_payload = IngestDataPayload(
-            ingest_id=incoming_raw_data.ingest_id
-        )
-        return ingest_data_payload
-        
+        ingest_data_payload = IngestDataPayload(ingest_id=incoming_raw_data.ingest_id)
+        return ingest_data_payload    

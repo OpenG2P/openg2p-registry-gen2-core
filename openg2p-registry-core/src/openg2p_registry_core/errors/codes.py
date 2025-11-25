@@ -3,6 +3,7 @@ import enum
 
 class G2PRegistryErrorCodes(enum.Enum):
     # Request Validation Errors
+    INVALID_REQUEST = ("INVALID_REQUEST", "REQ-VAL-000")
     REQUEST_VALIDATION_ERROR = ("REQUEST_VALIDATION_ERROR", "REQ-VAL-001")
 
     # Database Errors
