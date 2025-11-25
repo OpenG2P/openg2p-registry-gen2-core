@@ -1,1 +1,0 @@
-from .g2p_payload_enricher_factory import G2PPayloadEnricherFactory
