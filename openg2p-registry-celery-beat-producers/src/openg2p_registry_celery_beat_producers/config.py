@@ -31,5 +31,7 @@ class Settings(BaseSettings):
     worker_queue: str = "registry_worker_queue"
 
     batch_size: int = 2000
-    producer_frequency: int = 30
+    raw_data_classification_beat_producer_frequency: int = 20
+    data_transformation_beat_producer_frequency: int = 20
+    data_ingestion_beat_producer_frequency: int = 20
     no_of_tasks_to_process: int = 4
