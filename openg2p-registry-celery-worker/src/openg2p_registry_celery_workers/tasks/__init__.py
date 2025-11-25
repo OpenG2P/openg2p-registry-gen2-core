@@ -1,2 +1,3 @@
 from .raw_data_classification_worker import raw_data_classification_worker
 from .data_transformation_worker import data_transformation_worker
+from .data_ingestion_worker import data_ingestion_worker

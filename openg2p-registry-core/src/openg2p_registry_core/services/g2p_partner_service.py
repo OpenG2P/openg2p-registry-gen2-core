@@ -32,12 +32,12 @@ class G2PPartnerService(BaseService):
         async with session_maker() as session:
             data_model: DataModel = await self._get_data_model(ingest_data, data_model_mnemonic, session)
 
-            (incoming_partner, signature) = await self._match_model_signature_pattern(
+            incoming_partner, signature, signature_payload = await self._match_model_signature_pattern(
                 data_model.data_model_id, ingest_data, session
             )
             _logger.debug("Matched incoming model signature pattern")
 
-            # await self._validate_signature(incoming_partner.keymanager_reference_id, signature)
+            # await self._validate_signature(incoming_partner.keymanager_reference_id, signature, signature_payload)
             _logger.debug("Verified request signature")
 
             ingest_id: str = str(uuid.uuid4())
@@ -139,7 +139,7 @@ class G2PPartnerService(BaseService):
 
     async def _match_model_signature_pattern(
         self, data_model_id: str, ingest_data: Dict, session: Session
-    ) -> Tuple[IncomingPartner, str]:
+    ) -> Tuple[IncomingPartner, str, Dict]:
         pattern_matcher = PatternMatcher().get_component()
         
         incoming_model_signature_pattern: IncomingModelSignaturePattern | None = (
@@ -149,28 +149,27 @@ class G2PPartnerService(BaseService):
                 )
             )
         ).scalar_one_or_none()
-        partner_mnemonic, signature = pattern_matcher.get_signature_pattern_match(
+        partner_mnemonic, signature, signature_payload = pattern_matcher.get_signature_pattern_path(
             incoming_model_signature_pattern, ingest_data
         )
-        # TODO: Create an error code for this case
-        if not partner_mnemonic or not signature:
+        if not partner_mnemonic or not signature or not signature_payload:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[1],
-                message=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[0],
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
             )
 
         incoming_partner = await self._get_partner_from_partner_mnemonic(
             partner_mnemonic, session
         )
 
-        return incoming_partner, signature
+        return incoming_partner, signature, signature_payload
 
-    async def _validate_signature(self, keymanager_reference_id: str, signature: str):
+    async def _validate_signature(self, keymanager_reference_id: str, signature: str, signature_payload: Dict):
         keymanager_helper = KeymanagerCryptoHelper().get_component()
         signature_valid = await keymanager_helper.verify_jwt(
             self,
             orig_jwt=signature,
-            payload=None,
+            payload=signature_payload,
             km_app_id=None,
             km_ref_id=keymanager_reference_id,
         )

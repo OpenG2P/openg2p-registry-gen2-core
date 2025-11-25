@@ -29,15 +29,15 @@ celery_app = Celery(
 celery_app.conf.beat_schedule = {
     "raw_data_classification_beat_producer": {
         "task": "raw_data_classification_beat_producer",
-        "schedule": _config.producer_frequency,
+        "schedule": _config.raw_data_classification_beat_producer_frequency,
     },
     "data_transformation_beat_producer": {
         "task": "data_transformation_beat_producer",
-        "schedule": _config.producer_frequency,
+        "schedule": _config.data_transformation_beat_producer_frequency,
     },
     "data_ingestion_beat_producer": {
         "task": "data_ingestion_beat_producer",
-        "schedule": _config.producer_frequency,
+        "schedule": _config.data_ingestion_beat_producer_frequency,
     },
 }
 celery_app.conf.timezone = "UTC"

@@ -49,6 +49,7 @@ def raw_data_classification_worker(ingest_id: str):
             incoming_classified_data = IncomingClassifiedData(
                 ingest_id=incoming_raw_data.ingest_id,
                 data_model_id=incoming_raw_data.data_model_id,
+                partner_id=incoming_raw_data.partner_id,
                 register_id=register_id,
                 operation_id=operation_id,
                 classified_date_time=func.now(),
@@ -56,6 +57,7 @@ def raw_data_classification_worker(ingest_id: str):
             session.add(incoming_classified_data)
 
             # Update incoming_raw_data classification_status -> PROCESSED
+            incoming_raw_data.classification_number_of_attempts += 1
             incoming_raw_data.classification_status = ProcessStatusEnum.PROCESSED.value
             incoming_raw_data.classification_date_time = func.now()
             session.commit()
@@ -67,8 +69,14 @@ def raw_data_classification_worker(ingest_id: str):
             # Rollback all sessions
             session.rollback()
 
-            # Update incoming_raw_data classification_status -> FAILED
-            incoming_raw_data.classification_status = ProcessStatusEnum.FAILED.value
+            # Retry logic if maximum attempts not exhausted
+            if incoming_raw_data.classification_number_of_attempts < _config.worker_max_attempts:
+                incoming_raw_data.classification_number_of_attempts += 1
+                incoming_raw_data.classification_status = ProcessStatusEnum.PENDING.value
+            else:
+                incoming_raw_data.classification_status = ProcessStatusEnum.FAILED.value
+
+            incoming_raw_data.classification_latest_error_code = str(e)
             incoming_raw_data.classification_date_time = func.now()
             session.commit()
             # Raise exception for testing

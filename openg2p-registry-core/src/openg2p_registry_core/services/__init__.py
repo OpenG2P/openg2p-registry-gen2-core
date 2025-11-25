@@ -1,5 +1,4 @@
 from .g2p_register_service import G2PRegisterService
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_partner_service import G2PPartnerService
-from .g2p_payload_enricher_service import G2PPayloadEnricherService
 from .g2p_ingestion_configuration_service import G2PIngestionConfigurationService

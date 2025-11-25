@@ -19,6 +19,7 @@ class IncomingModelSignaturePattern(BaseORMModel):
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_signature: Mapped[str] = mapped_column(String, nullable=False)
+    key_path_for_signature_payload: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingModelSemanticPattern(BaseORMModel):
     
@@ -30,6 +31,7 @@ class IncomingModelSemanticPattern(BaseORMModel):
     operation_id: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_register: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_operation: Mapped[str] = mapped_column(String, nullable=False)
+    key_path_for_business_payload: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_1'),

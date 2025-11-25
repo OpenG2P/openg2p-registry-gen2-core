@@ -1,4 +1,5 @@
 import re
+import json
 from typing import Tuple, Dict, Optional
 from jsonpath_ng import parse as jsonpath_parse
 
@@ -12,25 +13,38 @@ class PatternMatcher(BaseService):
     Pattern format:
         "<jsonpath><separator><regex>"
     Example:
-        pattern_for_sender = "$.body.sender_name=>^PARTNER_[A-Z]+$"
-        pattern_for_signature = "$.header.auth=>^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]*$"
+        key_path_for_sender = "$.body.sender_name"
+        key_path_for_signature = "$.header.auth"
+        key_path_for_signature_payload = "$.body.message.payload"
+        key_path_for_business_payload = "$.body.message.payload.business_payload"
         pattern_for_data_model = "$.body.meta.data_model_is=>^[A-Z]+$"
     """
     def __init__(self):
         super().__init__()
         self.separator: str = "=>"
 
-    def get_signature_pattern_match(
+    def get_signature_pattern_path(
         self, incoming_model_signature_pattern: IncomingModelSignaturePattern, data: Dict
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, Dict]:
 
-        sender = self._extract_with_pattern(
-            data, incoming_model_signature_pattern.pattern_for_sender
+        sender = self._extract_jsonpath(
+            data, incoming_model_signature_pattern.key_path_for_sender
         )
-        signature = self._extract_with_pattern(
-            data, incoming_model_signature_pattern.pattern_for_signature
+        signature = self._extract_jsonpath(
+            data, incoming_model_signature_pattern.key_path_for_signature
         )
-        return sender, signature
+        signature_payload = self._extract_jsonpath(
+            data, incoming_model_signature_pattern.key_path_for_signature_payload
+        )
+        return sender, signature, signature_payload
+    
+    def get_business_payload(
+        self, incoming_model_semantic_pattern: IncomingModelSemanticPattern, data: Dict
+    ) -> Optional[Dict]:
+        business_payload: str = self._extract_jsonpath(
+            data, incoming_model_semantic_pattern.key_path_for_business_payload
+        )
+        return json.loads(business_payload) if business_payload else None
     
     def get_data_model_pattern_match(
         self, data_model: DataModel, data: Dict

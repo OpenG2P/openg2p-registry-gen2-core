@@ -1,9 +1,4 @@
-from .g2p_enricher_services import (
-    G2PDciEnricherService,
-    G2PSpdciEnricherService,
-    G2PUndpEnricherService,
-)
-from .farmer_enricher_services import (
+from .g2p_farmer_enricher_services import (
     G2PDciFarmerCreateEnricherService,
     G2PDciFarmerUpdateEnricherService,
     G2PDciFarmerDeleteEnricherService,
