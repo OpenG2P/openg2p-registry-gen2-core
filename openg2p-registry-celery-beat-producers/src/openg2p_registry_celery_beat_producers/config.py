@@ -34,4 +34,5 @@ class Settings(BaseSettings):
     raw_data_classification_beat_producer_frequency: int = 20
     data_transformation_beat_producer_frequency: int = 20
     data_ingestion_beat_producer_frequency: int = 20
+    deduplication_beat_producer_frequency: int = 30
     no_of_tasks_to_process: int = 4

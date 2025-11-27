@@ -3,7 +3,7 @@ from operator import index
 from site import venv
 import uuid
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -16,6 +16,11 @@ class G2PRegisterDefinition(BaseORMModel):
     register_subject: Mapped[str] = mapped_column(String, nullable=True)
     register_description: Mapped[Text] = mapped_column(Text, nullable=True)
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
+    # Deduplication configuration
+    dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    dedup_threshold_score: Mapped[float] = mapped_column(Float, nullable=True)
+    dedup_fields_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
 
     @validates('register_mnemonic')
     def set_register_subject(self, _key: str, register_mnemonic_value: str) -> str:

@@ -39,5 +39,13 @@ celery_app.conf.beat_schedule = {
         "task": "data_ingestion_beat_producer",
         "schedule": _config.data_ingestion_beat_producer_frequency,
     },
+    "deduplication_register_beat_producer": {
+        "task": "deduplication_register_beat_producer",
+        "schedule": _config.deduplication_beat_producer_frequency,
+    },
+    "deduplication_changelog_beat_producer": {
+        "task": "deduplication_changelog_beat_producer",
+        "schedule": _config.deduplication_beat_producer_frequency,
+    },
 }
 celery_app.conf.timezone = "UTC"

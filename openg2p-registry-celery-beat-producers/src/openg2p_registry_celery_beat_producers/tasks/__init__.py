@@ -1,2 +1,3 @@
 from .raw_data_classification_beat_producer import raw_data_classification_beat_producer
 from .data_transformation_beat_producer import data_transformation_beat_producer
+from .deduplication_beat_producer import deduplication_register_beat_producer, deduplication_changelog_beat_producer

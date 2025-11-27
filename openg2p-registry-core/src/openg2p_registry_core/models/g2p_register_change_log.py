@@ -13,6 +13,13 @@ class ApprovalStatusEnum(enum.Enum):
     REJECTED = "REJECTED"
 
 
+class DeduplicationStatusEnum(enum.Enum):
+    PENDING = "PENDING"
+    INPROGRESS = "INPROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class G2PRegisterChangeLog(BaseORMModel):
     __tablename__ = "g2p_register_change_logs"
 
@@ -28,6 +35,22 @@ class G2PRegisterChangeLog(BaseORMModel):
     approval_status: Mapped[str] = mapped_column(String, nullable=False, default=ApprovalStatusEnum.PENDING.value)
     approved_by: Mapped[str] = mapped_column(String, nullable=True)
     approved_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+
+    # Deduplication status fields
+    deduplication_register_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=DeduplicationStatusEnum.PENDING.value,
+        index=True
+    )
+    deduplication_register_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
+    deduplication_changelog_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=DeduplicationStatusEnum.PENDING.value,
+        index=True
+    )
+    deduplication_changelog_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class G2PRegisterChangeLogPayload(BaseORMModel):

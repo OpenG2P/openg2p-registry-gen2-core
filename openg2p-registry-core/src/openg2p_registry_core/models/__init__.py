@@ -1,6 +1,7 @@
 from .g2p_register_change_log import (
-    ApprovalStatusEnum, 
-    G2PRegisterChangeLog, 
+    ApprovalStatusEnum,
+    DeduplicationStatusEnum,
+    G2PRegisterChangeLog,
     G2PRegisterChangeLogPayload,
     G2PRegisterChangeLogDocuments
 )
@@ -8,6 +9,7 @@ from .g2p_register import G2PRegister
 from .g2p_register_history import G2PRegisterHistory
 from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterOperation
 from .g2p_register_verifications import G2PRegisterVerification
+from .deduplication_results import DeduplicationRegisterResult, DeduplicationChangelogResult
 from .ingestion_configuration import (
     IncomingPartner, 
     IncomingTemplate,

@@ -1,16 +1,29 @@
 import logging
 import uuid
+import enum
 import importlib
+import re
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta, date
+from difflib import SequenceMatcher
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeLogPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select
+from sqlalchemy import func, insert, select, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..models import G2PRegisterChangeLog, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification
+from ..models import (
+    G2PRegisterChangeLog,
+    G2PRegisterDefinition,
+    G2PRegisterOperation,
+    G2PRegisterVerification,
+    DeduplicationRegisterResult,
+    DeduplicationChangelogResult,
+    DeduplicationStatusEnum
+)
 from ..schemas import ChangeLogRequest
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -19,5 +32,226 @@ _engine = dbengine.get()
 
 class G2PRegisterDomainService(BaseService):
 
+    class DeduplicationMatchType(str, enum.Enum):
+        EXACT = "EXACT"
+        FUZZY = "FUZZY"
+        PHONETIC = "PHONETIC"
+        NUMERIC_RANGE = "NUMERIC_RANGE"
+        DATE_RANGE = "DATE_RANGE"
+
     async def validate_domain_attributes(self, change_log_payload: ChangeLogPayload):
         pass
+
+    async def compute_deduplication_score(
+        self,
+        change_log_id: str,
+        register_id: str,
+        incoming_data: dict,
+        session
+    ) -> List[Dict]:
+        """
+        Compute deduplication scores for a change log against register records.
+        Returns list of matching records with scores.
+        """
+        try:
+            # Get register definition with dedup config
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition or not register_definition.dedup_is_enabled:
+                _logger.info(f"Deduplication is disabled for register {register_id}")
+                return []
+
+            # Find candidate records
+            candidates = await self._find_candidate_records(
+                register_id,
+                incoming_data,
+                register_definition,
+                session
+            )
+
+            # Compute scores for each candidate
+            results = []
+            for candidate in candidates:
+                score = self._compute_score(
+                    incoming_data,
+                    candidate,
+                    register_definition
+                )
+
+                if score >= (register_definition.dedup_threshold_score or 0):
+                    results.append({
+                        "candidate_id": candidate.internal_record_id,
+                        "score": score,
+                        "field_matches": {}
+                    })
+
+            return results
+
+        except Exception as e:
+            _logger.error(f"Error computing deduplication score: {str(e)}")
+            raise
+
+    async def _find_candidate_records(
+        self,
+        register_id: str,
+        incoming_data: dict,
+        register_definition: G2PRegisterDefinition,
+        session
+    ) -> list:
+        """Find candidate records from the register based on dedup fields."""
+        try:
+            # Get register class
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix = "G2PRegister"
+            implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+            register_class = getattr(module, implementation_class_name)
+
+            # Build query conditions
+            query_conditions = []
+            dedup_fields = register_definition.dedup_fields_json or []
+
+            for dedup_field in dedup_fields:
+                field_name = dedup_field.get("field_name")
+                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+
+                incoming_value = incoming_data.get(field_name)
+                if not incoming_value or not hasattr(register_class, field_name):
+                    continue
+
+                column = getattr(register_class, field_name)
+
+                if match_type == self.DeduplicationMatchType.EXACT.value:
+                    query_conditions.append(column == incoming_value)
+                elif match_type == self.DeduplicationMatchType.FUZZY.value:
+                    query_conditions.append(column.ilike(f"%{incoming_value}%"))
+                elif match_type == self.DeduplicationMatchType.PHONETIC.value:
+                    # Phonetic matching - match first 3 characters
+                    phonetic_prefix = str(incoming_value).strip().lower()[:3]
+                    query_conditions.append(column.ilike(f"{phonetic_prefix}%"))
+                elif match_type == self.DeduplicationMatchType.NUMERIC_RANGE.value:
+                    # Numeric range matching
+                    range_value = dedup_field.get("range_value", 0)
+                    try:
+                        incoming_num = float(incoming_value)
+                        start_num = incoming_num - range_value
+                        end_num = incoming_num + range_value
+                        query_conditions.append(column.between(start_num, end_num))
+                    except (ValueError, TypeError):
+                        continue
+                elif match_type == self.DeduplicationMatchType.DATE_RANGE.value:
+                    # Date range matching
+                    range_days = dedup_field.get("range_days", 0)
+                    try:
+                        if isinstance(incoming_value, str):
+                            incoming_date = datetime.fromisoformat(incoming_value).date()
+                        else:
+                            incoming_date = incoming_value
+                        start_date = incoming_date - timedelta(days=range_days)
+                        end_date = incoming_date + timedelta(days=range_days)
+                        query_conditions.append(column.between(start_date, end_date))
+                    except (ValueError, TypeError):
+                        continue
+
+            if not query_conditions:
+                return []
+
+            candidates = (
+                await session.execute(
+                    select(register_class).where(or_(*query_conditions))
+                )
+            ).scalars().all()
+
+            _logger.info(f"Found {len(candidates)} candidate records for deduplication")
+            return candidates
+
+        except Exception as e:
+            _logger.error(f"Error finding candidate records: {str(e)}")
+            raise
+
+    def _compute_score(
+        self,
+        incoming_data: dict,
+        candidate_record,
+        register_definition: G2PRegisterDefinition
+    ) -> float:
+        """Compute similarity score between incoming data and candidate record."""
+        try:
+            total_weighted_score = 0.0
+            total_weight = 0.0
+            dedup_fields = register_definition.dedup_fields_json or []
+
+            for dedup_field in dedup_fields:
+                field_name = dedup_field.get("field_name")
+                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                weight = dedup_field.get("weight", 1.0)
+                similarity_threshold = dedup_field.get("similarity_threshold", 0.7)
+
+                incoming_value = incoming_data.get(field_name)
+                candidate_value = getattr(candidate_record, field_name, None)
+
+                if not incoming_value or not candidate_value:
+                    continue
+
+                field_similarity = self._compute_field_similarity(
+                    incoming_value,
+                    candidate_value,
+                    match_type
+                )
+
+                if field_similarity >= similarity_threshold:
+                    total_weighted_score += field_similarity * weight
+                    total_weight += weight
+
+            if total_weight == 0:
+                return 0.0
+
+            final_score = (total_weighted_score / total_weight) * 100
+            return final_score
+
+        except Exception as e:
+            _logger.error(f"Error computing score: {str(e)}")
+            return 0.0
+
+    def _compute_field_similarity(
+        self,
+        incoming_value,
+        candidate_value,
+        match_type: str
+    ) -> float:
+        """Compute similarity between two field values based on match type."""
+        try:
+            if match_type == self.DeduplicationMatchType.EXACT.value:
+                return 1.0 if str(incoming_value).strip().lower() == str(candidate_value).strip().lower() else 0.0
+
+            elif match_type == self.DeduplicationMatchType.FUZZY.value:
+                incoming_str = str(incoming_value).strip().lower()
+                candidate_str = str(candidate_value).strip().lower()
+                return SequenceMatcher(None, incoming_str, candidate_str).ratio()
+
+            elif match_type == self.DeduplicationMatchType.PHONETIC.value:
+                # Simple phonetic matching using first 3 characters
+                incoming_phonetic = str(incoming_value).strip().lower()[:3]
+                candidate_phonetic = str(candidate_value).strip().lower()[:3]
+                return 1.0 if incoming_phonetic == candidate_phonetic else 0.5
+
+            elif match_type == self.DeduplicationMatchType.NUMERIC_RANGE.value:
+                # Exact match for numeric values
+                return 1.0 if str(incoming_value).strip() == str(candidate_value).strip() else 0.0
+
+            elif match_type == self.DeduplicationMatchType.DATE_RANGE.value:
+                # For date range, we check if dates are close (handled in _find_candidate_records)
+                # Here we just check if they match exactly
+                return 1.0 if str(incoming_value).strip() == str(candidate_value).strip() else 0.8
+
+            else:
+                return 0.0
+
+        except Exception as e:
+            _logger.error(f"Error computing field similarity: {str(e)}")
+            return 0.0
