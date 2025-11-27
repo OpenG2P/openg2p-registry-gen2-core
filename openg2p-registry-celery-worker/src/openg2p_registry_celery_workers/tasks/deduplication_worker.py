@@ -1,8 +1,7 @@
 import logging
 import importlib
-from typing import List
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 from openg2p_registry_core.models import (
     G2PRegisterChangeLog,
@@ -12,8 +11,7 @@ from openg2p_registry_core.models import (
     DeduplicationRegisterResult,
     DeduplicationChangelogResult
 )
-from openg2p_registry_core.services import G2PRegisterDomainService
-from openg2p_registry_core.controller_services import G2PRegisterControllerService
+
 
 from ..app import celery_app
 from ..config import Settings
@@ -52,15 +50,15 @@ def deduplication_register_worker(self, change_log_id: str):
             
             register_definition = session.get(G2PRegisterDefinition, change_log.register_id)
             domain_service = domain_factory.get_domain_service(register_definition.register_mnemonic)
-            
-            # Compute dedup scores
-            results = domain_service.compute_deduplication_score(
+
+            # Compute dedup scores using public service method
+            results = domain_service.compute_deduplication_score_for_register(
                 change_log_id,
                 change_log.register_id,
                 change_log_payload.change_payload,
                 session
             )
-            
+
             # Save results
             for result in results:
                 dedup_result = DeduplicationRegisterResult(
@@ -126,9 +124,9 @@ def deduplication_changelog_worker(self, change_log_id: str):
             
             register_definition = session.get(G2PRegisterDefinition, change_log.register_id)
             domain_service = domain_factory.get_domain_service(register_definition.register_mnemonic)
-            
+
             # Find other pending changelogs for the same register
-            other_changelogs = (
+            other_changelogs_records = (
                 session.execute(
                     select(G2PRegisterChangeLog).where(
                         (G2PRegisterChangeLog.register_id == change_log.register_id) &
@@ -136,27 +134,35 @@ def deduplication_changelog_worker(self, change_log_id: str):
                     )
                 )
             ).scalars().all()
-            
-            # Compare against each other changelog
-            for other_changelog in other_changelogs:
+
+            # Build list of other changelog data
+            other_changelogs = []
+            for other_changelog in other_changelogs_records:
                 other_payload = session.get(G2PRegisterChangeLogPayload, other_changelog.change_log_id)
-                if not other_payload:
-                    continue
-                
-                score = domain_service._compute_score(
-                    change_log_payload.change_payload,
-                    type('obj', (object,), other_payload.change_payload)(),
-                    register_definition
+                if other_payload:
+                    other_changelogs.append({
+                        'change_log_id': other_changelog.change_log_id,
+                        'change_payload': other_payload.change_payload
+                    })
+
+            # Compute dedup scores using public service method
+            results = domain_service.compute_deduplication_score_for_changelog(
+                change_log_id,
+                change_log.register_id,
+                change_log_payload.change_payload,
+                other_changelogs,
+                session
+            )
+
+            # Save results
+            for result in results:
+                dedup_result = DeduplicationChangelogResult(
+                    change_log_id=change_log_id,
+                    candidate_change_log_id=result["candidate_id"],
+                    match_score=result["score"],
+                    field_matches=result.get("field_matches", {})
                 )
-                
-                if score >= (register_definition.dedup_threshold_score or 0):
-                    dedup_result = DeduplicationChangelogResult(
-                        change_log_id=change_log_id,
-                        candidate_change_log_id=other_changelog.change_log_id,
-                        match_score=score,
-                        field_matches={}
-                    )
-                    session.add(dedup_result)
+                session.add(dedup_result)
             
             # Update status to COMPLETED
             change_log.deduplication_changelog_status = DeduplicationStatusEnum.COMPLETED.value

@@ -1,6 +1,6 @@
 import importlib
 from openg2p_fastapi_common.service import BaseService
-from ..interfaces import G2PPayloadEnricherInterface
+from .g2p_payload_enricher_interface import G2PPayloadEnricherInterface
 
 class G2PPayloadEnricherFactory(BaseService):
     

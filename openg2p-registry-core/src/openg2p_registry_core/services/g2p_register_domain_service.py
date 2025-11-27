@@ -42,12 +42,12 @@ class G2PRegisterDomainService(BaseService):
     async def validate_domain_attributes(self, change_log_payload: ChangeLogPayload):
         pass
 
-    async def compute_deduplication_score(
+    def compute_deduplication_score_for_register(
         self,
         change_log_id: str,
         register_id: str,
         incoming_data: dict,
-        session
+        session: Session
     ) -> List[Dict]:
         """
         Compute deduplication scores for a change log against register records.
@@ -56,7 +56,7 @@ class G2PRegisterDomainService(BaseService):
         try:
             # Get register definition with dedup config
             register_definition: G2PRegisterDefinition = (
-                await session.execute(
+                session.execute(
                     select(G2PRegisterDefinition).where(
                         G2PRegisterDefinition.register_id == register_id
                     )
@@ -68,8 +68,7 @@ class G2PRegisterDomainService(BaseService):
                 return []
 
             # Find candidate records
-            candidates = await self._find_candidate_records(
-                register_id,
+            candidates = self._find_candidate_records(
                 incoming_data,
                 register_definition,
                 session
@@ -85,24 +84,127 @@ class G2PRegisterDomainService(BaseService):
                 )
 
                 if score >= (register_definition.dedup_threshold_score or 0):
+                    field_matches = self._compute_field_matches(
+                        incoming_data,
+                        candidate,
+                        register_definition
+                    )
                     results.append({
                         "candidate_id": candidate.internal_record_id,
                         "score": score,
-                        "field_matches": {}
+                        "field_matches": field_matches
                     })
 
             return results
 
         except Exception as e:
-            _logger.error(f"Error computing deduplication score: {str(e)}")
+            _logger.error(f"Error computing deduplication score for register: {str(e)}")
             raise
 
-    async def _find_candidate_records(
+    def compute_deduplication_score_for_changelog(
         self,
+        change_log_id: str,
         register_id: str,
         incoming_data: dict,
+        other_changelogs: List,
+        session: Session
+    ) -> List[Dict]:
+        """
+        Compute deduplication scores for a change log against other pending changelogs.
+        Returns list of matching changelog records with scores.
+        """
+        try:
+            # Get register definition with dedup config
+            register_definition: G2PRegisterDefinition = (
+                session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition or not register_definition.dedup_is_enabled:
+                _logger.info(f"Deduplication is disabled for register {register_id}")
+                return []
+
+            results = []
+            for other_changelog in other_changelogs:
+                # Create a simple object from the other payload for field matching
+                other_obj = type('obj', (object,), other_changelog.get('change_payload', {}))()
+
+                score = self._compute_score(
+                    incoming_data,
+                    other_obj,
+                    register_definition
+                )
+
+                if score >= (register_definition.dedup_threshold_score or 0):
+                    field_matches = self._compute_field_matches(
+                        incoming_data,
+                        other_obj,
+                        register_definition
+                    )
+                    results.append({
+                        "candidate_id": other_changelog.get('change_log_id'),
+                        "score": score,
+                        "field_matches": field_matches
+                    })
+
+            return results
+
+        except Exception as e:
+            _logger.error(f"Error computing deduplication score for changelog: {str(e)}")
+            raise
+
+    def _compute_score(
+        self,
+        incoming_data: dict,
+        candidate_record,
+        register_definition: G2PRegisterDefinition
+    ) -> float:
+        """Compute similarity score between incoming data and candidate record."""
+        try:
+            total_weighted_score = 0.0
+            total_weight = 0.0
+            dedup_fields = register_definition.dedup_fields_json or []
+
+            for dedup_field in dedup_fields:
+                field_name = dedup_field.get("field_name")
+                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                weight = dedup_field.get("weight", 1.0)
+                similarity_threshold = dedup_field.get("similarity_threshold", 0.7)
+
+                incoming_value = incoming_data.get(field_name)
+                candidate_value = getattr(candidate_record, field_name, None)
+
+                if not incoming_value or not candidate_value:
+                    continue
+
+                field_similarity = self._compute_field_similarity(
+                    incoming_value,
+                    candidate_value,
+                    match_type
+                )
+
+                if field_similarity >= similarity_threshold:
+                    total_weighted_score += field_similarity * weight
+                    total_weight += weight
+
+            if total_weight == 0:
+                return 0.0
+
+            final_score = (total_weighted_score / total_weight) * 100
+            return final_score
+
+        except Exception as e:
+            _logger.error(f"Error computing score: {str(e)}")
+            return 0.0
+
+    def _find_candidate_records(
+        self,
+        incoming_data: dict,
         register_definition: G2PRegisterDefinition,
-        session
+        session: Session
     ) -> list:
         """Find candidate records from the register based on dedup fields."""
         try:
@@ -162,7 +264,7 @@ class G2PRegisterDomainService(BaseService):
                 return []
 
             candidates = (
-                await session.execute(
+                session.execute(
                     select(register_class).where(or_(*query_conditions))
                 )
             ).scalars().all()
@@ -174,49 +276,51 @@ class G2PRegisterDomainService(BaseService):
             _logger.error(f"Error finding candidate records: {str(e)}")
             raise
 
-    def _compute_score(
+    def _compute_field_matches(
         self,
         incoming_data: dict,
         candidate_record,
         register_definition: G2PRegisterDefinition
-    ) -> float:
-        """Compute similarity score between incoming data and candidate record."""
+    ) -> dict:
+        """Compute field matches with similarity scores for each dedup field."""
         try:
-            total_weighted_score = 0.0
-            total_weight = 0.0
+            field_matches = {}
             dedup_fields = register_definition.dedup_fields_json or []
 
             for dedup_field in dedup_fields:
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
-                weight = dedup_field.get("weight", 1.0)
-                similarity_threshold = dedup_field.get("similarity_threshold", 0.7)
 
                 incoming_value = incoming_data.get(field_name)
                 candidate_value = getattr(candidate_record, field_name, None)
 
                 if not incoming_value or not candidate_value:
+                    field_matches[field_name] = {
+                        "incoming": incoming_value,
+                        "candidate": candidate_value,
+                        "similarity": 0.0,
+                        "match_type": match_type
+                    }
                     continue
 
-                field_similarity = self._compute_field_similarity(
+                similarity = self._compute_field_similarity(
                     incoming_value,
                     candidate_value,
                     match_type
                 )
 
-                if field_similarity >= similarity_threshold:
-                    total_weighted_score += field_similarity * weight
-                    total_weight += weight
+                field_matches[field_name] = {
+                    "incoming": str(incoming_value),
+                    "candidate": str(candidate_value),
+                    "similarity": similarity,
+                    "match_type": match_type
+                }
 
-            if total_weight == 0:
-                return 0.0
-
-            final_score = (total_weighted_score / total_weight) * 100
-            return final_score
+            return field_matches
 
         except Exception as e:
-            _logger.error(f"Error computing score: {str(e)}")
-            return 0.0
+            _logger.error(f"Error computing field matches: {str(e)}")
+            return {}
 
     def _compute_field_similarity(
         self,
