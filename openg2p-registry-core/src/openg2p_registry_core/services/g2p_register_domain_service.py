@@ -11,6 +11,7 @@ from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeLogPayload
+from openg2p_registry_core.schemas.deduplication import DeduplicationFieldConfig
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -219,6 +220,7 @@ class G2PRegisterDomainService(BaseService):
             dedup_fields = register_definition.dedup_fields_json or []
 
             for dedup_field in dedup_fields:
+               
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
 
@@ -262,7 +264,6 @@ class G2PRegisterDomainService(BaseService):
 
             if not query_conditions:
                 return []
-
             candidates = (
                 session.execute(
                     select(register_class).where(or_(*query_conditions))

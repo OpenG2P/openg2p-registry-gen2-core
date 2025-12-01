@@ -18,6 +18,7 @@ from .response import (
 from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema
+from .deduplication import DeduplicationFieldConfig
 from .ingestion_configuration import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
