@@ -167,7 +167,7 @@ class G2PRegisterDomainService(BaseService):
         try:
             total_weighted_score = 0.0
             total_weight = 0.0
-            dedup_fields = register_definition.dedup_fields_json or []
+            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
             for dedup_field in dedup_fields:
                 field_name = dedup_field.get("field_name")
@@ -217,10 +217,10 @@ class G2PRegisterDomainService(BaseService):
 
             # Build query conditions
             query_conditions = []
-            dedup_fields = register_definition.dedup_fields_json or []
+            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
             for dedup_field in dedup_fields:
-               
+
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
 
@@ -286,7 +286,7 @@ class G2PRegisterDomainService(BaseService):
         """Compute field matches with similarity scores for each dedup field."""
         try:
             field_matches = {}
-            dedup_fields = register_definition.dedup_fields_json or []
+            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
             for dedup_field in dedup_fields:
                 field_name = dedup_field.get("field_name")
