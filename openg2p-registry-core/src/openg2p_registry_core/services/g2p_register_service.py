@@ -12,8 +12,19 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.inspection import inspect
 
-from ..models import G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition, G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum
-from ..schemas import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
+from ..models import (
+    G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
+    G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum,
+    DeduplicationRegisterResult, DeduplicationChangelogResult
+)
+from ..schemas import (
+    ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
+    SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData,
+    NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData,
+    VerificationData, VerificationsData, AddVerificationPayload,
+    DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
+    DeduplicationRegisterResultData, DeduplicationChangelogResultData
+)
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-service')
@@ -952,3 +963,63 @@ class G2PRegisterService(BaseService):
             )
 
             return verification_data
+
+    async def get_deduplication_register_results(self, change_log_id: str) -> DeduplicationRegisterResultsData:
+        """
+        Get deduplication results for a change log against register records.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Fetch all deduplication register results for this change log
+            results = (
+                await session.execute(
+                    select(DeduplicationRegisterResult).where(
+                        DeduplicationRegisterResult.change_log_id == change_log_id
+                    )
+                )
+            ).scalars().all()
+
+            # Convert to schema objects
+            dedup_result_data_list = []
+            for result in results:
+                dedup_result_data = DeduplicationRegisterResultData(
+                    dedup_result_id=result.dedup_result_id,
+                    change_log_id=result.change_log_id,
+                    internal_record_id=result.internal_record_id,
+                    match_score=result.match_score,
+                    field_matches=result.field_matches,
+                    created_at=result.created_at.isoformat() if result.created_at else None
+                )
+                dedup_result_data_list.append(dedup_result_data)
+
+            return DeduplicationRegisterResultsData(results=dedup_result_data_list)
+
+    async def get_deduplication_changelog_results(self, change_log_id: str) -> DeduplicationChangelogResultsData:
+        """
+        Get deduplication results for a change log against other change logs.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Fetch all deduplication changelog results for this change log
+            results = (
+                await session.execute(
+                    select(DeduplicationChangelogResult).where(
+                        DeduplicationChangelogResult.change_log_id == change_log_id
+                    )
+                )
+            ).scalars().all()
+
+            # Convert to schema objects
+            dedup_result_data_list = []
+            for result in results:
+                dedup_result_data = DeduplicationChangelogResultData(
+                    dedup_result_id=result.dedup_result_id,
+                    change_log_id=result.change_log_id,
+                    candidate_change_log_id=result.candidate_change_log_id,
+                    match_score=result.match_score,
+                    field_matches=result.field_matches,
+                    created_at=result.created_at.isoformat() if result.created_at else None
+                )
+                dedup_result_data_list.append(dedup_result_data)
+
+            return DeduplicationChangelogResultsData(results=dedup_result_data_list)

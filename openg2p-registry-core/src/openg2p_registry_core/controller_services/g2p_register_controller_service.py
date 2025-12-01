@@ -5,7 +5,14 @@ from openg2p_registry_core.models import G2PRegisterChangeLog
 import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
-from ..schemas import ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload, VerificationData
+from ..schemas import (
+    ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData,
+    ChildRegisterData, SearchResultData, ChangeLogSearchResultData,
+    NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
+    ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload,
+    VerificationData, DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
+    DeduplicationRegisterResultData, DeduplicationChangelogResultData
+)
 
 _logger = logging.getLogger('g2p-register-controller-service')
 
@@ -133,3 +140,21 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         verification_data: VerificationData = await g2p_register_service.add_verification_for_change_log(add_verification_payload)
         return verification_data
+
+    async def get_deduplication_register_results(self, change_log_id: str) -> DeduplicationRegisterResultsData:
+        """
+        Get deduplication results for a change log against register records.
+        """
+        _logger.info(f"Getting deduplication register results for change_log_id: {change_log_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        dedup_results_data: DeduplicationRegisterResultsData = await g2p_register_service.get_deduplication_register_results(change_log_id)
+        return dedup_results_data
+
+    async def get_deduplication_changelog_results(self, change_log_id: str) -> DeduplicationChangelogResultsData:
+        """
+        Get deduplication results for a change log against other change logs.
+        """
+        _logger.info(f"Getting deduplication changelog results for change_log_id: {change_log_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        dedup_results_data: DeduplicationChangelogResultsData = await g2p_register_service.get_deduplication_changelog_results(change_log_id)
+        return dedup_results_data

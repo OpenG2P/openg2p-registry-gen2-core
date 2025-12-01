@@ -16,6 +16,8 @@ from openg2p_registry_core.schemas import (
     RecordData, RecordDataResponse, RecordDataResponseBody,
     VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody,
     VerificationData, VerificationDataResponse, VerificationDataResponseBody,
+    DeduplicationRegisterResultsData, DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
+    DeduplicationChangelogResultsData, DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody,
     IncomingPartnerData, IncomingPartnerResponseBody,
     IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
@@ -322,4 +324,42 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return response
+
+    def construct_deduplication_register_results_success_response(self, dedup_results_data: DeduplicationRegisterResultsData) -> DeduplicationRegisterResultsDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: DeduplicationRegisterResultsDataResponseBody = DeduplicationRegisterResultsDataResponseBody(
+            response_payload=dedup_results_data
+        )
+
+        dedup_results_response: DeduplicationRegisterResultsDataResponse = DeduplicationRegisterResultsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return dedup_results_response
+
+    def construct_deduplication_changelog_results_success_response(self, dedup_results_data: DeduplicationChangelogResultsData) -> DeduplicationChangelogResultsDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: DeduplicationChangelogResultsDataResponseBody = DeduplicationChangelogResultsDataResponseBody(
+            response_payload=dedup_results_data
+        )
+
+        dedup_results_response: DeduplicationChangelogResultsDataResponse = DeduplicationChangelogResultsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return dedup_results_response
 

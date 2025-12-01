@@ -17,7 +17,9 @@ from openg2p_registry_core.schemas import (
     RecordDataResponse, RecordData,
     VerificationsDataResponse, VerificationsData,
     VerificationDataResponse, VerificationData,
-    AddVerificationPayload
+    AddVerificationPayload,
+    DeduplicationRegisterResultsDataResponse,
+    DeduplicationChangelogResultsDataResponse
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -141,6 +143,20 @@ class G2PRegisterController(BaseController):
             self.add_verification_for_change_log,
             responses={200: {"model": VerificationDataResponse}},
             methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_deduplication_register_results",
+            self.get_deduplication_register_results,
+            responses={200: {"model": DeduplicationRegisterResultsDataResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
+            "/get_deduplication_changelog_results",
+            self.get_deduplication_changelog_results,
+            responses={200: {"model": DeduplicationChangelogResultsDataResponse}},
+            methods=["GET"],
         )
 
 
@@ -329,4 +345,34 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in add_verification_for_change_log: {str(error_exception)}")
             error_response: VerificationDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_deduplication_register_results(self, change_log_id: str) -> DeduplicationRegisterResultsDataResponse:
+        """
+        Get deduplication results for a change log against register records.
+        """
+        try:
+            dedup_results_data = await self.g2p_register_controller_service.get_deduplication_register_results(change_log_id)
+            dedup_results_response: DeduplicationRegisterResultsDataResponse = self.helper.construct_deduplication_register_results_success_response(
+                dedup_results_data=dedup_results_data
+            )
+            return dedup_results_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_deduplication_register_results: {str(error_exception)}")
+            error_response: DeduplicationRegisterResultsDataResponse = self.helper.construct_error_response(error_exception)
+            return error_response
+
+    async def get_deduplication_changelog_results(self, change_log_id: str) -> DeduplicationChangelogResultsDataResponse:
+        """
+        Get deduplication results for a change log against other change logs.
+        """
+        try:
+            dedup_results_data = await self.g2p_register_controller_service.get_deduplication_changelog_results(change_log_id)
+            dedup_results_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_deduplication_changelog_results_success_response(
+                dedup_results_data=dedup_results_data
+            )
+            return dedup_results_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_deduplication_changelog_results: {str(error_exception)}")
+            error_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_error_response(error_exception)
             return error_response

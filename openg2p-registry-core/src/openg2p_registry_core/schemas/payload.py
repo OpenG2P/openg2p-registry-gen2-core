@@ -163,5 +163,47 @@ class AddVerificationPayload(BaseModel):
     is_approved: bool
 
 
+class DeduplicationRegisterResultData(BaseModel):
+    """Deduplication result for a change log against a register record."""
+    dedup_result_id: str
+    change_log_id: str
+    internal_record_id: str
+    match_score: float
+    field_matches: dict
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DeduplicationChangelogResultData(BaseModel):
+    """Deduplication result for a change log against another change log."""
+    dedup_result_id: str
+    change_log_id: str
+    candidate_change_log_id: str
+    match_score: float
+    field_matches: dict
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DeduplicationRegisterResultsData(BaseModel):
+    """List of deduplication results for a change log against register records."""
+    results: List[DeduplicationRegisterResultData]
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DeduplicationChangelogResultsData(BaseModel):
+    """List of deduplication results for a change log against other change logs."""
+    results: List[DeduplicationChangelogResultData]
+
+    class Config:
+        from_attributes: bool = True
+
+
 class IngestDataPayload(BaseModel):
     ingest_id: str

@@ -13,9 +13,19 @@ from .response import (
     ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordDataResponse, RecordDataResponseBody,
     VerificationsDataResponse, VerificationsDataResponseBody,
-    VerificationDataResponse, VerificationDataResponseBody
+    VerificationDataResponse, VerificationDataResponseBody,
+    DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
+    DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody
 )
-from .payload import ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload, NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData, AddVerificationPayload
+from .payload import (
+    ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
+    SearchResultData, ChangeLogSearchResultData, IngestDataPayload,
+    NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
+    ChangeLogsData, RecordData, VerificationData, VerificationsData,
+    AddVerificationPayload, DeduplicationRegisterResultsData,
+    DeduplicationChangelogResultsData, DeduplicationRegisterResultData,
+    DeduplicationChangelogResultData
+)
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema
 from .deduplication import DeduplicationFieldConfig
