@@ -1,4 +1,5 @@
 from .raw_data_classification_worker import raw_data_classification_worker
 from .data_transformation_worker import data_transformation_worker
 from .data_ingestion_worker import data_ingestion_worker
-from .deduplication_worker import deduplication_register_worker, deduplication_changelog_worker
+from .deduplication_register_worker import deduplication_register_worker
+from .deduplication_changelog_worker import deduplication_changelog_worker
