@@ -37,7 +37,7 @@ def data_transformation_worker(ingest_id: str):
     )
 
     with session_maker() as session:
-        incoming_classified_data: IncomingClassifiedData = None
+        incoming_classified_data: IncomingClassifiedData | None = None
         try:
             incoming_classified_data = session.get(IncomingClassifiedData, ingest_id)
             incoming_raw_data_payload = session.get(IncomingRawDataPayload, ingest_id)

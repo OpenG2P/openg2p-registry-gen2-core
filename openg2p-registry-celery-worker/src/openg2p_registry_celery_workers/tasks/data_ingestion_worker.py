@@ -30,12 +30,12 @@ def data_ingestion_worker(ingest_id: str):
     )
 
     with session_maker() as session:
-        incoming_classified_data: IncomingClassifiedData = None
+        incoming_classified_data: IncomingClassifiedData | None = None
         try:
             incoming_classified_data = session.get(IncomingClassifiedData, ingest_id)
             incoming_enriched_transformed_data = session.get(IncomingEnrichedTransformedData, ingest_id)
             
-            change_log_payload = _construct_change_log_payload(
+            change_log_payload: ChangeLogPayload = _construct_change_log_payload(
                 incoming_classified_data,
                 incoming_enriched_transformed_data,
                 session
