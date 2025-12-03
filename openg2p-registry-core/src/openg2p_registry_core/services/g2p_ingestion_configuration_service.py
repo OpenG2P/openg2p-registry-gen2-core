@@ -137,6 +137,16 @@ class G2PIngestionConfigurationService(BaseService):
             partner_obj.is_active = False
             await session.commit()
 
+    async def get_all_incoming_partners(self) -> list[IncomingPartnerData]:
+        """Get all incoming partners"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(IncomingPartner).order_by(IncomingPartner.partner_mnemonic)
+            )
+            partners = result.scalars().all()
+            return [IncomingPartnerData.model_validate(partner) for partner in partners]
+
     async def create_signature_pattern(
         self, pattern_payload: IncomingModelSignaturePatternPayload
     ) -> IncomingModelSignaturePatternData:

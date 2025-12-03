@@ -51,6 +51,13 @@ class IngestionConfigurationController(BaseController):
         )
 
         self.router.add_api_route(
+            "/partners",
+            self.get_all_incoming_partners,
+            responses={200: {"model": IncomingPartnersResponse}},
+            methods=["GET"],
+        )
+
+        self.router.add_api_route(
             "/partners/{partner_id}",
             self.get_incoming_partner,
             responses={200: {"model": IncomingPartnerResponse}},
@@ -214,6 +221,15 @@ class IngestionConfigurationController(BaseController):
             partner_data = await self.ingestion_config_service.get_incoming_partner(partner_id)
             return self.helper.construct_ingestion_config_success_response(
                 partner_data, IncomingPartnerResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
+
+    async def get_all_incoming_partners(self) -> IncomingPartnersResponse:
+        try:
+            partners_data = await self.ingestion_config_service.get_all_incoming_partners()
+            return self.helper.construct_ingestion_config_success_response(
+                partners_data, IncomingPartnersResponse, None
             )
         except Exception as error:
             return self.helper.construct_error_response(error, None)

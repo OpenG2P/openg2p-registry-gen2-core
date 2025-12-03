@@ -58,6 +58,10 @@ class G2PIngestionConfigurationControllerService(BaseService):
         """Soft delete incoming partner"""
         return await self.g2p_ingestion_configuration_service.delete_incoming_partner(partner_id)
 
+    async def get_all_incoming_partners(self) -> list[IncomingPartnerData]:
+        """Get all incoming partners"""
+        return await self.g2p_ingestion_configuration_service.get_all_incoming_partners()
+
     async def create_signature_pattern(
         self, pattern_payload: IncomingModelSignaturePatternPayload
     ) -> IncomingModelSignaturePatternData:
