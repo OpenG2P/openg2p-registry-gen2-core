@@ -1,6 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
+import httpx
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -465,7 +466,26 @@ class G2PIngestionConfigurationService(BaseService):
     async def create_subscription_activity_log(
         self, subscription_activity_log_payload: SubscriptionActivityLogPayload
     ) -> SubscriptionActivityLogData:
-        """Create a new subscription activity log"""
+        """Create a new subscription activity log after calling the subscription URL"""
+        # Call the subscription URL with header and payload
+        response_data = None
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    subscription_activity_log_payload.subscription_url,
+                    headers=subscription_activity_log_payload.header or {},
+                    json=subscription_activity_log_payload.payload or {},
+                    timeout=30.0
+                )
+                response.raise_for_status()  # Raise exception for non-2xx status codes
+                response_data = response.json() if response.text else None
+        except Exception as error:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SUBSCRIPTION_CALL_FAILED.value[1],
+                message=f"Failed to call subscription URL: {str(error)}"
+            )
+
+        # Only store the activity log if the call was successful
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             activity_log = SubscriptionActivityLog(
@@ -477,7 +497,7 @@ class G2PIngestionConfigurationService(BaseService):
                 registry_callback_url=subscription_activity_log_payload.registry_callback_url,
                 header=subscription_activity_log_payload.header,
                 payload=subscription_activity_log_payload.payload,
-                response=subscription_activity_log_payload.response,
+                response=response_data,
             )
             session.add(activity_log)
             await session.commit()
