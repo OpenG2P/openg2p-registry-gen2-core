@@ -1,1 +1,4 @@
 from .farmer import G2PRegisterFarmer, G2PRegisterHistoryFarmer
+
+from .family import G2PRegisterFamily
+from .family_member import G2PRegisterFamilyMember
