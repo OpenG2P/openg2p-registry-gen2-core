@@ -29,7 +29,7 @@ def raw_data_classification_worker(ingest_id: str):
     )
 
     with session_maker() as session:
-        incoming_raw_data: IncomingRawData = None
+        incoming_raw_data: IncomingRawData | None = None
         try:
             incoming_raw_data = session.get(IncomingRawData, ingest_id)
             incoming_raw_data_payload = session.get(IncomingRawDataPayload, ingest_id)

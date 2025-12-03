@@ -1,0 +1,2 @@
+from .g2p_registry_external_data_ingester import g2p_registry_external_data_ingester_worker
+from .g2p_registry_external_data_poller import g2p_registry_external_data_poller_worker
