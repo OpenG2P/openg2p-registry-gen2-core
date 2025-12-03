@@ -22,6 +22,8 @@ from openg2p_registry_core.schemas import (
     DataModelRequest,
     DataModelUpdateRequest,
     DataModelResponse,
+    SubscriptionActivityLogRequest,
+    SubscriptionActivityLogsResponse,
 )
 
 from ..helpers import RequestResponseHelper
@@ -177,6 +179,21 @@ class IngestionConfigurationController(BaseController):
             self.update_data_model,
             responses={200: {"model": DataModelResponse}},
             methods=["PATCH"],
+        )
+
+        # SubscriptionActivityLog endpoints
+        self.router.add_api_route(
+            "/partners/{partner_id}/subscription_activity",
+            self.create_subscription_activity_log,
+            responses={200: {"model": SubscriptionActivityLogsResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/partners/{partner_id}/subscription_activity",
+            self.get_subscription_activity_logs_by_partner,
+            responses={200: {"model": SubscriptionActivityLogsResponse}},
+            methods=["GET"],
         )
 
     async def create_incoming_partner(
@@ -409,4 +426,30 @@ class IngestionConfigurationController(BaseController):
             )
         except Exception as error:
             return self.helper.construct_error_response(error, data_model_request)
+
+    async def create_subscription_activity_log(
+        self, subscription_activity_log_request: SubscriptionActivityLogRequest
+    ) -> SubscriptionActivityLogsResponse:
+        try:
+            activity_log_data = await self.ingestion_config_service.create_subscription_activity_log(
+                subscription_activity_log_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                [activity_log_data], SubscriptionActivityLogsResponse, subscription_activity_log_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, subscription_activity_log_request)
+
+    async def get_subscription_activity_logs_by_partner(
+        self, partner_id: str
+    ) -> SubscriptionActivityLogsResponse:
+        try:
+            activity_logs_data = await self.ingestion_config_service.get_subscription_activity_logs_by_partner(
+                partner_id
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                activity_logs_data, SubscriptionActivityLogsResponse, None
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, None)
 

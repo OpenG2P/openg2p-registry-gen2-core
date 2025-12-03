@@ -1,10 +1,10 @@
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, String, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
-
+from datetime import datetime, timezone
 
 class IncomingPartner(BaseORMModel):
-   
+
     __tablename__ = "incoming_partners"
 
     partner_id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -13,7 +13,7 @@ class IncomingPartner(BaseORMModel):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 class IncomingModelSignaturePattern(BaseORMModel):
-    
+
     __tablename__ = "incoming_model_signature_patterns"
     signature_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
@@ -22,7 +22,7 @@ class IncomingModelSignaturePattern(BaseORMModel):
     key_path_for_signature_payload: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingModelSemanticPattern(BaseORMModel):
-    
+
     __tablename__ = "incoming_model_semantic_patterns"
 
     semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -38,7 +38,7 @@ class IncomingModelSemanticPattern(BaseORMModel):
     )
 
 class IncomingTemplate(BaseORMModel):
-    
+
     __tablename__ = "incoming_templates"
 
     template_id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -60,7 +60,24 @@ class IncomingPayloadEnricher(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
-    
+
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', 'operation_id', name='uix_dro_3'),
     )
+
+
+class SubscriptionActivityLog(BaseORMModel):
+
+    __tablename__ = "subscription_activity_logs"
+
+    subscription_activity_log_id: Mapped[str] = mapped_column(String, primary_key=True)
+    is_unsubscribe: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    subscription_url: Mapped[str] = mapped_column(String, nullable=False)
+    registry_callback_url: Mapped[str] = mapped_column(String, nullable=False)
+    header: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    payload: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    response: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+

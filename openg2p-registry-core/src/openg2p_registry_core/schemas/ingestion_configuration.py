@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class IncomingPartnerPayload(BaseModel):
@@ -182,6 +183,37 @@ class DataModelData(BaseModel):
     data_model_mnemonic: str
     pattern_for_data_model: str
     is_active: bool
+
+    class Config:
+        from_attributes: bool = True
+
+
+# SubscriptionActivityLog Schemas
+class SubscriptionActivityLogPayload(BaseModel):
+    is_unsubscribe: bool = False
+    description: Optional[str] = None
+    partner_id: str
+    subscription_url: str
+    registry_callback_url: str
+    header: Optional[Dict[str, Any]] = None
+    payload: Optional[Dict[str, Any]] = None
+    response: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class SubscriptionActivityLogData(BaseModel):
+    subscription_activity_log_id: str
+    is_unsubscribe: bool
+    description: Optional[str] = None
+    partner_id: str
+    subscription_url: str
+    registry_callback_url: str
+    header: Optional[Dict[str, Any]] = None
+    payload: Optional[Dict[str, Any]] = None
+    response: Optional[Dict[str, Any]] = None
+    date_time: datetime
 
     class Config:
         from_attributes: bool = True

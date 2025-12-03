@@ -24,6 +24,8 @@ from .ingestion_configuration import (
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
+    SubscriptionActivityLogPayload,
+    SubscriptionActivityLogData,
 )
 
 
@@ -223,4 +225,29 @@ class DataModelsResponseBody(G2PResponseBody):
 
 class DataModelsResponse(G2PResponse):
     response_body: Optional[DataModelsResponseBody] = None
+
+
+# SubscriptionActivityLog Request/Response
+class SubscriptionActivityLogRequestBody(G2PRequestBody):
+    request_payload: SubscriptionActivityLogPayload
+
+
+class SubscriptionActivityLogRequest(G2PRequest):
+    request_body: SubscriptionActivityLogRequestBody
+
+
+class SubscriptionActivityLogResponseBody(G2PResponseBody):
+    response_payload: Optional[SubscriptionActivityLogData] = None
+
+
+class SubscriptionActivityLogResponse(G2PResponse):
+    response_body: Optional[SubscriptionActivityLogResponseBody] = None
+
+
+class SubscriptionActivityLogsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[SubscriptionActivityLogData]] = None
+
+
+class SubscriptionActivityLogsResponse(G2PResponse):
+    response_body: Optional[SubscriptionActivityLogsResponseBody] = None
 

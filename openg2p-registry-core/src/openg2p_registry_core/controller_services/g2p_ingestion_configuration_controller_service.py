@@ -21,6 +21,8 @@ from ..schemas import (
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
+    SubscriptionActivityLogPayload,
+    SubscriptionActivityLogData,
 )
 
 _logger = logging.getLogger("g2p-ingestion-configuration-controller-service")
@@ -166,5 +168,21 @@ class G2PIngestionConfigurationControllerService(BaseService):
         """Update data model"""
         return await self.g2p_ingestion_configuration_service.update_data_model(
             data_model_id, data_model_payload
+        )
+
+    async def create_subscription_activity_log(
+        self, subscription_activity_log_payload: SubscriptionActivityLogPayload
+    ) -> SubscriptionActivityLogData:
+        """Create a new subscription activity log"""
+        return await self.g2p_ingestion_configuration_service.create_subscription_activity_log(
+            subscription_activity_log_payload
+        )
+
+    async def get_subscription_activity_logs_by_partner(
+        self, partner_id: str
+    ) -> list[SubscriptionActivityLogData]:
+        """Get all subscription activity logs for a partner"""
+        return await self.g2p_ingestion_configuration_service.get_subscription_activity_logs_by_partner(
+            partner_id
         )
 

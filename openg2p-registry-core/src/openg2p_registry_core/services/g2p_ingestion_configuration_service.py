@@ -15,6 +15,7 @@ from ..models import (
     IncomingTemplate,
     IncomingPayloadEnricher,
     DataModel,
+    SubscriptionActivityLog,
 )
 from ..schemas import (
     IncomingPartnerPayload,
@@ -35,6 +36,8 @@ from ..schemas import (
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
+    SubscriptionActivityLogPayload,
+    SubscriptionActivityLogData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -457,4 +460,41 @@ class G2PIngestionConfigurationService(BaseService):
             await session.commit()
             await session.refresh(data_model_obj)
             return DataModelData.model_validate(data_model_obj)
+
+    # SubscriptionActivityLog Methods
+    async def create_subscription_activity_log(
+        self, subscription_activity_log_payload: SubscriptionActivityLogPayload
+    ) -> SubscriptionActivityLogData:
+        """Create a new subscription activity log"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            activity_log = SubscriptionActivityLog(
+                subscription_activity_log_id=str(uuid.uuid4()),
+                is_unsubscribe=subscription_activity_log_payload.is_unsubscribe,
+                description=subscription_activity_log_payload.description,
+                partner_id=subscription_activity_log_payload.partner_id,
+                subscription_url=subscription_activity_log_payload.subscription_url,
+                registry_callback_url=subscription_activity_log_payload.registry_callback_url,
+                header=subscription_activity_log_payload.header,
+                payload=subscription_activity_log_payload.payload,
+                response=subscription_activity_log_payload.response,
+            )
+            session.add(activity_log)
+            await session.commit()
+            await session.refresh(activity_log)
+            return SubscriptionActivityLogData.model_validate(activity_log)
+
+    async def get_subscription_activity_logs_by_partner(
+        self, partner_id: str
+    ) -> list[SubscriptionActivityLogData]:
+        """Get all subscription activity logs for a partner"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(SubscriptionActivityLog).where(
+                    SubscriptionActivityLog.partner_id == partner_id
+                ).order_by(SubscriptionActivityLog.date_time.desc())
+            )
+            activity_logs = result.scalars().all()
+            return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
 

@@ -48,6 +48,8 @@ from .ingestion_configuration import (
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
+    SubscriptionActivityLogPayload,
+    SubscriptionActivityLogData,
 )
 from .ingestion_configuration_request_response import (
     IncomingPartnerRequest,
@@ -98,4 +100,10 @@ from .ingestion_configuration_request_response import (
     DataModelResponseBody,
     DataModelsResponse,
     DataModelsResponseBody,
+    SubscriptionActivityLogRequest,
+    SubscriptionActivityLogRequestBody,
+    SubscriptionActivityLogResponse,
+    SubscriptionActivityLogResponseBody,
+    SubscriptionActivityLogsResponse,
+    SubscriptionActivityLogsResponseBody,
 )

@@ -11,11 +11,12 @@ from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterOperation
 from .g2p_register_verifications import G2PRegisterVerification
 from .deduplication_results import DeduplicationRegisterResult, DeduplicationChangelogResult
 from .ingestion_configuration import (
-    IncomingPartner, 
+    IncomingPartner,
     IncomingTemplate,
-    IncomingPayloadEnricher, 
-    IncomingModelSemanticPattern, 
-    IncomingModelSignaturePattern
+    IncomingPayloadEnricher,
+    IncomingModelSemanticPattern,
+    IncomingModelSignaturePattern,
+    SubscriptionActivityLog
 )
 from .ingestion_pipeline import (
     ProcessStatusEnum, 
