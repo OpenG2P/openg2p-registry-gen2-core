@@ -61,8 +61,8 @@ class G2PIngestionConfigurationService(BaseService):
             )
             if existing.scalar_one_or_none():
                 raise G2PRegistryException(
-                    code="PARTNER_ALREADY_EXISTS",
-                    message=f"Partner with mnemonic {incoming_partner_payload.partner_mnemonic} already exists",
+                    code=G2PRegistryErrorCodes.PARTNER_ALREADY_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.PARTNER_ALREADY_EXISTS.value[0],
                 )
 
             partner_id = incoming_partner_payload.partner_id or str(uuid.uuid4())
@@ -87,8 +87,8 @@ class G2PIngestionConfigurationService(BaseService):
             partner_obj = partner.scalar_one_or_none()
             if not partner_obj:
                 raise G2PRegistryException(
-                    code="PARTNER_NOT_FOUND",
-                    message=f"Partner with ID {partner_id} not found",
+                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
                 )
             return IncomingPartnerData.model_validate(partner_obj)
 
@@ -104,8 +104,8 @@ class G2PIngestionConfigurationService(BaseService):
             partner_obj = partner.scalar_one_or_none()
             if not partner_obj:
                 raise G2PRegistryException(
-                    code="PARTNER_NOT_FOUND",
-                    message=f"Partner with ID {partner_id} not found",
+                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
                 )
 
             # Only update fields that are provided (not None)
@@ -130,8 +130,8 @@ class G2PIngestionConfigurationService(BaseService):
             partner_obj = partner.scalar_one_or_none()
             if not partner_obj:
                 raise G2PRegistryException(
-                    code="PARTNER_NOT_FOUND",
-                    message=f"Partner with ID {partner_id} not found",
+                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
                 )
 
             partner_obj.is_active = False
@@ -179,8 +179,8 @@ class G2PIngestionConfigurationService(BaseService):
             pattern_obj = pattern.scalar_one_or_none()
             if not pattern_obj:
                 raise G2PRegistryException(
-                    code="PATTERN_NOT_FOUND",
-                    message=f"Pattern with ID {signature_pattern_id} not found",
+                    code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
                 )
             return IncomingModelSignaturePatternData.model_validate(pattern_obj)
 
@@ -198,8 +198,8 @@ class G2PIngestionConfigurationService(BaseService):
             pattern_obj = pattern.scalar_one_or_none()
             if not pattern_obj:
                 raise G2PRegistryException(
-                    code="PATTERN_NOT_FOUND",
-                    message=f"Pattern with ID {signature_pattern_id} not found",
+                    code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
                 )
 
             # Only update fields that are provided (not None)
@@ -247,8 +247,8 @@ class G2PIngestionConfigurationService(BaseService):
             pattern_obj = pattern.scalar_one_or_none()
             if not pattern_obj:
                 raise G2PRegistryException(
-                    code="SEMANTIC_PATTERN_NOT_FOUND",
-                    message=f"Semantic pattern with ID {semantic_pattern_id} not found",
+                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
                 )
             return IncomingModelSemanticPatternData.model_validate(pattern_obj)
 
@@ -266,8 +266,8 @@ class G2PIngestionConfigurationService(BaseService):
             pattern_obj = pattern.scalar_one_or_none()
             if not pattern_obj:
                 raise G2PRegistryException(
-                    code="SEMANTIC_PATTERN_NOT_FOUND",
-                    message=f"Semantic pattern with ID {semantic_pattern_id} not found",
+                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
                 )
 
             if pattern_payload.pattern_for_register is not None:
@@ -309,8 +309,8 @@ class G2PIngestionConfigurationService(BaseService):
             template_obj = template.scalar_one_or_none()
             if not template_obj:
                 raise G2PRegistryException(
-                    code="TEMPLATE_NOT_FOUND",
-                    message=f"Template with ID {template_id} not found",
+                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
                 )
             return IncomingTemplateData.model_validate(template_obj)
 
@@ -326,8 +326,8 @@ class G2PIngestionConfigurationService(BaseService):
             template_obj = template.scalar_one_or_none()
             if not template_obj:
                 raise G2PRegistryException(
-                    code="TEMPLATE_NOT_FOUND",
-                    message=f"Template with ID {template_id} not found",
+                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
                 )
 
             if template_payload.template_file_id is not None:
@@ -371,8 +371,8 @@ class G2PIngestionConfigurationService(BaseService):
             enricher_obj = enricher.scalar_one_or_none()
             if not enricher_obj:
                 raise G2PRegistryException(
-                    code="PAYLOAD_ENRICHER_NOT_FOUND",
-                    message=f"Payload enricher with ID {incoming_factory_id} not found",
+                    code=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[0],
                 )
             return IncomingPayloadEnricherData.model_validate(enricher_obj)
 
@@ -390,8 +390,8 @@ class G2PIngestionConfigurationService(BaseService):
             enricher_obj = enricher.scalar_one_or_none()
             if not enricher_obj:
                 raise G2PRegistryException(
-                    code="PAYLOAD_ENRICHER_NOT_FOUND",
-                    message=f"Payload enricher with ID {incoming_factory_id} not found",
+                    code=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[0],
                 )
 
             if enricher_payload.raw_payload_enricher_class is not None:
@@ -416,8 +416,8 @@ class G2PIngestionConfigurationService(BaseService):
             )
             if existing.scalar_one_or_none():
                 raise G2PRegistryException(
-                    code="DATA_MODEL_ALREADY_EXISTS",
-                    message=f"Data model with mnemonic {data_model_payload.data_model_mnemonic} already exists",
+                    code=G2PRegistryErrorCodes.DATA_MODEL_ALREADY_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_ALREADY_EXISTS.value[0],
                 )
 
             data_model_id = data_model_payload.data_model_id or str(uuid.uuid4())
@@ -442,8 +442,8 @@ class G2PIngestionConfigurationService(BaseService):
             data_model_obj = data_model.scalar_one_or_none()
             if not data_model_obj:
                 raise G2PRegistryException(
-                    code="DATA_MODEL_NOT_FOUND",
-                    message=f"Data model with ID {data_model_id} not found",
+                    code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
                 )
             return DataModelData.model_validate(data_model_obj)
 
@@ -459,8 +459,8 @@ class G2PIngestionConfigurationService(BaseService):
             data_model_obj = data_model.scalar_one_or_none()
             if not data_model_obj:
                 raise G2PRegistryException(
-                    code="DATA_MODEL_NOT_FOUND",
-                    message=f"Data model with ID {data_model_id} not found",
+                    code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
                 )
 
             if data_model_payload.data_model_mnemonic is not None:

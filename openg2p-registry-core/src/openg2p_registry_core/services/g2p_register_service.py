@@ -793,7 +793,7 @@ class G2PRegisterService(BaseService):
                 _logger.error(f"Could not find register class for mnemonic {g2p_register_definition.register_mnemonic}: {str(error)}")
                 raise G2PRegistryException(
                     code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
-                    message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
+                    message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
                 )
 
             # Fetch the record by internal_record_id
