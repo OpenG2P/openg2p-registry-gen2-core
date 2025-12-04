@@ -9,6 +9,7 @@ from openg2p_registry_core.schemas import (
     ChildRegistersResponse, ChildRegisterData,
     ChildRegisterRequest,
     SearchResultsResponse, SearchResultData,
+    SearchRegisterRequest,
     ChangeLogSearchResultsResponse, ChangeLogSearchResultData,
     NumberOfVersionsResponse, NumberOfVersionsData,
     NumberOfPendingChangeLogsResponse, NumberOfPendingChangeLogsData,
@@ -239,16 +240,16 @@ class G2PRegisterController(BaseController):
             error_response: ChildRegistersResponse = self.helper.construct_error_response(error_exception)
             return error_response
 
-    async def search_in_a_register(self, register_id: str, search_text: str) -> SearchResultsResponse:
+    async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> SearchResultsResponse:
         try:
-            search_results_list: list[SearchResultData] = await self.g2p_register_controller_service.search_in_a_register(register_id, search_text)
+            search_results_list: list[SearchResultData] = await self.g2p_register_controller_service.search_in_a_register(search_register_request)
             search_results_response: SearchResultsResponse = self.helper.construct_search_results_success_response(
-                search_results_list=search_results_list
+                search_results_list=search_results_list, g2p_request=search_register_request
             )
             return search_results_response
         except Exception as error_exception:
             _logger.error(f"Error in search_in_a_register: {str(error_exception)}")
-            error_response: SearchResultsResponse = self.helper.construct_error_response(error_exception)
+            error_response: SearchResultsResponse = self.helper.construct_error_response(error_exception, search_register_request)
             return error_response
 
     async def search_in_change_log(self, search_text: str) -> ChangeLogSearchResultsResponse:

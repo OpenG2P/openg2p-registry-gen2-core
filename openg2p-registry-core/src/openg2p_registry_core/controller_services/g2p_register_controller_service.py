@@ -11,7 +11,8 @@ from ..schemas import (
     NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
     ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload,
     VerificationData, DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
-    DeduplicationRegisterResultData, DeduplicationChangelogResultData
+    DeduplicationRegisterResultData, DeduplicationChangelogResultData,
+    SearchRegisterRequest
 )
 
 _logger = logging.getLogger('g2p-register-controller-service')
@@ -73,9 +74,11 @@ class G2PRegisterControllerService(BaseService):
         child_registers_list: list[ChildRegisterData] = await g2p_register_service.get_child_registers(register_id)
         return child_registers_list
 
-    async def search_in_a_register(self, register_id: str, search_text: str) -> list[SearchResultData]:
-        _logger.info(f"Searching in register_id: {register_id} with search_text: {search_text} through controller service")
+    async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> list[SearchResultData]:
+        _logger.info(f"Searching in register_id: {search_register_request.request_body.request_payload.register_id} with search_text: {search_register_request.request_body.request_payload.search_text} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
+        register_id = search_register_request.request_body.request_payload.register_id
+        search_text = search_register_request.request_body.request_payload.search_text
         search_results_list: list[SearchResultData] = await g2p_register_service.search_in_a_register(register_id, search_text)
         return search_results_list
 

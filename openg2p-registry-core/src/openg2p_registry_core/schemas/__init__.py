@@ -1,4 +1,8 @@
-from .request import ChangeLogRequest, ChangeLogRequestBody, ChildRegisterRequest, ChildRegisterRequestBody, IngestDataRequest
+from .request import (
+    ChangeLogRequest, ChangeLogRequestBody, ChildRegisterRequest, ChildRegisterRequestBody,
+    SearchRegisterRequest, SearchRegisterRequestBody, SearchRegisterRequestPayload,
+    IngestDataRequest
+)
 from .response import (
     ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,

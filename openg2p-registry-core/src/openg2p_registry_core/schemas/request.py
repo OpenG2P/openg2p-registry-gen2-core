@@ -24,6 +24,20 @@ class ChildRegisterRequestBody(G2PRequestBody):
 class ChildRegisterRequest(G2PRequest):
     request_body: ChildRegisterRequestBody
 
+
+class SearchRegisterRequestPayload(BaseModel):
+    register_id: str
+    search_text: str
+
+
+class SearchRegisterRequestBody(G2PRequestBody):
+    request_payload: SearchRegisterRequestPayload
+
+
+class SearchRegisterRequest(G2PRequest):
+    request_body: SearchRegisterRequestBody
+
+
 class IngestDataRequest(Request):
     # Request struture is internal to partners
     pass
