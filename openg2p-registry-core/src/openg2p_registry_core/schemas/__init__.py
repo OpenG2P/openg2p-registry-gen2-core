@@ -1,6 +1,20 @@
 from .request import (
     ChangeLogRequest, ChangeLogRequestBody, ChildRegisterRequest, ChildRegisterRequestBody,
     SearchRegisterRequest, SearchRegisterRequestBody, SearchRegisterRequestPayload,
+    SearchChangeLogRequest, SearchChangeLogRequestBody, SearchChangeLogRequestPayload,
+    GetChildRegistersRequest, GetChildRegistersRequestBody, GetChildRegistersRequestPayload,
+    GetNumberOfVersionsRequest, GetNumberOfVersionsRequestBody, GetNumberOfVersionsRequestPayload,
+    GetNumberOfPendingChangeLogsRequest, GetNumberOfPendingChangeLogsRequestBody, GetNumberOfPendingChangeLogsRequestPayload,
+    GetChangeLogsRequest, GetChangeLogsRequestBody, GetChangeLogsRequestPayload,
+    GetChangeLogRequest, GetChangeLogRequestBody, GetChangeLogRequestPayload,
+    GetRecordRequest, GetRecordRequestBody, GetRecordRequestPayload,
+    GetVerificationsRequest, GetVerificationsRequestBody, GetVerificationsRequestPayload,
+    GetDeduplicationRegisterResultsRequest, GetDeduplicationRegisterResultsRequestBody, GetDeduplicationRegisterResultsRequestPayload,
+    GetDeduplicationChangelogResultsRequest, GetDeduplicationChangelogResultsRequestBody, GetDeduplicationChangelogResultsRequestPayload,
+    AddVerificationRequest, AddVerificationRequestBody,
+    EmptyRequest, EmptyRequestBody, EmptyRequestPayload,
+    GetRegisterSummaryDataRequest, GetRegisterSummaryDataRequestBody,
+    GetAllRegistersRequest, GetAllRegistersRequestBody,
     IngestDataRequest
 )
 from .response import (
