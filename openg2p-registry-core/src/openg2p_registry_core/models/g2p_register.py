@@ -20,6 +20,10 @@ class G2PRegister(BaseORMModel):
     last_approved_by: Mapped[str] = mapped_column(String, nullable=False)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (
-        Index('idx_search_text_trigram', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
-    )
+    @classmethod
+    def __declare_last__(cls):
+        """Create table-specific index after table is declared"""
+        if not cls.__abstract__:
+            # Create a unique index name based on the table name
+            index_name = f"idx_{cls.__tablename__}_search_text_trigram"
+            Index(index_name, cls.search_text, postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}, table=cls.__table__)
