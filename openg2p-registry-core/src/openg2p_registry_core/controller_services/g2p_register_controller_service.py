@@ -83,13 +83,25 @@ class G2PRegisterControllerService(BaseService):
         child_registers_list: list[ChildRegisterData] = await g2p_register_service.get_child_registers(register_id)
         return child_registers_list
 
-    async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> list[SearchResultData]:
-        _logger.info(f"Searching in register_id: {search_register_request.request_body.request_payload.register_id} with search_text: {search_register_request.request_body.request_payload.search_text} through controller service")
+    async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> tuple[list[SearchResultData], int, int]:
+        payload = search_register_request.request_body.request_payload
+        register_id = payload.register_id
+        search_text = payload.search_text
+        current_page = payload.current_page
+        page_size = payload.page_size
+        sort_by = payload.sort_by
+        filter_by = payload.filter_by
+
+        _logger.info(f"Searching in register_id: {register_id} with search_text: {search_text}, page: {current_page}, page_size: {page_size} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_id = search_register_request.request_body.request_payload.register_id
-        search_text = search_register_request.request_body.request_payload.search_text
-        search_results_list: list[SearchResultData] = await g2p_register_service.search_in_a_register(register_id, search_text)
-        return search_results_list
+        search_results_list, total_items = await g2p_register_service.search_in_a_register(
+            register_id, search_text, current_page, page_size, sort_by, filter_by
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return search_results_list, total_items, number_of_pages
 
     async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> list[ChangeLogSearchResultData]:
         _logger.info(f"Searching in change logs with search_text: {search_change_log_request.request_body.request_payload.search_text} through controller service")

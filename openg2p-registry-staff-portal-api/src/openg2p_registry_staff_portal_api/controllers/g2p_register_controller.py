@@ -251,9 +251,10 @@ class G2PRegisterController(BaseController):
 
     async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> SearchResultsResponse:
         try:
-            search_results_list: list[SearchResultData] = await self.g2p_register_controller_service.search_in_a_register(search_register_request)
+            search_results_list, total_items, number_of_pages = await self.g2p_register_controller_service.search_in_a_register(search_register_request)
             search_results_response: SearchResultsResponse = self.helper.construct_search_results_success_response(
-                search_results_list=search_results_list, g2p_request=search_register_request
+                search_results_list=search_results_list, g2p_request=search_register_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return search_results_response
         except Exception as error_exception:

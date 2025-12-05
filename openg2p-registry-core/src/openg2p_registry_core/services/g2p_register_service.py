@@ -74,12 +74,12 @@ class G2PRegisterService(BaseService):
             child_registers_list: list[ChildRegisterData] = await self._fetch_child_registers(register_id, session)
             return child_registers_list
 
-    async def search_in_a_register(self, register_id: str, search_text: str) -> list[SearchResultData]:
+    async def search_in_a_register(self, register_id: str, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[SearchResultData], int]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self.validate_register_definition(register_id, session)
-            search_results_list: list[SearchResultData] = await self._search_in_register(register_id, search_text, session)
-            return search_results_list
+            search_results_list, total_items = await self._search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
+            return search_results_list, total_items
 
     async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsData:
         """Get all change logs for a specific internal record"""
@@ -492,7 +492,7 @@ class G2PRegisterService(BaseService):
 
         return child_registers_list
 
-    async def _search_in_register(self, register_id: str, search_text: str, session) -> list[SearchResultData]:
+    async def _search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[SearchResultData], int]:
         g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
 
         # Get the implementation class for this register
@@ -510,12 +510,36 @@ class G2PRegisterService(BaseService):
 
         # Search using LIKE with trigram index optimization
         search_query: str = f"%{search_text}%"
-        search_results = (
-            await session.execute(
-                select(implementation_class).where(
-                    implementation_class.search_text.ilike(search_query)
-                )
+
+        # Get total count
+        count_result = await session.execute(
+            select(func.count()).select_from(implementation_class).where(
+                implementation_class.search_text.ilike(search_query)
             )
+        )
+        total_items = count_result.scalar_one()
+
+        # Calculate offset
+        offset = (current_page - 1) * page_size
+
+        # Build query with pagination
+        query = select(implementation_class).where(
+            implementation_class.search_text.ilike(search_query)
+        )
+
+        # Apply sorting if provided
+        if sort_by:
+            try:
+                sort_column = getattr(implementation_class, sort_by)
+                query = query.order_by(sort_column)
+            except AttributeError:
+                _logger.warning(f"Sort column {sort_by} not found, using default order")
+
+        # Apply pagination
+        query = query.offset(offset).limit(page_size)
+
+        search_results = (
+            await session.execute(query)
         ).scalars().all()
 
         search_results_list: list[SearchResultData] = []
@@ -557,7 +581,7 @@ class G2PRegisterService(BaseService):
             )
             search_results_list.append(search_result_data)
 
-        return search_results_list
+        return search_results_list, total_items
 
     async def search_in_change_log(self, search_text: str) -> list[ChangeLogSearchResultData]:
         """Search in change logs using search_text field"""

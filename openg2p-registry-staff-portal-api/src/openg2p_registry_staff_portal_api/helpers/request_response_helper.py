@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from openg2p_fastapi_common.service import BaseService
-from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
+from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody, G2PPaginationResponse
 from openg2p_registry_core.schemas import (
     ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
@@ -137,16 +137,26 @@ class RequestResponseHelper(BaseService):
         )
         return child_registers_response
 
-    def construct_search_results_success_response(self, search_results_list: List[SearchResultData]) -> SearchResultsResponse:
+    def construct_search_results_success_response(self, search_results_list: List[SearchResultData], g2p_request: G2PRequest = None, number_of_items: int = 0, number_of_pages: int = 0) -> SearchResultsResponse:
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=request_id,
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        pagination_response = None
+        if number_of_items > 0 or number_of_pages > 0:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: SearchResultsResponseBody = SearchResultsResponseBody(
+            pagination_response=pagination_response,
             response_payload=search_results_list
         )
 

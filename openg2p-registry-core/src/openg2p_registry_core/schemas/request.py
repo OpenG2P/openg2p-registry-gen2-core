@@ -1,5 +1,5 @@
-from typing import Optional
-from pydantic import BaseModel
+from typing import Optional, Any
+from pydantic import BaseModel, Field
 from fastapi import Request
 from openg2p_fastapi_common.schemas import (
     G2PRequest,
@@ -56,6 +56,10 @@ class ChildRegisterRequest(G2PRequest):
 class SearchRegisterRequestPayload(BaseModel):
     register_id: str
     search_text: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class SearchRegisterRequestBody(G2PRequestBody):
