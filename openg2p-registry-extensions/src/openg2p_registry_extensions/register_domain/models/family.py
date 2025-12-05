@@ -8,7 +8,8 @@ import uuid
 class G2PRegisterFamilyBase(BaseORMModel):
     __abstract__ = True
 
-    family_name = Mapped[str] = mapped_column(String, nullable=False, default_value="")
+    family_id: Mapped[str] = mapped_column(String, nullable=False)
+    family_name: Mapped[str] = mapped_column(String, nullable=False)
 
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterFamily(G2PRegisterFamilyBase, G2PRegister):
@@ -28,8 +29,8 @@ class G2PRegisterFamily(G2PRegisterFamilyBase, G2PRegister):
         Populate search_text by combining all searchable family fields.
         """
         searchable_fields: list[str] = [
-            self.family_id or "",
-            self.family_name or ""
+            self.family_id,
+            self.family_name
         ]
         self.search_text = " ".join(searchable_fields).strip()
 

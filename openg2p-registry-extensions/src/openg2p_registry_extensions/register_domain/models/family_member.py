@@ -1,5 +1,6 @@
-from sqlalchemy import String, Boolean, DateTime, Date, JSONB
+from sqlalchemy import String, Boolean, DateTime, Date
 from sqlalchemy.orm import Mapped, mapped_column, validates
+from sqlalchemy.dialects.postgresql import JSONB
 from openg2p_registry_core.models import G2PRegister, G2PRegisterHistory
 from openg2p_fastapi_common.models import BaseORMModel
 from datetime import datetime, date
@@ -8,29 +9,29 @@ from datetime import datetime, date
 class G2PRegisterFamilyMemberBase(BaseORMModel):
     __abstract__ = True
 
-    member_identifier: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    demographic_identifier: Mapped[str] = mapped_column(String, nullable=False, default_value="")
+    member_identifier: Mapped[str] = mapped_column(String, nullable=False)
+    demographic_identifier: Mapped[str] = mapped_column(String, nullable=False)
 
-    name_prefix: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    name_given: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    name_surname: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    name_suffix: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    sex: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    birth_date: Mapped[date] = mapped_column(Date, nullable=True, default_value=None)
+    name_prefix: Mapped[str] = mapped_column(String, nullable=False)
+    name_given: Mapped[str] = mapped_column(String, nullable=False)
+    name_surname: Mapped[str] = mapped_column(String, nullable=False)
+    name_suffix: Mapped[str] = mapped_column(String, nullable=False)
+    sex: Mapped[str] = mapped_column(String, nullable=False)
+    birth_date: Mapped[date] = mapped_column(Date, nullable=True)
 
-    related_persons: Mapped[JSONB] = mapped_column(JSONB, nullable=False, default_value=[])
+    related_persons: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
 
-    is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default_value=False)
-    marital_status: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    employment_status: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    occupation: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    income_level: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    education_level: Mapped[str] = mapped_column(String, nullable=False, default_value="")
-    language_codes: Mapped[JSONB] = mapped_column(JSONB, nullable=False, default_value=[])
-    additional_attributes: Mapped[JSONB] = mapped_column(JSONB, nullable=False, default_value={})
+    is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    marital_status: Mapped[str] = mapped_column(String, nullable=True)
+    employment_status: Mapped[str] = mapped_column(String, nullable=True)
+    occupation: Mapped[str] = mapped_column(String, nullable=True)
+    income_level: Mapped[str] = mapped_column(String, nullable=True)
+    education_level: Mapped[str] = mapped_column(String, nullable=True)
+    language_codes: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
+    additional_attributes: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
 
-    registration_date: Mapped[date] = mapped_column(Date, nullable=False, default_value=datetime.now().date())
-    last_updated: Mapped[datetime] = mapped_column(DateTime, nullable=False, default_value=datetime.now())
+    registration_date: Mapped[date] = mapped_column(Date, nullable=False)
+    last_updated: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 
 # All Register classes should have the prefix G2PRegister
@@ -51,21 +52,21 @@ class G2PRegisterFamilyMember(G2PRegisterFamilyMemberBase, G2PRegister):
         Populate search_text by combining all searchable farmer fields.
         """
         searchable_fields: list[str] = [
-            self.name_prefix or "",
-            self.name_given or "",
-            self.name_surname or "",
-            self.name_suffix or "",
-            self.sex or "",
-            self.birth_date or "",
-            self.related_persons or "",
-            self.is_disabled or "",
-            self.marital_status or "",
-            self.employment_status or "",
-            self.occupation or "",
-            self.income_level or "",
-            self.education_level or "",
-            self.language_codes or "",
-            self.additional_attributes or ""
+            self.name_prefix,
+            self.name_given,
+            self.name_surname,
+            self.name_suffix,
+            self.sex,
+            self.birth_date,
+            self.related_persons or None,
+            self.is_disabled or None,
+            self.marital_status or None,
+            self.employment_status or None,
+            self.occupation or None,
+            self.income_level or None,
+            self.education_level or None,
+            self.language_codes or None,
+            self.additional_attributes or None
         ]
         self.search_text = " ".join(searchable_fields).strip()
 
