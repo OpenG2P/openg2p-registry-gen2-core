@@ -72,6 +72,10 @@ class SearchRegisterRequest(G2PRequest):
 
 class SearchChangeLogRequestPayload(BaseModel):
     search_text: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class SearchChangeLogRequestBody(G2PRequestBody):
@@ -123,6 +127,10 @@ class GetNumberOfPendingChangeLogsRequest(G2PRequest):
 class GetChangeLogsRequestPayload(BaseModel):
     register_id: str
     internal_record_id: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class GetChangeLogsRequestBody(G2PRequestBody):
@@ -160,6 +168,10 @@ class GetRecordRequest(G2PRequest):
 
 class GetVerificationsRequestPayload(BaseModel):
     change_log_id: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class GetVerificationsRequestBody(G2PRequestBody):
@@ -172,6 +184,10 @@ class GetVerificationsRequest(G2PRequest):
 
 class GetDeduplicationRegisterResultsRequestPayload(BaseModel):
     change_log_id: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class GetDeduplicationRegisterResultsRequestBody(G2PRequestBody):
@@ -184,6 +200,10 @@ class GetDeduplicationRegisterResultsRequest(G2PRequest):
 
 class GetDeduplicationChangelogResultsRequestPayload(BaseModel):
     change_log_id: str
+    current_page: int = Field(..., ge=1)
+    page_size: int = Field(..., ge=1)
+    sort_by: Optional[str] = None
+    filter_by: Optional[Any] = None
 
 
 class GetDeduplicationChangelogResultsRequestBody(G2PRequestBody):

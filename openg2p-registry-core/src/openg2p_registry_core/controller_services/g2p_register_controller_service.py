@@ -103,12 +103,15 @@ class G2PRegisterControllerService(BaseService):
 
         return search_results_list, total_items, number_of_pages
 
-    async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> list[ChangeLogSearchResultData]:
-        _logger.info(f"Searching in change logs with search_text: {search_change_log_request.request_body.request_payload.search_text} through controller service")
+    async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> tuple[list[ChangeLogSearchResultData], int, int]:
+        payload = search_change_log_request.request_body.request_payload
+        _logger.info(f"Searching in change logs with search_text: {payload.search_text} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        search_text = search_change_log_request.request_body.request_payload.search_text
-        search_results_list: list[ChangeLogSearchResultData] = await g2p_register_service.search_in_change_log(search_text)
-        return search_results_list
+        search_results_list, total_items = await g2p_register_service.search_in_change_log(
+            payload.search_text, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+        )
+        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        return search_results_list, total_items, number_of_pages
 
     async def get_number_of_versions(self, get_number_of_versions_request: GetNumberOfVersionsRequest) -> NumberOfVersionsData:
         register_id = get_number_of_versions_request.request_body.request_payload.register_id
@@ -126,13 +129,17 @@ class G2PRegisterControllerService(BaseService):
         number_of_pending_change_logs_data: NumberOfPendingChangeLogsData = await g2p_register_service.get_number_of_pending_change_logs(register_id, internal_record_id)
         return number_of_pending_change_logs_data
 
-    async def get_change_logs(self, get_change_logs_request: GetChangeLogsRequest) -> ChangeLogsData:
-        register_id = get_change_logs_request.request_body.request_payload.register_id
-        internal_record_id = get_change_logs_request.request_body.request_payload.internal_record_id
+    async def get_change_logs(self, get_change_logs_request: GetChangeLogsRequest) -> tuple[list[ChangeLogData], int, int]:
+        payload = get_change_logs_request.request_body.request_payload
+        register_id = payload.register_id
+        internal_record_id = payload.internal_record_id
         _logger.info(f"Getting change logs for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        change_logs_data: ChangeLogsData = await g2p_register_service.get_change_logs(register_id, internal_record_id)
-        return change_logs_data
+        change_logs_list, total_items = await g2p_register_service.get_change_logs(
+            register_id, internal_record_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+        )
+        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        return change_logs_list, total_items, number_of_pages
 
     async def get_change_log(self, get_change_log_request: GetChangeLogRequest) -> ChangeLogData:
         change_log_id = get_change_log_request.request_body.request_payload.change_log_id
@@ -163,12 +170,16 @@ class G2PRegisterControllerService(BaseService):
         record_data: RecordData = await g2p_register_service.get_record(register_id, internal_record_id)
         return record_data
 
-    async def get_verifications_for_change_log(self, get_verifications_request: GetVerificationsRequest) -> VerificationsData:
-        change_log_id = get_verifications_request.request_body.request_payload.change_log_id
+    async def get_verifications_for_change_log(self, get_verifications_request: GetVerificationsRequest) -> tuple[list[VerificationData], int, int]:
+        payload = get_verifications_request.request_body.request_payload
+        change_log_id = payload.change_log_id
         _logger.info(f"Getting verifications for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        verifications_data: VerificationsData = await g2p_register_service.get_verifications_for_change_log(change_log_id)
-        return verifications_data
+        verifications_list, total_items = await g2p_register_service.get_verifications_for_change_log(
+            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+        )
+        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        return verifications_list, total_items, number_of_pages
 
     async def add_verification_for_change_log(self, add_verification_request: AddVerificationRequest) -> VerificationData:
         add_verification_payload: AddVerificationPayload = add_verification_request.request_body.request_payload
@@ -177,22 +188,30 @@ class G2PRegisterControllerService(BaseService):
         verification_data: VerificationData = await g2p_register_service.add_verification_for_change_log(add_verification_payload)
         return verification_data
 
-    async def get_deduplication_register_results(self, get_deduplication_register_results_request: GetDeduplicationRegisterResultsRequest) -> DeduplicationRegisterResultsData:
+    async def get_deduplication_register_results(self, get_deduplication_register_results_request: GetDeduplicationRegisterResultsRequest) -> tuple[list[DeduplicationRegisterResultData], int, int]:
         """
         Get deduplication results for a change log against register records.
         """
-        change_log_id = get_deduplication_register_results_request.request_body.request_payload.change_log_id
+        payload = get_deduplication_register_results_request.request_body.request_payload
+        change_log_id = payload.change_log_id
         _logger.info(f"Getting deduplication register results for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        dedup_results_data: DeduplicationRegisterResultsData = await g2p_register_service.get_deduplication_register_results(change_log_id)
-        return dedup_results_data
+        dedup_results_list, total_items = await g2p_register_service.get_deduplication_register_results(
+            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+        )
+        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        return dedup_results_list, total_items, number_of_pages
 
-    async def get_deduplication_changelog_results(self, get_deduplication_changelog_results_request: GetDeduplicationChangelogResultsRequest) -> DeduplicationChangelogResultsData:
+    async def get_deduplication_changelog_results(self, get_deduplication_changelog_results_request: GetDeduplicationChangelogResultsRequest) -> tuple[list[DeduplicationChangelogResultData], int, int]:
         """
         Get deduplication results for a change log against other change logs.
         """
-        change_log_id = get_deduplication_changelog_results_request.request_body.request_payload.change_log_id
+        payload = get_deduplication_changelog_results_request.request_body.request_payload
+        change_log_id = payload.change_log_id
         _logger.info(f"Getting deduplication changelog results for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        dedup_results_data: DeduplicationChangelogResultsData = await g2p_register_service.get_deduplication_changelog_results(change_log_id)
-        return dedup_results_data
+        dedup_results_list, total_items = await g2p_register_service.get_deduplication_changelog_results(
+            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+        )
+        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        return dedup_results_list, total_items, number_of_pages

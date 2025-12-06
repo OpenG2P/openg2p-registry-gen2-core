@@ -166,17 +166,25 @@ class RequestResponseHelper(BaseService):
         )
         return search_results_response
 
-    def construct_change_log_search_results_success_response(self, search_results_list: List[ChangeLogSearchResultData]) -> ChangeLogSearchResultsResponse:
+    def construct_change_log_search_results_success_response(self, search_results_list: List[ChangeLogSearchResultData], g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeLogSearchResultsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        pagination_response = None
+        if number_of_items is not None and number_of_pages is not None:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: ChangeLogSearchResultsResponseBody = ChangeLogSearchResultsResponseBody(
-            response_payload=search_results_list
+            response_payload=search_results_list,
+            pagination_response=pagination_response
         )
 
         change_log_search_results_response: ChangeLogSearchResultsResponse = ChangeLogSearchResultsResponse(
@@ -223,17 +231,31 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_pending_change_logs_response
 
-    def construct_change_logs_success_response(self, change_logs_data: ChangeLogsData) -> ChangeLogsDataResponse:
+    def construct_change_logs_success_response(self, change_logs_list: List[ChangeLogData] = None, change_logs_data: ChangeLogsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeLogsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        # Support both old (change_logs_data) and new (change_logs_list) parameters
+        if change_logs_list is not None:
+            payload = ChangeLogsData(change_logs=change_logs_list)
+        else:
+            payload = change_logs_data
+
+        pagination_response = None
+        if number_of_items is not None and number_of_pages is not None:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: ChangeLogsDataResponseBody = ChangeLogsDataResponseBody(
-            response_payload=change_logs_data
+            response_payload=payload,
+            pagination_response=pagination_response
         )
 
         change_logs_response: ChangeLogsDataResponse = ChangeLogsDataResponse(
@@ -261,17 +283,31 @@ class RequestResponseHelper(BaseService):
         )
         return record_response
 
-    def construct_verifications_success_response(self, verifications_data: VerificationsData) -> VerificationsDataResponse:
+    def construct_verifications_success_response(self, verifications_list: List[VerificationData] = None, verifications_data: VerificationsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> VerificationsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        # Support both old (verifications_data) and new (verifications_list) parameters
+        if verifications_list is not None:
+            payload = VerificationsData(verifications=verifications_list)
+        else:
+            payload = verifications_data
+
+        pagination_response = None
+        if number_of_items is not None and number_of_pages is not None:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: VerificationsDataResponseBody = VerificationsDataResponseBody(
-            response_payload=verifications_data
+            response_payload=payload,
+            pagination_response=pagination_response
         )
 
         verifications_response: VerificationsDataResponse = VerificationsDataResponse(
@@ -335,17 +371,31 @@ class RequestResponseHelper(BaseService):
         )
         return response
 
-    def construct_deduplication_register_results_success_response(self, dedup_results_data: DeduplicationRegisterResultsData) -> DeduplicationRegisterResultsDataResponse:
+    def construct_deduplication_register_results_success_response(self, dedup_results_list: List = None, dedup_results_data: DeduplicationRegisterResultsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> DeduplicationRegisterResultsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        # Support both old (dedup_results_data) and new (dedup_results_list) parameters
+        if dedup_results_list is not None:
+            payload = DeduplicationRegisterResultsData(results=dedup_results_list)
+        else:
+            payload = dedup_results_data
+
+        pagination_response = None
+        if number_of_items is not None and number_of_pages is not None:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: DeduplicationRegisterResultsDataResponseBody = DeduplicationRegisterResultsDataResponseBody(
-            response_payload=dedup_results_data
+            response_payload=payload,
+            pagination_response=pagination_response
         )
 
         dedup_results_response: DeduplicationRegisterResultsDataResponse = DeduplicationRegisterResultsDataResponse(
@@ -354,17 +404,31 @@ class RequestResponseHelper(BaseService):
         )
         return dedup_results_response
 
-    def construct_deduplication_changelog_results_success_response(self, dedup_results_data: DeduplicationChangelogResultsData) -> DeduplicationChangelogResultsDataResponse:
+    def construct_deduplication_changelog_results_success_response(self, dedup_results_list: List = None, dedup_results_data: DeduplicationChangelogResultsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> DeduplicationChangelogResultsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
             response_timestamp=datetime.now()
         )
 
+        # Support both old (dedup_results_data) and new (dedup_results_list) parameters
+        if dedup_results_list is not None:
+            payload = DeduplicationChangelogResultsData(results=dedup_results_list)
+        else:
+            payload = dedup_results_data
+
+        pagination_response = None
+        if number_of_items is not None and number_of_pages is not None:
+            pagination_response = G2PPaginationResponse(
+                number_of_items=number_of_items,
+                number_of_pages=number_of_pages
+            )
+
         response_body: DeduplicationChangelogResultsDataResponseBody = DeduplicationChangelogResultsDataResponseBody(
-            response_payload=dedup_results_data
+            response_payload=payload,
+            pagination_response=pagination_response
         )
 
         dedup_results_response: DeduplicationChangelogResultsDataResponse = DeduplicationChangelogResultsDataResponse(

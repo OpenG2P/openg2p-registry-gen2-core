@@ -81,14 +81,14 @@ class G2PRegisterService(BaseService):
             search_results_list, total_items = await self._search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
             return search_results_list, total_items
 
-    async def get_change_logs(self, register_id: str, internal_record_id: str) -> ChangeLogsData:
-        """Get all change logs for a specific internal record"""
+    async def get_change_logs(self, register_id: str, internal_record_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogData], int]:
+        """Get all change logs for a specific internal record with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
             await self.validate_register_definition(register_id, session)
-            change_logs_data: ChangeLogsData = await self._fetch_change_logs(register_id, internal_record_id, session)
-            return change_logs_data
+            change_logs_list, total_items = await self._fetch_change_logs(register_id, internal_record_id, current_page, page_size, sort_by, filter_by, session)
+            return change_logs_list, total_items
 
     async def get_change_log(self, change_log_id: str) -> ChangeLogData:
         """Get a single change log by ID"""
@@ -583,26 +583,39 @@ class G2PRegisterService(BaseService):
 
         return search_results_list, total_items
 
-    async def search_in_change_log(self, search_text: str) -> list[ChangeLogSearchResultData]:
-        """Search in change logs using search_text field"""
+    async def search_in_change_log(self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogSearchResultData], int]:
+        """Search in change logs using search_text field with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            search_results: list[ChangeLogSearchResultData] = await self._search_in_change_log(search_text, session)
-            return search_results
+            search_results, total_items = await self._search_in_change_log(search_text, current_page, page_size, sort_by, filter_by, session)
+            return search_results, total_items
 
-    async def _search_in_change_log(self, search_text: str, session) -> list[ChangeLogSearchResultData]:
-        """Helper method to search in change logs"""
+    async def _search_in_change_log(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogSearchResultData], int]:
+        """Helper method to search in change logs with pagination"""
         search_query = f"%{search_text}%"
 
-        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload and search on search_text
-        result = await session.execute(
-            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
-                G2PRegisterChangeLogPayload,
-                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
-            ).where(
-                G2PRegisterChangeLogPayload.search_text.ilike(search_query)
-            )
+        # Build base query
+        base_query = select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
+            G2PRegisterChangeLogPayload,
+            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        ).where(
+            G2PRegisterChangeLogPayload.search_text.ilike(search_query)
         )
+
+        # Get total count
+        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeLog).join(
+            G2PRegisterChangeLogPayload,
+            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        ).where(
+            G2PRegisterChangeLogPayload.search_text.ilike(search_query)
+        ))
+        total_items = count_result.scalar() or 0
+
+        # Apply pagination
+        offset = (current_page - 1) * page_size
+        query = base_query.offset(offset).limit(page_size)
+
+        result = await session.execute(query)
         search_results = result.all()
 
         search_results_list: list[ChangeLogSearchResultData] = []
@@ -634,7 +647,7 @@ class G2PRegisterService(BaseService):
             )
             search_results_list.append(change_log_search_result)
 
-        return search_results_list
+        return search_results_list, total_items
 
     async def get_number_of_versions(self, register_id: str, internal_record_id: str) -> NumberOfVersionsData:
         """Get the number of versions (history records) for a given register and internal_record_id"""
@@ -708,18 +721,29 @@ class G2PRegisterService(BaseService):
                 number_of_pending_change_logs=number_of_pending_change_logs
             )
 
-    async def _fetch_change_logs(self, register_id: str, internal_record_id: str, session) -> ChangeLogsData:
-        """Helper method to fetch all change logs for a specific internal record"""
-        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload
-        result = await session.execute(
-            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
-                G2PRegisterChangeLogPayload,
-                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
-            ).where(
-                (G2PRegisterChangeLog.register_id == register_id) &
-                (G2PRegisterChangeLog.internal_record_id == internal_record_id)
-            ).order_by(G2PRegisterChangeLog.created_at.desc())
-        )
+    async def _fetch_change_logs(self, register_id: str, internal_record_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogData], int]:
+        """Helper method to fetch all change logs for a specific internal record with pagination"""
+        # Build base query
+        base_query = select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
+            G2PRegisterChangeLogPayload,
+            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        ).where(
+            (G2PRegisterChangeLog.register_id == register_id) &
+            (G2PRegisterChangeLog.internal_record_id == internal_record_id)
+        ).order_by(G2PRegisterChangeLog.created_at.desc())
+
+        # Get total count
+        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeLog).where(
+            (G2PRegisterChangeLog.register_id == register_id) &
+            (G2PRegisterChangeLog.internal_record_id == internal_record_id)
+        ))
+        total_items = count_result.scalar() or 0
+
+        # Apply pagination
+        offset = (current_page - 1) * page_size
+        query = base_query.offset(offset).limit(page_size)
+
+        result = await session.execute(query)
         change_logs = result.all()
 
         change_logs_list: list[ChangeLogData] = []
@@ -751,7 +775,7 @@ class G2PRegisterService(BaseService):
             )
             change_logs_list.append(change_log_data)
 
-        return ChangeLogsData(change_logs=change_logs_list)
+        return change_logs_list, total_items
 
     async def _fetch_change_log(self, change_log_id: str, session) -> ChangeLogData:
         """Helper method to fetch a single change log by ID"""
@@ -871,8 +895,8 @@ class G2PRegisterService(BaseService):
 
             return record_data
 
-    async def get_verifications_for_change_log(self, change_log_id: str) -> VerificationsData:
-        """Get all verifications for a specific change log"""
+    async def get_verifications_for_change_log(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[VerificationData], int]:
+        """Get all verifications for a specific change log with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate change log exists (without checking approval status)
@@ -889,12 +913,19 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
                 )
 
-            # Fetch all verifications for this change log, ordered by verified_at descending
+            # Get total count
+            count_result = await session.execute(select(func.count()).select_from(G2PRegisterVerification).where(
+                G2PRegisterVerification.change_log_id == change_log_id
+            ))
+            total_items = count_result.scalar() or 0
+
+            # Apply pagination
+            offset = (current_page - 1) * page_size
             verifications = (
                 await session.execute(
                     select(G2PRegisterVerification).where(
                         G2PRegisterVerification.change_log_id == change_log_id
-                    ).order_by(G2PRegisterVerification.verified_at.desc())
+                    ).order_by(G2PRegisterVerification.verified_at.desc()).offset(offset).limit(page_size)
                 )
             ).scalars().all()
 
@@ -917,11 +948,7 @@ class G2PRegisterService(BaseService):
                 )
                 verifications_list.append(verification_data)
 
-            verifications_data: VerificationsData = VerificationsData(
-                verifications=verifications_list
-            )
-
-            return verifications_data
+            return verifications_list, total_items
 
     async def add_verification_for_change_log(
         self,
@@ -988,18 +1015,25 @@ class G2PRegisterService(BaseService):
 
             return verification_data
 
-    async def get_deduplication_register_results(self, change_log_id: str) -> DeduplicationRegisterResultsData:
+    async def get_deduplication_register_results(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationRegisterResultData], int]:
         """
-        Get deduplication results for a change log against register records.
+        Get deduplication results for a change log against register records with pagination.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Fetch all deduplication register results for this change log
+            # Get total count
+            count_result = await session.execute(select(func.count()).select_from(DeduplicationRegisterResult).where(
+                DeduplicationRegisterResult.change_log_id == change_log_id
+            ))
+            total_items = count_result.scalar() or 0
+
+            # Apply pagination
+            offset = (current_page - 1) * page_size
             results = (
                 await session.execute(
                     select(DeduplicationRegisterResult).where(
                         DeduplicationRegisterResult.change_log_id == change_log_id
-                    )
+                    ).offset(offset).limit(page_size)
                 )
             ).scalars().all()
 
@@ -1016,20 +1050,27 @@ class G2PRegisterService(BaseService):
                 )
                 dedup_result_data_list.append(dedup_result_data)
 
-            return DeduplicationRegisterResultsData(results=dedup_result_data_list)
+            return dedup_result_data_list, total_items
 
-    async def get_deduplication_changelog_results(self, change_log_id: str) -> DeduplicationChangelogResultsData:
+    async def get_deduplication_changelog_results(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationChangelogResultData], int]:
         """
-        Get deduplication results for a change log against other change logs.
+        Get deduplication results for a change log against other change logs with pagination.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Fetch all deduplication changelog results for this change log
+            # Get total count
+            count_result = await session.execute(select(func.count()).select_from(DeduplicationChangelogResult).where(
+                DeduplicationChangelogResult.change_log_id == change_log_id
+            ))
+            total_items = count_result.scalar() or 0
+
+            # Apply pagination
+            offset = (current_page - 1) * page_size
             results = (
                 await session.execute(
                     select(DeduplicationChangelogResult).where(
                         DeduplicationChangelogResult.change_log_id == change_log_id
-                    )
+                    ).offset(offset).limit(page_size)
                 )
             ).scalars().all()
 
@@ -1046,4 +1087,4 @@ class G2PRegisterService(BaseService):
                 )
                 dedup_result_data_list.append(dedup_result_data)
 
-            return DeduplicationChangelogResultsData(results=dedup_result_data_list)
+            return dedup_result_data_list, total_items

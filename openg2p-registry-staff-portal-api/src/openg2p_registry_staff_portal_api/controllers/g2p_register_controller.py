@@ -264,9 +264,10 @@ class G2PRegisterController(BaseController):
 
     async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> ChangeLogSearchResultsResponse:
         try:
-            search_results_list: list[ChangeLogSearchResultData] = await self.g2p_register_controller_service.search_in_change_log(search_change_log_request)
+            search_results_list, total_items, number_of_pages = await self.g2p_register_controller_service.search_in_change_log(search_change_log_request)
             search_results_response: ChangeLogSearchResultsResponse = self.helper.construct_change_log_search_results_success_response(
-                search_results_list=search_results_list, g2p_request=search_change_log_request
+                search_results_list=search_results_list, g2p_request=search_change_log_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return search_results_response
         except Exception as error_exception:
@@ -300,9 +301,10 @@ class G2PRegisterController(BaseController):
 
     async def get_change_logs(self, get_change_logs_request: GetChangeLogsRequest) -> ChangeLogsDataResponse:
         try:
-            change_logs_data: ChangeLogsData = await self.g2p_register_controller_service.get_change_logs(get_change_logs_request)
+            change_logs_list, total_items, number_of_pages = await self.g2p_register_controller_service.get_change_logs(get_change_logs_request)
             change_logs_response: ChangeLogsDataResponse = self.helper.construct_change_logs_success_response(
-                change_logs_data=change_logs_data, g2p_request=get_change_logs_request
+                change_logs_list=change_logs_list, g2p_request=get_change_logs_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return change_logs_response
         except Exception as error_exception:
@@ -336,9 +338,10 @@ class G2PRegisterController(BaseController):
 
     async def get_verifications_for_change_log(self, get_verifications_request: GetVerificationsRequest) -> VerificationsDataResponse:
         try:
-            verifications_data: VerificationsData = await self.g2p_register_controller_service.get_verifications_for_change_log(get_verifications_request)
+            verifications_list, total_items, number_of_pages = await self.g2p_register_controller_service.get_verifications_for_change_log(get_verifications_request)
             verifications_response: VerificationsDataResponse = self.helper.construct_verifications_success_response(
-                verifications_data=verifications_data, g2p_request=get_verifications_request
+                verifications_list=verifications_list, g2p_request=get_verifications_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return verifications_response
         except Exception as error_exception:
@@ -363,9 +366,10 @@ class G2PRegisterController(BaseController):
         Get deduplication results for a change log against register records.
         """
         try:
-            dedup_results_data = await self.g2p_register_controller_service.get_deduplication_register_results(get_deduplication_register_results_request)
+            dedup_results_list, total_items, number_of_pages = await self.g2p_register_controller_service.get_deduplication_register_results(get_deduplication_register_results_request)
             dedup_results_response: DeduplicationRegisterResultsDataResponse = self.helper.construct_deduplication_register_results_success_response(
-                dedup_results_data=dedup_results_data, g2p_request=get_deduplication_register_results_request
+                dedup_results_list=dedup_results_list, g2p_request=get_deduplication_register_results_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return dedup_results_response
         except Exception as error_exception:
@@ -378,9 +382,10 @@ class G2PRegisterController(BaseController):
         Get deduplication results for a change log against other change logs.
         """
         try:
-            dedup_results_data = await self.g2p_register_controller_service.get_deduplication_changelog_results(get_deduplication_changelog_results_request)
+            dedup_results_list, total_items, number_of_pages = await self.g2p_register_controller_service.get_deduplication_changelog_results(get_deduplication_changelog_results_request)
             dedup_results_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_deduplication_changelog_results_success_response(
-                dedup_results_data=dedup_results_data, g2p_request=get_deduplication_changelog_results_request
+                dedup_results_list=dedup_results_list, g2p_request=get_deduplication_changelog_results_request,
+                number_of_items=total_items, number_of_pages=number_of_pages
             )
             return dedup_results_response
         except Exception as error_exception:
