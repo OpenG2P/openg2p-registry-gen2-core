@@ -44,163 +44,163 @@ class IngestionConfigurationController(BaseController):
 
         # IncomingPartner endpoints
         self.router.add_api_route(
-            "/partners",
+            "/create_partner",
             self.create_incoming_partner,
             responses={200: {"model": IncomingPartnerResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/partners",
+            "/get_all_partners",
             self.get_all_incoming_partners,
             responses={200: {"model": IncomingPartnersResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/partners/{partner_id}",
+            "/get_partner",
             self.get_incoming_partner,
             responses={200: {"model": IncomingPartnerResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/partners/{partner_id}",
+            "/update_partner",
             self.update_incoming_partner,
             responses={200: {"model": IncomingPartnerResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/partners/{partner_id}",
+            "/delete_partner",
             self.delete_incoming_partner,
             responses={200: {"model": IncomingPartnerResponse}},
-            methods=["DELETE"],
+            methods=["POST"],
         )
 
         # IncomingModelSignaturePattern endpoints
         self.router.add_api_route(
-            "/signature-patterns",
+            "/create_signature_pattern",
             self.create_signature_pattern,
             responses={200: {"model": IncomingModelSignaturePatternResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/signature-patterns/{signature_pattern_id}",
+            "/get_signature_pattern",
             self.get_signature_pattern,
             responses={200: {"model": IncomingModelSignaturePatternResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/signature-patterns/{signature_pattern_id}",
+            "/update_signature_pattern",
             self.update_signature_pattern,
             responses={200: {"model": IncomingModelSignaturePatternResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         # IncomingModelSemanticPattern endpoints
         self.router.add_api_route(
-            "/semantic-patterns",
+            "/create_semantic_pattern",
             self.create_semantic_pattern,
             responses={200: {"model": IncomingModelSemanticPatternResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/semantic-patterns/{semantic_pattern_id}",
+            "/get_semantic_pattern",
             self.get_semantic_pattern,
             responses={200: {"model": IncomingModelSemanticPatternResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/semantic-patterns/{semantic_pattern_id}",
+            "/update_semantic_pattern",
             self.update_semantic_pattern,
             responses={200: {"model": IncomingModelSemanticPatternResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         # IncomingTemplate endpoints
         self.router.add_api_route(
-            "/templates",
+            "/create_template",
             self.create_template,
             responses={200: {"model": IncomingTemplateResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/templates/{template_id}",
+            "/get_template",
             self.get_template,
             responses={200: {"model": IncomingTemplateResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/templates/{template_id}",
+            "/update_template",
             self.update_template,
             responses={200: {"model": IncomingTemplateResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         # IncomingPayloadEnricher endpoints
         self.router.add_api_route(
-            "/payload-enrichers",
+            "/create_payload_enricher",
             self.create_payload_enricher,
             responses={200: {"model": IncomingPayloadEnricherResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/payload-enrichers/{incoming_factory_id}",
+            "/get_payload_enricher",
             self.get_payload_enricher,
             responses={200: {"model": IncomingPayloadEnricherResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/payload-enrichers/{incoming_factory_id}",
+            "/update_payload_enricher",
             self.update_payload_enricher,
             responses={200: {"model": IncomingPayloadEnricherResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         # DataModel endpoints
         self.router.add_api_route(
-            "/data-models",
+            "/create_data_model",
             self.create_data_model,
             responses={200: {"model": DataModelResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/data-models/{data_model_id}",
+            "/get_data_model",
             self.get_data_model,
             responses={200: {"model": DataModelResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/data-models/{data_model_id}",
+            "/update_data_model",
             self.update_data_model,
             responses={200: {"model": DataModelResponse}},
-            methods=["PATCH"],
+            methods=["POST"],
         )
 
         # SubscriptionActivityLog endpoints
         self.router.add_api_route(
-            "/partners/{partner_id}/subscription_activity",
+            "/create_subscription_activity_log",
             self.create_subscription_activity_log,
             responses={200: {"model": SubscriptionActivityLogsResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/partners/{partner_id}/subscription_activity",
+            "/get_subscription_activity_logs_by_partner",
             self.get_subscription_activity_logs_by_partner,
             responses={200: {"model": SubscriptionActivityLogsResponse}},
-            methods=["GET"],
+            methods=["POST"],
         )
 
     async def create_incoming_partner(
@@ -216,30 +216,33 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, incoming_partner_request)
 
-    async def get_incoming_partner(self, partner_id: str) -> IncomingPartnerResponse:
+    async def get_incoming_partner(self, partner_request: IncomingPartnerRequest) -> IncomingPartnerResponse:
         try:
-            partner_data = await self.ingestion_config_service.get_incoming_partner(partner_id)
+            partner_data = await self.ingestion_config_service.get_incoming_partner(
+                partner_request.request_body.request_payload.partner_id
+            )
             return self.helper.construct_ingestion_config_success_response(
-                partner_data, IncomingPartnerResponse, None
+                partner_data, IncomingPartnerResponse, partner_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, partner_request)
 
-    async def get_all_incoming_partners(self) -> IncomingPartnersResponse:
+    async def get_all_incoming_partners(self, partner_request: IncomingPartnerRequest) -> IncomingPartnersResponse:
         try:
             partners_data = await self.ingestion_config_service.get_all_incoming_partners()
             return self.helper.construct_ingestion_config_success_response(
-                partners_data, IncomingPartnersResponse, None
+                partners_data, IncomingPartnersResponse, partner_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, partner_request)
 
     async def update_incoming_partner(
-        self, partner_id: str, incoming_partner_request: IncomingPartnerUpdateRequest
+        self, incoming_partner_request: IncomingPartnerUpdateRequest
     ) -> IncomingPartnerResponse:
         try:
             partner_data = await self.ingestion_config_service.update_incoming_partner(
-                partner_id, incoming_partner_request.request_body.request_payload
+                incoming_partner_request.request_body.request_payload.partner_id,
+                incoming_partner_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 partner_data, IncomingPartnerResponse, incoming_partner_request
@@ -247,14 +250,16 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, incoming_partner_request)
 
-    async def delete_incoming_partner(self, partner_id: str) -> IncomingPartnerResponse:
+    async def delete_incoming_partner(self, incoming_partner_request: IncomingPartnerUpdateRequest) -> IncomingPartnerResponse:
         try:
-            await self.ingestion_config_service.delete_incoming_partner(partner_id)
+            await self.ingestion_config_service.delete_incoming_partner(
+                incoming_partner_request.request_body.request_payload.partner_id
+            )
             return self.helper.construct_ingestion_config_success_response(
-                None, IncomingPartnerResponse, None
+                None, IncomingPartnerResponse, incoming_partner_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, incoming_partner_request)
 
     async def create_signature_pattern(
         self, pattern_request: IncomingModelSignaturePatternRequest
@@ -270,24 +275,25 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, pattern_request)
 
     async def get_signature_pattern(
-        self, signature_pattern_id: str
+        self, pattern_request: IncomingModelSignaturePatternRequest
     ) -> IncomingModelSignaturePatternResponse:
         try:
             pattern_data = await self.ingestion_config_service.get_signature_pattern(
-                signature_pattern_id
+                pattern_request.request_body.request_payload.signature_pattern_id
             )
             return self.helper.construct_ingestion_config_success_response(
-                pattern_data, IncomingModelSignaturePatternResponse, None
+                pattern_data, IncomingModelSignaturePatternResponse, pattern_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, pattern_request)
 
     async def update_signature_pattern(
-        self, signature_pattern_id: str, pattern_request: IncomingModelSignaturePatternUpdateRequest
+        self, pattern_request: IncomingModelSignaturePatternUpdateRequest
     ) -> IncomingModelSignaturePatternResponse:
         try:
             pattern_data = await self.ingestion_config_service.update_signature_pattern(
-                signature_pattern_id, pattern_request.request_body.request_payload
+                pattern_request.request_body.request_payload.signature_pattern_id,
+                pattern_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 pattern_data, IncomingModelSignaturePatternResponse, pattern_request
@@ -309,24 +315,25 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, pattern_request)
 
     async def get_semantic_pattern(
-        self, semantic_pattern_id: str
+        self, pattern_request: IncomingModelSemanticPatternRequest
     ) -> IncomingModelSemanticPatternResponse:
         try:
             pattern_data = await self.ingestion_config_service.get_semantic_pattern(
-                semantic_pattern_id
+                pattern_request.request_body.request_payload.semantic_pattern_id
             )
             return self.helper.construct_ingestion_config_success_response(
-                pattern_data, IncomingModelSemanticPatternResponse, None
+                pattern_data, IncomingModelSemanticPatternResponse, pattern_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, pattern_request)
 
     async def update_semantic_pattern(
-        self, semantic_pattern_id: str, pattern_request: IncomingModelSemanticPatternUpdateRequest
+        self, pattern_request: IncomingModelSemanticPatternUpdateRequest
     ) -> IncomingModelSemanticPatternResponse:
         try:
             pattern_data = await self.ingestion_config_service.update_semantic_pattern(
-                semantic_pattern_id, pattern_request.request_body.request_payload
+                pattern_request.request_body.request_payload.semantic_pattern_id,
+                pattern_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 pattern_data, IncomingModelSemanticPatternResponse, pattern_request
@@ -347,21 +354,24 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, template_request)
 
-    async def get_template(self, template_id: str) -> IncomingTemplateResponse:
+    async def get_template(self, template_request: IncomingTemplateRequest) -> IncomingTemplateResponse:
         try:
-            template_data = await self.ingestion_config_service.get_template(template_id)
+            template_data = await self.ingestion_config_service.get_template(
+                template_request.request_body.request_payload.template_id
+            )
             return self.helper.construct_ingestion_config_success_response(
-                template_data, IncomingTemplateResponse, None
+                template_data, IncomingTemplateResponse, template_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, template_request)
 
     async def update_template(
-        self, template_id: str, template_request: IncomingTemplateUpdateRequest
+        self, template_request: IncomingTemplateUpdateRequest
     ) -> IncomingTemplateResponse:
         try:
             template_data = await self.ingestion_config_service.update_template(
-                template_id, template_request.request_body.request_payload
+                template_request.request_body.request_payload.template_id,
+                template_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 template_data, IncomingTemplateResponse, template_request
@@ -383,24 +393,25 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, enricher_request)
 
     async def get_payload_enricher(
-        self, incoming_factory_id: str
+        self, enricher_request: IncomingPayloadEnricherRequest
     ) -> IncomingPayloadEnricherResponse:
         try:
             enricher_data = await self.ingestion_config_service.get_payload_enricher(
-                incoming_factory_id
+                enricher_request.request_body.request_payload.incoming_factory_id
             )
             return self.helper.construct_ingestion_config_success_response(
-                enricher_data, IncomingPayloadEnricherResponse, None
+                enricher_data, IncomingPayloadEnricherResponse, enricher_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, enricher_request)
 
     async def update_payload_enricher(
-        self, incoming_factory_id: str, enricher_request: IncomingPayloadEnricherUpdateRequest
+        self, enricher_request: IncomingPayloadEnricherUpdateRequest
     ) -> IncomingPayloadEnricherResponse:
         try:
             enricher_data = await self.ingestion_config_service.update_payload_enricher(
-                incoming_factory_id, enricher_request.request_body.request_payload
+                enricher_request.request_body.request_payload.incoming_factory_id,
+                enricher_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 enricher_data, IncomingPayloadEnricherResponse, enricher_request
@@ -421,21 +432,24 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, data_model_request)
 
-    async def get_data_model(self, data_model_id: str) -> DataModelResponse:
+    async def get_data_model(self, data_model_request: DataModelRequest) -> DataModelResponse:
         try:
-            data_model_data = await self.ingestion_config_service.get_data_model(data_model_id)
+            data_model_data = await self.ingestion_config_service.get_data_model(
+                data_model_request.request_body.request_payload.data_model_id
+            )
             return self.helper.construct_ingestion_config_success_response(
-                data_model_data, DataModelResponse, None
+                data_model_data, DataModelResponse, data_model_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, data_model_request)
 
     async def update_data_model(
-        self, data_model_id: str, data_model_request: DataModelUpdateRequest
+        self, data_model_request: DataModelUpdateRequest
     ) -> DataModelResponse:
         try:
             data_model_data = await self.ingestion_config_service.update_data_model(
-                data_model_id, data_model_request.request_body.request_payload
+                data_model_request.request_body.request_payload.data_model_id,
+                data_model_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
                 data_model_data, DataModelResponse, data_model_request
@@ -457,15 +471,15 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, subscription_activity_log_request)
 
     async def get_subscription_activity_logs_by_partner(
-        self, partner_id: str
+        self, activity_log_request: SubscriptionActivityLogRequest
     ) -> SubscriptionActivityLogsResponse:
         try:
             activity_logs_data = await self.ingestion_config_service.get_subscription_activity_logs_by_partner(
-                partner_id
+                activity_log_request.request_body.request_payload.partner_id
             )
             return self.helper.construct_ingestion_config_success_response(
-                activity_logs_data, SubscriptionActivityLogsResponse, None
+                activity_logs_data, SubscriptionActivityLogsResponse, activity_log_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, activity_log_request)
 
