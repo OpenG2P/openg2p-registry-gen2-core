@@ -15,8 +15,8 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="data_transformation_beat_producer")
-def data_transformation_beat_producer():
+@celery_app.task(name="ingest_data_transformation_beat_producer")
+def ingest_data_transformation_beat_producer():
     _logger.info("Checking for pending incoming_classified_data tranformation requests")
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
@@ -43,17 +43,17 @@ def data_transformation_beat_producer():
             session.add(incoming_classified_datum)
 
             _logger.info(
-                f"Updating status for {Workers.DATA_TRANSFORMATION_WORKER} to processing for incoming_classified_data with ingest_id: {incoming_classified_datum.ingest_id}"
+                f"Updating status for {Workers.INGEST_DATA_TRANSFORMATION_WORKER} to processing for incoming_classified_data with ingest_id: {incoming_classified_datum.ingest_id}"
             )
 
             # Send task to appropriate celery worker
             celery_app.send_task(
-                Workers.DATA_TRANSFORMATION_WORKER,
+                Workers.INGEST_DATA_TRANSFORMATION_WORKER,
                 args=(incoming_classified_datum.ingest_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.DATA_TRANSFORMATION_WORKER} for incoming_classified_data with ingest_id: {incoming_classified_datum.ingest_id}"
+                f"Sent task to {Workers.INGEST_DATA_TRANSFORMATION_WORKER} for incoming_classified_data with ingest_id: {incoming_classified_datum.ingest_id}"
             )
         session.commit()
 

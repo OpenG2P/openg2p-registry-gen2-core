@@ -7,8 +7,8 @@ from .config import Settings
 _config = Settings.get_config()
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
-from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 from openg2p_registry_core.app import Initializer as CoreInitializer
+from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 
 from .helpers import RequestResponseHelper
 from .controllers import G2PRegisterController, IngestionConfigurationController

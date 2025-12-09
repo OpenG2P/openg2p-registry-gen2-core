@@ -17,3 +17,10 @@ class Settings(BaseSettings):
         ***********************************
         """
     openapi_version: str = __version__
+
+    # MinIO Configuration
+    minio_endpoint: str = "localhost:9000"
+    minio_access_key: str = "admin"
+    minio_secret_key: str = "secret"
+    minio_secure: bool = False
+    minio_bucket_name: str = "templates"

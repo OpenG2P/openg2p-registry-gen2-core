@@ -1,7 +1,7 @@
 import logging
 import requests
 from requests import Response
-from typing import Tuple, Dict, List, Iterable
+from typing import Tuple, Dict, List
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from openg2p_registry_example_models.models import (
@@ -36,7 +36,7 @@ def g2p_registry_external_data_poller_worker(provider_id: str):
             polling_helper: HelperInterface = HelperFactory.get_helper(g2p_registry_external_data_provider.helper_code)
             
             # TODO: currently assuming a signle data item per page is returned
-            poll_responses: Iterable[Response] = polling_helper.get_polling_response(
+            poll_responses: List[Response] = polling_helper.get_polling_response(
                 g2p_registry_external_data_provider,
             )
             _logger.info(
@@ -62,7 +62,7 @@ def g2p_registry_external_data_poller_worker(provider_id: str):
 
                 else:
                     raise Exception(
-                        f"Iterable reponse threw error with status code: {poll_response.status_code}"
+                        f"List reponse threw error with status code: {poll_response.status_code}"
                         )
             
             session.commit()

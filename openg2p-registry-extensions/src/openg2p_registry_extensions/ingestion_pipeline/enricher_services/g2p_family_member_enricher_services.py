@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 from sqlalchemy.orm import Session
-
+from sqlalchemy import select
 from openg2p_registry_core.interfaces import G2PPayloadEnricherInterface
 from openg2p_registry_extensions.register_domain.models import G2PRegisterFamilyMember
 
@@ -13,34 +13,31 @@ class G2PDciFamilyMemberCreateEnricherService(G2PPayloadEnricherInterface):
     def enrich(self, data: Dict, session: Session) -> Dict:
         _logger.info("Processing G2PDciFamilyMemberCreateEnricherService")
 
-        related_member_identifiers = []
+        related_member_identifier: str | None = None
         if 'related_person' in data and isinstance(data['related_person'], list):
             for person in data['related_person']:
-                if 'related_member' in person and isinstance(person['related_member'], dict):
+                if person['relationship_type'].lower() == 'parent' and \
+                    'related_member' in person and \
+                    isinstance(person['related_member'], dict):
+
                     related_member_data = person['related_member']
                     if 'member_identifier' in related_member_data:
-                        related_member_identifiers.append(related_member_data['member_identifier'])
-                    elif 'spdci:member_identifier' in related_member_data:
-                        related_member_identifiers.append(related_member_data['spdci:member_identifier'])        
+                        related_member_identifier = related_member_data['member_identifier']
+                        break
 
-        if related_member_identifiers:
-            link_record_ids = [
-                member.link_record_id
-                for member in session.query(G2PRegisterFamilyMember)
-                .filter(G2PRegisterFamilyMember.member_identifier.in_(related_member_identifiers))
-                .all()
-            ]
-            _logger.info(f"Found link_record_ids: {link_record_ids}")
+        if related_member_identifier:
+            related_member = session.execute(
+                select(G2PRegisterFamilyMember).filter(G2PRegisterFamilyMember.member_identifier == related_member_identifier)
+            ).scalar_one_or_none()
+            if related_member:
+                _logger.info(f"Found related_member link_record_id: { related_member.link_record_id }")
+                data['link_record_id'] = related_member.link_record_id
         
-        if link_record_ids:
-            data['spdci:link_record_id'] = link_record_ids[0]
-
         return data
 
 class G2PDciFamilyMemberUpdateEnricherService(G2PPayloadEnricherInterface):
     def enrich(self, data: Dict, session: Session) -> Dict:
         _logger.info("Processing G2PDciFamilyMemberUpdateEnricherService")
-
         return data
 
 class G2PDciFamilyMemberDeleteEnricherService(G2PPayloadEnricherInterface):

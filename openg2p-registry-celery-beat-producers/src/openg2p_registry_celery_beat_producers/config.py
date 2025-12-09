@@ -1,10 +1,10 @@
-from openg2p_fastapi_common.config import Settings as BaseSettings
+from openg2p_registry_extensions.config import Settings as ExtSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(ExtSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_celery_beat_", env_file=".env", extra="allow"
     )
@@ -31,8 +31,14 @@ class Settings(BaseSettings):
     worker_queue: str = "registry_worker_queue"
 
     batch_size: int = 2000
-    raw_data_classification_beat_producer_frequency: int = 20
-    data_transformation_beat_producer_frequency: int = 20
-    data_ingestion_beat_producer_frequency: int = 20
-    deduplication_beat_producer_frequency: int = 30
     no_of_tasks_to_process: int = 4
+
+    data_transformation_beat_producer_frequency: int = 20       # ingest & outgest
+
+    raw_data_classification_beat_producer_frequency: int = 20   # ingest
+    data_ingestion_beat_producer_frequency: int = 20            # ingest
+
+    data_outgestion_publish_beat_producer_frequency: int = 20   # outgest
+    outgest_register_topic_beat_producer_frequency: int = 20    # outgest
+
+    deduplication_beat_producer_frequency: int = 30             # deduplication

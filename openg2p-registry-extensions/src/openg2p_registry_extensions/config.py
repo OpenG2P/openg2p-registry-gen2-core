@@ -1,10 +1,10 @@
-from openg2p_fastapi_common.config import Settings as BaseSettings
+from openg2p_registry_core.config import Settings as CoreSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(CoreSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_extensions_", env_file=".env", extra="allow"
     )
@@ -17,5 +17,3 @@ class Settings(BaseSettings):
         ***********************************
         """
     openapi_version: str = __version__
-
-

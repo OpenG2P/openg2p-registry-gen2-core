@@ -125,3 +125,25 @@ from .ingestion_configuration_request_response import (
     SubscriptionActivityLogsResponse,
     SubscriptionActivityLogsResponseBody,
 )
+from .outgestion_configuration import (
+    OutgoingTopicPayload,
+    OutgoingTopicUpdatePayload,
+    OutgoingTopicData,
+    OutgoingTemplatePayload,
+    OutgoingTemplateUpdatePayload,
+    OutgoingTemplateData,
+)
+from .outgestion_configuration_request_response import (
+    OutgoingTopicRequestBody,
+    OutgoingTopicRequest,
+    OutgoingTopicUpdateRequestBody,
+    OutgoingTopicUpdateRequest,
+    OutgoingTopicResponseBody,
+    OutgoingTopicResponse,
+    OutgoingTemplateRequestBody,
+    OutgoingTemplateRequest,
+    OutgoingTemplateUpdateRequestBody,
+    OutgoingTemplateUpdateRequest,
+    OutgoingTemplateResponseBody,
+    OutgoingTemplateResponse,
+)

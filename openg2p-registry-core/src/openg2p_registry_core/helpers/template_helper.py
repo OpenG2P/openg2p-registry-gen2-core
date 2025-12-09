@@ -1,3 +1,4 @@
+import io
 import json
 from jinja2 import Template, Environment
 from pyld import jsonld
@@ -13,6 +14,17 @@ class TemplateHelper(BaseService):
 
     def get_template(self, minio_client: MinioClient, template_file_id: str) -> str:
         return minio_client.get_object(template_file_id).decode("utf-8")
+    
+    def put_template(self, minio_client: MinioClient, template_file_id: str, template: str):
+        encoded_template = template.encode("utf-8")
+        return minio_client.put_object(
+            object_name=template_file_id,
+            data=io.BytesIO(encoded_template),
+            length=len(encoded_template),
+        )
+    
+    def delete_template(self, minio_client: MinioClient, template_file_id: str):
+        return minio_client.delete_object(template_file_id)
 
     def get_jinja_template(self, minio_client: MinioClient, template_file_id: str) -> Template:
         template: Template = self.env.from_string(self.get_template(minio_client,template_file_id))

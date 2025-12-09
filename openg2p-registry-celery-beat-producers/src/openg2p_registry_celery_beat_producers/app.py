@@ -31,13 +31,25 @@ celery_app.conf.beat_schedule = {
         "task": "raw_data_classification_beat_producer",
         "schedule": _config.raw_data_classification_beat_producer_frequency,
     },
-    "data_transformation_beat_producer": {
-        "task": "data_transformation_beat_producer",
+    "ingest_data_transformation_beat_producer": {
+        "task": "ingest_data_transformation_beat_producer",
+        "schedule": _config.data_transformation_beat_producer_frequency,
+    },
+    "outgest_data_transformation_beat_producer": {
+        "task": "outgest_data_transformation_beat_producer",
         "schedule": _config.data_transformation_beat_producer_frequency,
     },
     "data_ingestion_beat_producer": {
         "task": "data_ingestion_beat_producer",
         "schedule": _config.data_ingestion_beat_producer_frequency,
+    },
+    "data_outgestion_publish_beat_producer": {
+        "task": "data_outgestion_publish_beat_producer",
+        "schedule": _config.data_outgestion_publish_beat_producer_frequency,
+    },
+    "outgest_register_topic_beat_producer": {
+        "task": "outgest_register_topic_beat_producer",
+        "schedule": _config.outgest_register_topic_beat_producer_frequency,
     },
     "deduplication_register_beat_producer": {
         "task": "deduplication_register_beat_producer",

@@ -1,4 +1,4 @@
-#  openg2p-g2p-registry-models
+# openg2p-g2p-registry-core
 
 
 

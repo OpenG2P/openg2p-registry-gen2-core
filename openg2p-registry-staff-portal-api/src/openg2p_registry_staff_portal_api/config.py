@@ -1,10 +1,10 @@
-from openg2p_fastapi_common.config import Settings as BaseSettings
+from openg2p_registry_extensions.config import Settings as ExtSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(ExtSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_staff_portal_api_", env_file=".env", extra="allow"
     )
@@ -24,4 +24,3 @@ class Settings(BaseSettings):
     db_hostname: str = "localhost"
     db_port: int = 5432
     db_dbname: str = "registrydb"
-
