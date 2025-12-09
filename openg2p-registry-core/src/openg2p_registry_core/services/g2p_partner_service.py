@@ -21,8 +21,6 @@ from ..models import (
 )
 
 _logger = logging.getLogger("g2p-partner-service")
-_engine = dbengine.get()
-
 
 class G2PPartnerService(BaseService):
     async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict):

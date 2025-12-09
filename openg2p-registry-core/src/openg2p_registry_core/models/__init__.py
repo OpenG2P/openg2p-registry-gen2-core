@@ -19,10 +19,18 @@ from .ingestion_configuration import (
     SubscriptionActivityLog
 )
 from .ingestion_pipeline import (
-    ProcessStatusEnum, 
     IncomingRawData, 
     IncomingRawDataPayload, 
     IncomingClassifiedData, 
     IncomingEnrichedTransformedData
 )
-from .data_models import DataModel
+from .outgestion_configuration import (
+    OutgoingTopic,
+    OutgoingTemplate,
+)
+from .outgestion_pipeline import (
+    OutgoingRawData,
+    OutgoingRawDataPayload,
+    OutgoingTransformedDataPayload,
+)
+from .data_models import DataModel, ProcessStatusEnum

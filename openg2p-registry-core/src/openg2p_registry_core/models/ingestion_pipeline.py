@@ -1,14 +1,8 @@
-import enum
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
-class ProcessStatusEnum(enum.Enum):
-    NOT_APPLICABLE = "NOT_APPLICABLE"
-    PENDING = "PENDING"
-    PROCESSING = "PROCESSING"
-    PROCESSED = "PROCESSED"         # COMPLETED
-    FAILED = "FAILED"
+from .data_models import ProcessStatusEnum
 
 class IncomingRawData(BaseORMModel):
 

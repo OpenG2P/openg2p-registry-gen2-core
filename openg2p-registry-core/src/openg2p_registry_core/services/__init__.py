@@ -2,3 +2,5 @@ from .g2p_register_service import G2PRegisterService
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_partner_service import G2PPartnerService
 from .g2p_ingestion_configuration_service import G2PIngestionConfigurationService
+from .g2p_outgestion_configuration_service import G2POutgestionConfigurationService
+from .g2p_template_service import G2PTemplateService
