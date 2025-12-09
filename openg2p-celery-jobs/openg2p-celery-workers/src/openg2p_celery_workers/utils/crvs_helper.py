@@ -1,5 +1,5 @@
 from fastapi import Request
-from typing import Dict, Optional, Iterable, Tuple, DateTime
+from typing import Dict, Optional, List, Tuple, DateTime
 from datetime import datetime
 import requests
 from requests import Response
@@ -19,7 +19,7 @@ class CrvsHelper(HelperInterface):
     def get_polling_response(
         self, 
         data_provider: G2PRegistryExternalDataProvider,
-    ) -> Iterable[Response]:
+    ) -> List[Response]:
         if(data_provider.polling_url is None):
             raise Exception(f"Polling URL is not configured for {data_provider.provider_name} data provider")
         
