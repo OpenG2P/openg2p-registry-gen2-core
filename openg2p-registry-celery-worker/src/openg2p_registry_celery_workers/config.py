@@ -1,10 +1,10 @@
-from openg2p_fastapi_common.config import Settings as BaseSettings
+from openg2p_registry_extensions.config import Settings as ExtSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(ExtSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_celery_workers_", env_file=".env", extra="allow"
     )
@@ -32,12 +32,3 @@ class Settings(BaseSettings):
 
     batch_size: int = 2000
     worker_max_attempts: int = 5
-
-    # MinIO Configuration
-    minio_endpoint: str = "localhost:9000"
-    minio_access_key: str = "admin"
-    minio_secret_key: str = "secret"
-    minio_secure: bool = False
-    minio_bucket_name: str = "templates"
-    
-

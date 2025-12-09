@@ -19,19 +19,6 @@ class Initializer(BaseInitializer):
         super().init_app()
         BaseExceptionHandler()
 
-        # Utils - Import here to avoid import-time issues
-        from openg2p_registry_core.helpers import MinioClient, TemplateHelper, PatternMatcher
-
-        PatternMatcher()
-        MinioClient(
-            _config.minio_endpoint,
-            _config.minio_access_key,
-            _config.minio_secret_key,
-            _config.minio_secure,
-            _config.minio_bucket_name,
-        )
-        TemplateHelper()
-
         ExtensionsInitializer().initialize()
 
 celery_app = Celery(

@@ -2,7 +2,6 @@ import logging
 from typing import Dict, Optional
 from jinja2 import Template
 
-from openg2p_registry_core.helpers.minio_client import MinioClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 from openg2p_registry_core.models import (
@@ -18,7 +17,7 @@ from openg2p_registry_core.interfaces import (
     G2PPayloadEnricherFactory,
     G2PPayloadEnricherInterface 
 )
-from openg2p_registry_core.helpers import TemplateHelper, PatternMatcher
+from openg2p_registry_core.helpers import TemplateHelper, PatternMatcher, MinioClient
 
 from ..app import celery_app
 from ..config import Settings
@@ -29,9 +28,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="data_transformation_worker")
-def data_transformation_worker(ingest_id: str):
-    _logger.info(f"Starting data_transformation_worker for ingest_id: {ingest_id}")
+@celery_app.task(name="ingest_data_transformation_worker")
+def ingest_data_transformation_worker(ingest_id: str):
+    _logger.info(f"Starting ingest_data_transformation_worker for ingest_id: {ingest_id}")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -70,7 +69,7 @@ def data_transformation_worker(ingest_id: str):
 
         except Exception as e:
             _logger.error(
-                f"Error during processing data_transformation_worker for ingest_id {ingest_id}: {str(e)}"
+                f"Error during processing ingest_data_transformation_worker for ingest_id {ingest_id}: {str(e)}"
             )
             # Rollback all sessions
             session.rollback()
@@ -89,7 +88,7 @@ def data_transformation_worker(ingest_id: str):
             raise e
 
         _logger.info(
-            f"Completed processing data_transformation_worker for ingest_id: {ingest_id}"
+            f"Completed processing ingest_data_transformation_worker for ingest_id: {ingest_id}"
         )
 
 
