@@ -1,10 +1,10 @@
-from openg2p_fastapi_common.config import Settings as BaseSettings
+from openg2p_registry_extensions.config import Settings as ExtSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(ExtSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_partner_api_", env_file=".env", extra="allow"
     )
