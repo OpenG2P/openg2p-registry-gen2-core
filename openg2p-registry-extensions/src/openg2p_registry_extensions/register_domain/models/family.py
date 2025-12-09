@@ -15,7 +15,7 @@ class G2PRegisterFamilyBase(BaseORMModel):
 class G2PRegisterFamily(G2PRegisterFamilyBase, G2PRegister):
     __tablename__ = "g2p_register_families"
 
-    @validates(' family_id', 'family_name')
+    @validates('family_id', 'family_name')
     def update_search_text(self, _key: str, value: str) -> str:
         """
         Automatically update search_text whenever any searchable field is modified.
@@ -29,8 +29,8 @@ class G2PRegisterFamily(G2PRegisterFamilyBase, G2PRegister):
         Populate search_text by combining all searchable family fields.
         """
         searchable_fields: list[str] = [
-            self.family_id,
-            self.family_name
+            self.family_id or "",
+            self.family_name or ""
         ]
         self.search_text = " ".join(searchable_fields).strip()
 

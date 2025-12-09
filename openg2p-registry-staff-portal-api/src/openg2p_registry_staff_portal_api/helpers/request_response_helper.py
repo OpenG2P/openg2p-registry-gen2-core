@@ -80,9 +80,11 @@ class RequestResponseHelper(BaseService):
 
         return error_response
 
-    def construct_register_summary_data_success_response(self, register_summary_data_list: List[RegisterSummaryData]) -> RegisterSummaryDataResponse:
+    def construct_register_summary_data_success_response(self, register_summary_data_list: List[RegisterSummaryData], g2p_request: G2PRequest = None) -> RegisterSummaryDataResponse:
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=request_id,
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -99,9 +101,11 @@ class RequestResponseHelper(BaseService):
         )
         return register_summary_data_response
 
-    def construct_all_registers_success_response(self, all_registers_list: List[RegisterData]) -> AllRegistersResponse:
+    def construct_all_registers_success_response(self, all_registers_list: List[RegisterData], g2p_request: G2PRequest = None) -> AllRegistersResponse:
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=request_id,
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -118,9 +122,11 @@ class RequestResponseHelper(BaseService):
         )
         return all_registers_response
 
-    def construct_child_registers_success_response(self, child_registers_list: List[ChildRegisterData]) -> ChildRegistersResponse:
+    def construct_child_registers_success_response(self, child_registers_list: List[ChildRegisterData], g2p_request: G2PRequest = None) -> ChildRegistersResponse:
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=request_id,
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",

@@ -52,21 +52,23 @@ class G2PRegisterFamilyMember(G2PRegisterFamilyMemberBase, G2PRegister):
         Populate search_text by combining all searchable farmer fields.
         """
         searchable_fields: list[str] = [
-            self.name_prefix,
-            self.name_given,
-            self.name_surname,
-            self.name_suffix,
-            self.sex,
-            self.birth_date,
-            self.related_persons or None,
-            self.is_disabled or None,
-            self.marital_status or None,
-            self.employment_status or None,
-            self.occupation or None,
-            self.income_level or None,
-            self.education_level or None,
-            self.language_codes or None,
-            self.additional_attributes or None
+            # String fields - use 'or ""' for efficiency
+            self.name_prefix or "",
+            self.name_given or "",
+            self.name_surname or "",
+            self.name_suffix or "",
+            self.sex or "",
+            self.marital_status or "",
+            self.employment_status or "",
+            self.occupation or "",
+            self.income_level or "",
+            self.education_level or "",
+            # Non-string fields - need str() conversion
+            str(self.birth_date) if self.birth_date else "",
+            str(self.related_persons) if self.related_persons else "",
+            str(self.is_disabled) if self.is_disabled is not None else "",
+            str(self.language_codes) if self.language_codes else "",
+            str(self.additional_attributes) if self.additional_attributes else ""
         ]
         self.search_text = " ".join(searchable_fields).strip()
 
