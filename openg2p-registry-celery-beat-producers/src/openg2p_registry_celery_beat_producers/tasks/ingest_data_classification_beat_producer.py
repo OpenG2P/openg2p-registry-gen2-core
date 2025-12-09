@@ -15,8 +15,8 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="raw_data_classification_beat_producer")
-def raw_data_classification_beat_producer():
+@celery_app.task(name="ingest_data_classification_beat_producer")
+def ingest_data_classification_beat_producer():
     _logger.info("Checking for pending incoming_raw_data classification requests")
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
@@ -43,17 +43,17 @@ def raw_data_classification_beat_producer():
             session.add(incoming_raw_datum)
 
             _logger.info(
-                f"Updating status for {Workers.RAW_DATA_CLASSIFICATION_WORKER} to PROCESSING for incoming_raw_data with ingest_id: {incoming_raw_datum.ingest_id}"
+                f"Updating status for {Workers.INGEST_DATA_CLASSIFICATION_WORKER} to PROCESSING for incoming_raw_data with ingest_id: {incoming_raw_datum.ingest_id}"
             )
 
             # Send task to appropriate celery worker
             celery_app.send_task(
-                Workers.RAW_DATA_CLASSIFICATION_WORKER,
+                Workers.INGEST_DATA_CLASSIFICATION_WORKER,
                 args=(incoming_raw_datum.ingest_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.RAW_DATA_CLASSIFICATION_WORKER} for incoming_raw_data with ingest_id: {incoming_raw_datum.ingest_id}"
+                f"Sent task to {Workers.INGEST_DATA_CLASSIFICATION_WORKER} for incoming_raw_data with ingest_id: {incoming_raw_datum.ingest_id}"
             )
         session.commit()
 

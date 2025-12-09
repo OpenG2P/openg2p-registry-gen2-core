@@ -27,37 +27,61 @@ celery_app = Celery(
 )
 
 celery_app.conf.beat_schedule = {
-    "raw_data_classification_beat_producer": {
-        "task": "raw_data_classification_beat_producer",
-        "schedule": _config.raw_data_classification_beat_producer_frequency,
+    "ingest_data_classification_beat_producer": {
+        "task": "ingest_data_classification_beat_producer",
+        "schedule": (
+            _config.ingest_data_classification_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
     "ingest_data_transformation_beat_producer": {
         "task": "ingest_data_transformation_beat_producer",
-        "schedule": _config.data_transformation_beat_producer_frequency,
+        "schedule": (
+            _config.data_transformation_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
+    },
+    "ingest_data_beat_producer": {
+        "task": "ingest_data_beat_producer",
+        "schedule": (
+            _config.ingest_data_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
+    },
+    "outgest_topic_register_beat_producer": {
+        "task": "outgest_topic_register_beat_producer",
+        "schedule": (
+            _config.outgest_topic_register_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
     "outgest_data_transformation_beat_producer": {
         "task": "outgest_data_transformation_beat_producer",
-        "schedule": _config.data_transformation_beat_producer_frequency,
+        "schedule": (
+            _config.data_transformation_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
-    "data_ingestion_beat_producer": {
-        "task": "data_ingestion_beat_producer",
-        "schedule": _config.data_ingestion_beat_producer_frequency,
-    },
-    "data_outgestion_publish_beat_producer": {
-        "task": "data_outgestion_publish_beat_producer",
-        "schedule": _config.data_outgestion_publish_beat_producer_frequency,
-    },
-    "outgest_register_topic_beat_producer": {
-        "task": "outgest_register_topic_beat_producer",
-        "schedule": _config.outgest_register_topic_beat_producer_frequency,
+    "outgest_data_publish_beat_producer": {
+        "task": "outgest_data_publish_beat_producer",
+        "schedule": (
+            _config.outgest_data_publish_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
     "deduplication_register_beat_producer": {
         "task": "deduplication_register_beat_producer",
-        "schedule": _config.deduplication_beat_producer_frequency,
+        "schedule": (
+            _config.deduplication_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
     "deduplication_changelog_beat_producer": {
         "task": "deduplication_changelog_beat_producer",
-        "schedule": _config.deduplication_beat_producer_frequency,
+        "schedule": (
+            _config.deduplication_beat_producer_frequency or
+            _config.default_beat_producer_frequency
+        ),
     },
 }
 celery_app.conf.timezone = "UTC"

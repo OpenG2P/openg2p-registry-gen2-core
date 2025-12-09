@@ -15,8 +15,8 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="outgest_register_topic_beat_producer")
-def outgest_register_topic_beat_producer():
+@celery_app.task(name="outgest_topic_register_beat_producer")
+def outgest_topic_register_beat_producer():
     _logger.info("Checking for pending outgoing_topics registration requests")
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
@@ -43,17 +43,17 @@ def outgest_register_topic_beat_producer():
             session.add(outgoing_topic)
 
             _logger.info(
-                f"Updating status for {Workers.OUTGEST_REGISTER_TOPIC_WORKER} to processing for outgoing_topic with topic_id: {outgoing_topic.topic_id}"
+                f"Updating status for {Workers.OUTGEST_TOPIC_REGISTER_WORKER} to processing for outgoing_topic with topic_id: {outgoing_topic.topic_id}"
             )
 
             # Send task to appropriate celery worker
             celery_app.send_task(
-                Workers.OUTGEST_REGISTER_TOPIC_WORKER,
+                Workers.OUTGEST_TOPIC_REGISTER_WORKER,
                 args=(outgoing_topic.topic_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.OUTGEST_REGISTER_TOPIC_WORKER} for outgoing_topic with topic_id: {outgoing_topic.topic_id}"
+                f"Sent task to {Workers.OUTGEST_TOPIC_REGISTER_WORKER} for outgoing_topic with topic_id: {outgoing_topic.topic_id}"
             )
         session.commit()
 

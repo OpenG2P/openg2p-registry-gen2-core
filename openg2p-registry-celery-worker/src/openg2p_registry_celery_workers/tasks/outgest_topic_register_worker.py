@@ -18,9 +18,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="outgest_register_topic_worker")
-def outgest_register_topic_worker(topic_id: str):
-    _logger.info(f"Starting outgest_register_topic_worker for topic_id: {topic_id}")
+@celery_app.task(name="outgest_topic_register_worker")
+def outgest_topic_register_worker(topic_id: str):
+    _logger.info(f"Starting outgest_topic_register_worker for topic_id: {topic_id}")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -40,7 +40,7 @@ def outgest_register_topic_worker(topic_id: str):
 
         except Exception as e:
             _logger.error(
-                f"Error during processing outgest_register_topic_worker for topic_id {topic_id}: {str(e)}"
+                f"Error during processing outgest_topic_register_worker for topic_id {topic_id}: {str(e)}"
             )
             # Rollback all sessions
             session.rollback()
@@ -59,7 +59,7 @@ def outgest_register_topic_worker(topic_id: str):
             raise e
 
         _logger.info(
-            f"Completed processing outgest_register_topic_worker for topic_id: {topic_id}"
+            f"Completed processing outgest_topic_register_worker for topic_id: {topic_id}"
         )
 
 
