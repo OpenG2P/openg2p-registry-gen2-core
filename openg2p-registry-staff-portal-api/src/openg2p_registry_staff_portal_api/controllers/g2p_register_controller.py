@@ -315,7 +315,7 @@ class G2PRegisterController(BaseController):
     async def get_change_log(self, get_change_log_request: GetChangeLogRequest) -> ChangeLogDataResponse:
         try:
             change_log_data: ChangeLogData = await self.g2p_register_controller_service.get_change_log(get_change_log_request)
-            change_log_response: ChangeLogDataResponse = self.helper.construct_change_log_success_response(
+            change_log_response: ChangeLogDataResponse = self.helper.construct_change_log_data_success_response(
                 change_log_data=change_log_data, g2p_request=get_change_log_request
             )
             return change_log_response

@@ -148,10 +148,8 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.OPERATION_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.OPERATION_NOT_FOUND.value[0]
             )
-        if g2p_register_operation.is_new_operation:
-            # create and assign a new internal_record_id
-            internal_record_id = str(uuid.uuid4())
-            g2p_register_change_log.internal_record_id = internal_record_id
+        # Note: internal_record_id is already set during change log creation in construct_change_log
+        # Do not generate a new one here during approval
         
 
 
@@ -245,16 +243,16 @@ class G2PRegisterService(BaseService):
         # Serialize change log payload to history schema
         history_schema_instance = history_schema_class(**(change_payload or {}))
 
-        history_schema_instance.history_record_id = str(uuid.uuid4())
-        history_schema_instance.internal_record_id = change_log.internal_record_id
-        history_schema_instance.change_log_id = change_log.change_log_id
-        history_schema_instance.created_at = func.now()
-        history_schema_instance.created_by = "system" # TODO: Replace with actual user info
-        history_schema_instance.approved_at = func.now()
-        history_schema_instance.approved_by = "system" # TODO: Replace with actual user info
-        history_instance = history_class(
-            **history_schema_instance.dict()
-        )
+        # Build the history dict excluding None values from schema, then add base fields
+        history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
+        history_dict["history_record_id"] = str(uuid.uuid4())
+        history_dict["internal_record_id"] = change_log.internal_record_id
+        history_dict["change_log_id"] = change_log.change_log_id
+        history_dict["created_at"] = datetime.now()
+        history_dict["created_by"] = "system"  # TODO: Replace with actual user info
+        history_dict["approved_at"] = datetime.now()
+        history_dict["approved_by"] = "system"  # TODO: Replace with actual user info
+        history_instance = history_class(**history_dict)
 
         session.add(history_instance)
 
@@ -294,37 +292,26 @@ class G2PRegisterService(BaseService):
         payload = payload_result.scalar()
         change_payload = payload.change_payload if payload else {}
 
-        # Serialize change log payload to register schema
+        # Serialize change log payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
         if existing:
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change log payload
                 if key in change_payload:
                     setattr(existing, key, value)
-            setattr(existing, "last_approved_at", func.now())
+            setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
             new_instance = existing
         else:
-            register_schema_instance.internal_record_id = change_log.internal_record_id
-            register_schema_instance.created_at = func.now()
-            register_schema_instance.created_by = "system" # TODO: Replace with actual user info
-            register_schema_instance.last_approved_at = func.now()
-            register_schema_instance.last_approved_by = "system"
-            new_instance = register_class(**register_schema_instance.dict())
-
-        # payload = dict(change_log.change_payload or {})
-        # if existing:
-        #     for key, value in payload.items():
-        #         setattr(existing, key, value)
-        #     setattr(existing, "last_approved_at", func.now())
-        #     setattr(existing, "last_approved_by", "system")
-        # else:
-        #     payload["internal_record_id"] = change_log.internal_record_id
-        #     payload["created_at"] = func.now()
-        #     payload["created_by"] = "system" # TODO: Replace with actual user info
-        #     payload["last_approved_at"] = func.now()
-        #     payload["last_approved_by"] = "system"
-        #     new_instance = register_class(**payload)
+            # Build the payload dict excluding None values from schema, then add base fields
+            schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
+            schema_dict["internal_record_id"] = change_log.internal_record_id
+            schema_dict["functional_record_id"] = change_log.internal_record_id  # Use internal_record_id as functional_record_id
+            schema_dict["created_by"] = "system"  # TODO: Replace with actual user info
+            schema_dict["created_at"] = datetime.now()
+            schema_dict["last_approved_at"] = datetime.now()
+            schema_dict["last_approved_by"] = "system"
+            new_instance = register_class(**schema_dict)
             session.add(new_instance)
         
 

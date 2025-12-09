@@ -199,9 +199,9 @@ class RequestResponseHelper(BaseService):
         )
         return change_log_search_results_response
 
-    def construct_number_of_versions_success_response(self, number_of_versions_data: NumberOfVersionsData) -> NumberOfVersionsResponse:
+    def construct_number_of_versions_success_response(self, number_of_versions_data: NumberOfVersionsData, g2p_request: G2PRequest = None) -> NumberOfVersionsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -218,9 +218,9 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_versions_response
 
-    def construct_number_of_pending_change_logs_success_response(self, number_of_pending_change_logs_data: NumberOfPendingChangeLogsData) -> NumberOfPendingChangeLogsResponse:
+    def construct_number_of_pending_change_logs_success_response(self, number_of_pending_change_logs_data: NumberOfPendingChangeLogsData, g2p_request: G2PRequest = None) -> NumberOfPendingChangeLogsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -270,9 +270,28 @@ class RequestResponseHelper(BaseService):
         )
         return change_logs_response
 
-    def construct_record_success_response(self, record_data: RecordData) -> RecordDataResponse:
+    def construct_change_log_data_success_response(self, change_log_data: ChangeLogData, g2p_request: G2PRequest = None) -> ChangeLogDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChangeLogDataResponseBody = ChangeLogDataResponseBody(
+            response_payload=change_log_data
+        )
+
+        change_log_response: ChangeLogDataResponse = ChangeLogDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return change_log_response
+
+    def construct_record_success_response(self, record_data: RecordData, g2p_request: G2PRequest = None) -> RecordDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
@@ -322,9 +341,9 @@ class RequestResponseHelper(BaseService):
         )
         return verifications_response
 
-    def construct_verification_success_response(self, verification_data: VerificationData) -> VerificationDataResponse:
+    def construct_verification_success_response(self, verification_data: VerificationData, g2p_request: G2PRequest = None) -> VerificationDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
-            request_id="",
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
             response_error_code="",
             response_error_message="",
