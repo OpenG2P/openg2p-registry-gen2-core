@@ -21,9 +21,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="raw_data_classification_worker")
-def raw_data_classification_worker(ingest_id: str):
-    _logger.info(f"Starting raw_data_classification_worker for ingest_id: {ingest_id}")
+@celery_app.task(name="ingest_data_classification_worker")
+def ingest_data_classification_worker(ingest_id: str):
+    _logger.info(f"Starting ingest_data_classification_worker for ingest_id: {ingest_id}")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -64,7 +64,7 @@ def raw_data_classification_worker(ingest_id: str):
 
         except Exception as e:
             _logger.error(
-                f"Error during processing raw_data_classification_worker for ingest_id {ingest_id}: {str(e)}"
+                f"Error during processing ingest_data_classification_worker for ingest_id {ingest_id}: {str(e)}"
             )
             # Rollback all sessions
             session.rollback()
@@ -83,7 +83,7 @@ def raw_data_classification_worker(ingest_id: str):
             raise e
 
         _logger.info(
-            f"Completed processing raw_data_classification_worker for ingest_id: {ingest_id}"
+            f"Completed processing ingest_data_classification_worker for ingest_id: {ingest_id}"
         )
 
 

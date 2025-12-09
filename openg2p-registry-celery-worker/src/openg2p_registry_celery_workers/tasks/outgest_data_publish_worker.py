@@ -22,9 +22,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="data_outgestion_publish_worker")
-def data_outgestion_publish_worker(outgest_id: str):
-    _logger.info(f"Starting data_outgestion_publish_worker for outgest_id: {outgest_id}")
+@celery_app.task(name="outgest_data_publish_worker")
+def outgest_data_publish_worker(outgest_id: str):
+    _logger.info(f"Starting outgest_data_publish_worker for outgest_id: {outgest_id}")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -45,7 +45,7 @@ def data_outgestion_publish_worker(outgest_id: str):
 
         except Exception as e:
             _logger.error(
-                f"Error during processing data_outgestion_publish_worker for outgest_id {outgest_id}: {str(e)}"
+                f"Error during processing outgest_data_publish_worker for outgest_id {outgest_id}: {str(e)}"
             )
             # Rollback all sessions
             session.rollback()
@@ -64,7 +64,7 @@ def data_outgestion_publish_worker(outgest_id: str):
             raise e
 
         _logger.info(
-            f"Completed processing data_outgestion_publish_worker for outgest_id: {outgest_id}"
+            f"Completed processing outgest_data_publish_worker for outgest_id: {outgest_id}"
         )
 
 

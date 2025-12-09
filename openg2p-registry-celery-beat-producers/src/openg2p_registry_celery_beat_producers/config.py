@@ -1,6 +1,8 @@
 from openg2p_registry_extensions.config import Settings as ExtSettings
 from pydantic_settings import SettingsConfigDict
 
+from typing import Optional
+
 from . import __version__
 
 
@@ -32,13 +34,14 @@ class Settings(ExtSettings):
 
     batch_size: int = 2000
     no_of_tasks_to_process: int = 4
+    default_beat_producer_frequency: int = 20
 
-    data_transformation_beat_producer_frequency: int = 20       # ingest & outgest
+    data_transformation_beat_producer_frequency: Optional[int] = None           # ingest & outgest
 
-    raw_data_classification_beat_producer_frequency: int = 20   # ingest
-    data_ingestion_beat_producer_frequency: int = 20            # ingest
+    ingest_data_beat_producer_frequency: Optional[int] = None                   # ingest
+    ingest_data_classification_beat_producer_frequency: Optional[int] = None    # ingest
 
-    data_outgestion_publish_beat_producer_frequency: int = 20   # outgest
-    outgest_register_topic_beat_producer_frequency: int = 20    # outgest
+    outgest_data_publish_beat_producer_frequency: Optional[int] = None          # outgest
+    outgest_topic_register_beat_producer_frequency: Optional[int] = None        # outgest
 
-    deduplication_beat_producer_frequency: int = 30             # deduplication
+    deduplication_beat_producer_frequency: Optional[int] = None                 # deduplication

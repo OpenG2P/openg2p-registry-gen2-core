@@ -15,8 +15,8 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="data_outgestion_publish_beat_producer")
-def data_outgestion_publish_beat_producer():
+@celery_app.task(name="outgest_data_publish_beat_producer")
+def outgest_data_publish_beat_producer():
     _logger.info("Checking for pending outgoing_raw_data outgestion publish requests")
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
@@ -43,17 +43,17 @@ def data_outgestion_publish_beat_producer():
             session.add(outgoing_raw_datum)
 
             _logger.info(
-                f"Updating status for {Workers.DATA_OUTGESTION_PUBLISH_WORKER} to processing for outgoing_raw_data with outgest_id: {outgoing_raw_datum.outgest_id}"
+                f"Updating status for {Workers.OUTGEST_DATA_PUBLISH_WORKER} to processing for outgoing_raw_data with outgest_id: {outgoing_raw_datum.outgest_id}"
             )
 
             # Send task to appropriate celery worker
             celery_app.send_task(
-                Workers.DATA_OUTGESTION_PUBLISH_WORKER,
+                Workers.OUTGEST_DATA_PUBLISH_WORKER,
                 args=(outgoing_raw_datum.outgest_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.DATA_OUTGESTION_PUBLISH_WORKER} for outgoing_raw_data with outgest_id: {outgoing_raw_datum.outgest_id}"
+                f"Sent task to {Workers.OUTGEST_DATA_PUBLISH_WORKER} for outgoing_raw_data with outgest_id: {outgoing_raw_datum.outgest_id}"
             )
         session.commit()
 
