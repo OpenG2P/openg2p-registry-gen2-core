@@ -3,7 +3,7 @@ import requests
 from requests import Response
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
-from openg2p_registry_example_models.models import (
+from openg2p_celery_job_models.models import (
     StatusEnum, 
     G2PRegistryExternalDataProvider,
     G2PRegistryExternalDataPayload,
