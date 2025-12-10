@@ -10,8 +10,14 @@ from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_registry_core.app import Initializer as CoreInitializer
 from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 
-from .helpers import RequestResponseHelper
-from .controllers import G2PPartnerController
+from .ingestion import G2PIngestController, RequestResponseHelper
+# Search imports (standard specific impl)
+from .search.dci import (
+    G2PDciController,
+    G2PDciService,
+    DciRequestResponseHelper,
+    DciKeymanagerHelper
+)
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
@@ -21,9 +27,15 @@ class Initializer(BaseInitializer):
         CoreInitializer().initialize()
         ExtensionsInitializer().initialize()
 
+        # Ingestion
         RequestResponseHelper()
+        G2PIngestController().post_init()
 
-        G2PPartnerController().post_init()
+        # DCI
+        DciRequestResponseHelper()
+        DciKeymanagerHelper()
+        G2PDciController().post_init()
+        G2PDciService().post_init()
 
     def migrate_database(self, args):
         _logger.info("Starting partner database migration")

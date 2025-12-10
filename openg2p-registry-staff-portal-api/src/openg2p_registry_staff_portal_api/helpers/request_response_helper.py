@@ -21,7 +21,7 @@ from openg2p_registry_core.schemas import (
     IncomingPartnerData, IncomingPartnerResponseBody,
     IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
-    IncomingPayloadEnricherResponseBody, DataModelResponseBody,
+    IncomingPayloadEnricherResponseBody, DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -462,3 +462,30 @@ class RequestResponseHelper(BaseService):
         )
         return dedup_results_response
 
+    def construct_outgestion_config_success_response(self, payload_data, response_class, g2p_request=None):
+        """Generic method to construct success response for ingestion configuration endpoints"""
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        # Determine the response body class based on response_class
+        response_class_name = response_class.__name__
+        if response_class_name == 'OutgoingTopicResponse':
+            response_body = OutgoingTopicResponseBody(response_payload=payload_data)
+        elif response_class_name == 'OutgoingTemplateResponse':
+            response_body = OutgoingTemplateResponseBody(response_payload=payload_data)
+        else:
+            # Fallback for other response types
+            response_body = G2PResponseBody(response_payload=payload_data)
+
+        response = response_class(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return response

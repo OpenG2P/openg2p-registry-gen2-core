@@ -22,7 +22,7 @@ from ..models import (
 
 _logger = logging.getLogger("g2p-partner-service")
 
-class G2PPartnerService(BaseService):
+class G2PIngestService(BaseService):
     async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict):
         _logger.info("Starting data ingestion with received request")
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)

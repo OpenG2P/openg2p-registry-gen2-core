@@ -11,14 +11,14 @@ from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 from .services import (
     G2PRegisterDomainService,
     G2PRegisterService,
-    G2PPartnerService,
+    G2PIngestService,
     G2PIngestionConfigurationService,
     G2POutgestionConfigurationService,
     G2PTemplateService,
 )
 from .controller_services import (
     G2PRegisterControllerService,
-    G2PPartnerControllerService,
+    G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2POutgestionConfigurationControllerService,
 )
@@ -66,7 +66,7 @@ class Initializer(BaseInitializer):
         KeymanagerCryptoHelper()
 
         # Services
-        G2PPartnerService()
+        G2PIngestService()
         G2PRegisterService()
         G2PRegisterDomainService()
         G2PIngestionConfigurationService()
@@ -74,7 +74,7 @@ class Initializer(BaseInitializer):
         G2PTemplateService()
 
         # Controller Services
-        G2PPartnerControllerService()
+        G2PIngestControllerService()
         G2PRegisterControllerService()
         G2PIngestionConfigurationControllerService()
         G2POutgestionConfigurationControllerService()
