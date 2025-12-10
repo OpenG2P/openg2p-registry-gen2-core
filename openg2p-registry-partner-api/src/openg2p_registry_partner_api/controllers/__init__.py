@@ -1,1 +1,0 @@
-from .g2p_partner_controller import G2PPartnerController

@@ -7,6 +7,7 @@ from openg2p_registry_core.schemas import IngestDataPayload, IngestDataRequest, 
 from openg2p_registry_core.errors import G2PRegistryException
 
 class RequestResponseHelper(BaseService):
+
     async def construct_http_request(self, request: Request) -> Dict:
         try:
             request_body: Dict = await request.json()

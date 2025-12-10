@@ -2,23 +2,23 @@ import logging
 from typing import Dict, Optional
 from openg2p_fastapi_common.controller import BaseController
 
-from openg2p_registry_core.controller_services import G2PPartnerControllerService
+from openg2p_registry_core.controller_services import G2PIngestControllerService
 from openg2p_registry_core.schemas import IngestDataPayload, IngestDataRequest, IngestDataResponse
 from openg2p_fastapi_common.schemas import G2PResponse
 
 from ..helpers import RequestResponseHelper
-from ..config import Settings
+from ...config import Settings
 
 _config = Settings.get_config()
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
-class G2PPartnerController(BaseController):
+class G2PIngestController(BaseController):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         self.router.tags += ["G2P Register Partner"]
-        self.g2p_partner_controller_service = G2PPartnerControllerService.get_component()
+        self.g2p_ingest_controller_service = G2PIngestControllerService.get_component()
         self.request_response_helper = RequestResponseHelper.get_component()
         self.router.prefix = "/partner"
 
@@ -35,7 +35,7 @@ class G2PPartnerController(BaseController):
 
             ingest_data: Dict = await self.request_response_helper.construct_http_request(ingest_data_request)
 
-            ingest_data_payload: IngestDataPayload = await self.g2p_partner_controller_service.ingest_data(data_model, ingest_data)
+            ingest_data_payload: IngestDataPayload = await self.g2p_ingest_controller_service.ingest_data(data_model, ingest_data)
             injest_data_response = self.request_response_helper.construct_ingest_data_success_response(ingest_data_payload, ingest_data_request)
             return injest_data_response
 
