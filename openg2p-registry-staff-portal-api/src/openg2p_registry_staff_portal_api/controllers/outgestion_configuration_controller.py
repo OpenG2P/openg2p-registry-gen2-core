@@ -119,7 +119,7 @@ class OutgestionConfigurationController(BaseController):
                 topic_request.request_body.request_payload
             )
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, topic_request
+                topic_data, OutgoingTopicResponse, topic_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, topic_request)
@@ -128,71 +128,71 @@ class OutgestionConfigurationController(BaseController):
         try:
             topic_data: list[OutgoingTopicData] = await self.outgestion_config_service.get_outgoing_topic(topic_request.request_body.request_payload.topic_id)
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, topic_request
+                topic_data, OutgoingTopicResponse, topic_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, topic_request)
 
     async def get_all_outgoing_topics(self, topic_request: OutgoingTopicRequest) -> OutgoingTopicResponse:
         try:
             topics_data: list[OutgoingTopicData] = await self.outgestion_config_service.get_all_outgoing_topics()
-            return self.helper.construct_outgestion_config_success_response(
+            return self.helper.construct_outgestion_config_topics_success_response(
                 topics_data, topic_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, None)
+            return self.helper.construct_error_response(error, topic_request)
 
     async def update_outgoing_topic(
-        self, outgoing_topic_update_request: OutgoingTopicUpdateRequest
+        self, topic_update_request: OutgoingTopicUpdateRequest
     ) -> OutgoingTopicResponse:
         try:
             topic_data: list[OutgoingTopicData] = await self.outgestion_config_service.update_outgoing_topic(
-                outgoing_topic_update_request.request_body.request_payload
+                topic_update_request.request_body.request_payload
             )
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, outgoing_topic_update_request
+                topic_data, OutgoingTopicResponse, topic_update_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, outgoing_topic_update_request)
+            return self.helper.construct_error_response(error, topic_update_request)
         
     async def toggle_outgoing_topic_status(
-        self, outgoing_topic_update_request: OutgoingTopicUpdateRequest
+        self, topic_update_request: OutgoingTopicUpdateRequest
     ) -> OutgoingTopicResponse:
         try:
             topic_data = await self.outgestion_config_service.toggle_outgoing_topic_status(
-                outgoing_topic_update_request.request_body.request_payload
+                topic_update_request.request_body.request_payload
             )
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, outgoing_topic_update_request
+                topic_data, OutgoingTopicResponse, topic_update_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, outgoing_topic_update_request)
+            return self.helper.construct_error_response(error, topic_update_request)
 
     async def re_register_outgoing_topic(
-        self, outgoing_topic_update_request: OutgoingTopicUpdateRequest
+        self, topic_update_request: OutgoingTopicUpdateRequest
     ) -> OutgoingTopicResponse:
         try:
             topic_data = await self.outgestion_config_service.re_register_outgoing_topic(
-                outgoing_topic_update_request.request_body.request_payload
+                topic_update_request.request_body.request_payload
             )
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, outgoing_topic_update_request
+                topic_data, OutgoingTopicResponse, topic_update_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, outgoing_topic_update_request)
+            return self.helper.construct_error_response(error, topic_update_request)
 
     async def delete_outgoing_topic(
-        self, outgoing_topic_update_request: OutgoingTopicUpdateRequest
+        self, topic_update_request: OutgoingTopicUpdateRequest
     ) -> OutgoingTopicResponse:
         try:
             topic_data = await self.outgestion_config_service.delete_outgoing_topic(
-                outgoing_topic_update_request.request_body.request_payload
+                topic_update_request.request_body.request_payload
             )
             return self.helper.construct_outgestion_config_success_response(
-                topic_data, outgoing_topic_update_request
+                topic_data, OutgoingTopicResponse, topic_update_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, outgoing_topic_update_request)
+            return self.helper.construct_error_response(error, topic_update_request)
     
 
     async def create_template(
@@ -203,8 +203,8 @@ class OutgestionConfigurationController(BaseController):
             template_data: OutgoingTemplateData = await self.outgestion_config_service.create_template(
                 template_request.request_body.request_payload, template_file
             )
-            return self.helper.construct_outgestion_config_success_response(
-                template_data, template_request
+            return self.helper.construct_outgestion_config_template_success_response(
+                template_data, OutgoingTemplateResponse, template_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_request)
@@ -214,8 +214,8 @@ class OutgestionConfigurationController(BaseController):
             template_data: OutgoingTemplateData = await self.outgestion_config_service.get_template(
                 template_request.request_body.request_payload
             )
-            return self.helper.construct_outgestion_config_success_response(
-                template_data, template_request
+            return self.helper.construct_outgestion_config_template_success_response(
+                template_data, OutgoingTemplateResponse, template_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_request)
@@ -227,8 +227,8 @@ class OutgestionConfigurationController(BaseController):
             template_data: OutgoingTemplateData = await self.outgestion_config_service.update_template(
                 template_update_request.request_body.request_payload, template_file
             )
-            return self.helper.construct_outgestion_config_success_response(
-                template_data, template_update_request
+            return self.helper.construct_outgestion_config_template_success_response(
+                template_data, OutgoingTemplateResponse, template_update_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_update_request)
@@ -238,8 +238,8 @@ class OutgestionConfigurationController(BaseController):
             template_data: OutgoingTemplateData = await self.outgestion_config_service.delete_template(
                 template_delete_request.request_body.request_payload
             )
-            return self.helper.construct_outgestion_config_success_response(
-                template_data, template_delete_request
+            return self.helper.construct_outgestion_config_template_success_response(
+                template_data, OutgoingTemplateResponse, template_delete_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_delete_request)
