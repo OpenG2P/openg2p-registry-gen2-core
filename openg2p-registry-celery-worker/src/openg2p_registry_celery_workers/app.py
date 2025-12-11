@@ -8,16 +8,25 @@ _config = Settings.get_config()
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 from celery import Celery
+from openg2p_registry_core.helpers import MinioClient, TemplateHelper
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_fastapi_common.exception import BaseExceptionHandler        
-from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
-
 
 class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
         super().init_logger()
         super().init_app()
         BaseExceptionHandler()
+
+        # Helpers
+        MinioClient(
+            _config.minio_endpoint,
+            _config.minio_access_key,
+            _config.minio_secret_key,
+            _config.minio_secure,
+            _config.minio_bucket_name,
+        )
+        TemplateHelper()
 
 
 celery_app = Celery(
