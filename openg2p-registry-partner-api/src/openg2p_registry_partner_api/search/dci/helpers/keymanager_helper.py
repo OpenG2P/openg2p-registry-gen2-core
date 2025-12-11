@@ -4,7 +4,8 @@ from openg2p_registry_core.errors import G2PRegistryException, G2PRegistryErrorC
 from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 
 from ..schemas import (
-    DciSearchHeader,
+    DciRequestHeader,
+    DciResponseHeader,
     DciSearchResponse,
     DciSearchRequest,
 )
@@ -16,7 +17,7 @@ class DciKeymanagerHelper(BaseService):
 
     async def generate_signature(
         self,
-        header: DciSearchHeader,
+        header: DciResponseHeader,
         message: DciSearchResponse,
     ) -> str:
         signature_payload: Dict[str, Any] = {
@@ -36,7 +37,7 @@ class DciKeymanagerHelper(BaseService):
     async def validate_signature(
         self,
         signature: str,
-        header: DciSearchHeader,
+        header: DciRequestHeader,
         message: DciSearchRequest,
     ) -> bool:
         signature_payload: Dict[str, Any] = {

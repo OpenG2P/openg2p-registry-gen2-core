@@ -1,5 +1,4 @@
 import enum
-from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
@@ -10,16 +9,6 @@ class DciStatusCode(enum.Enum):
     PENDING = "pdng"
     SUCCESS = "succ"
     REJECTED = "rjct"
-
-
-class DciSearchResultRegRecords(BaseModel):
-    """
-    JSON-LD Member/Person object as returned by the registry.
-
-    The spec effectively treats this as a free-form object with
-    @context, @type, identifier, demographic_info, etc.
-    """
-    __root__: Dict[str, Any]
 
 
 class DciSearchResultData(BaseModel):

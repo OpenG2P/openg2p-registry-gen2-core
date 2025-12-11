@@ -30,7 +30,7 @@ class DciConsent(BaseModel):
     purpose: Optional[DciPurpose] = None
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
 
 class DciAuthorize(BaseModel):
     context: Optional[str] = Field(None, alias="@context", description="JSON-LD context, e.g. Authorize.jsonld URI",)
@@ -39,7 +39,7 @@ class DciAuthorize(BaseModel):
     purpose: Optional[DciPurpose] = None
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
 
 class DciSearchCriteria(BaseModel):
     version: str = "1.0.0"
@@ -69,7 +69,7 @@ class DciSearchRequest(BaseModel):
 
 
 class DciRequestHeader(BaseModel):
-    version: str = Field(..., default="1.0.0", description="API header version")
+    version: str = Field(..., description="API header version")
     message_id: str = Field(..., max_length=99, description="Unique ID for this message")
     message_ts: str = Field(..., description="Timestamp of the message, ISO-8601 or epoch")
     action: str = Field(..., description="Action being performed, e.g., 'search'")

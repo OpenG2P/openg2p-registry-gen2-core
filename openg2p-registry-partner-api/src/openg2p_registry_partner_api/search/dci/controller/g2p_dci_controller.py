@@ -19,7 +19,7 @@ _config = Settings.get_config()
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
-class G2PDCIController(BaseController):
+class G2PDciController(BaseController):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
