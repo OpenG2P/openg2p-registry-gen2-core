@@ -102,7 +102,7 @@ class IncomingTemplatePayload(BaseModel):
     register_id: str
     operation_id: str
     data_model_id: str
-    template_file_id: str
+    template_file_id: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -110,6 +110,7 @@ class IncomingTemplatePayload(BaseModel):
 
 class IncomingTemplateUpdatePayload(BaseModel):
     """Update payload for IncomingTemplate - only allows updating specific fields"""
+    template_id: str
     template_file_id: Optional[str] = None
 
     class Config:
