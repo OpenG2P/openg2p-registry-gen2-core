@@ -1,4 +1,4 @@
-from sqlalchemy import String, Boolean, DateTime, Date
+from sqlalchemy import String, Boolean, DateTime, Date, Float
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from sqlalchemy.dialects.postgresql import JSONB
 from openg2p_registry_core.models import G2PRegister, G2PRegisterHistory
@@ -7,31 +7,60 @@ from datetime import datetime, date
 
 
 class G2PRegisterFamilyMemberBase(BaseORMModel):
+    
     __abstract__ = True
 
-    member_identifier: Mapped[str] = mapped_column(String, nullable=False)
-    demographic_identifier: Mapped[str] = mapped_column(String, nullable=False)
+    # Identifiers
+    identifier_type: Mapped[str] = mapped_column(String, nullable=True)
+    identifier_value: Mapped[str] = mapped_column(String, nullable=True)
 
-    name_prefix: Mapped[str] = mapped_column(String, nullable=False)
-    name_given: Mapped[str] = mapped_column(String, nullable=False)
-    name_surname: Mapped[str] = mapped_column(String, nullable=False)
-    name_suffix: Mapped[str] = mapped_column(String, nullable=False)
-    sex: Mapped[str] = mapped_column(String, nullable=False)
-    birth_date: Mapped[date] = mapped_column(Date, nullable=True)
+    # Name fields
+    surname: Mapped[str] = mapped_column(String, nullable=True)
+    given_name: Mapped[str] = mapped_column(String, nullable=True)
+    second_name: Mapped[str] = mapped_column(String, nullable=True)
+    prefix: Mapped[str] = mapped_column(String, nullable=True)
+    suffix: Mapped[str] = mapped_column(String, nullable=True)
 
-    related_persons: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
+    # Contacts stored as JSON arrays
+    phone_numbers: Mapped[list] = mapped_column(JSONB, nullable=True)
+    emails: Mapped[list] = mapped_column(JSONB, nullable=True)
 
-    is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    # Basic details
+    sex: Mapped[str] = mapped_column(String, nullable=True)
+    birth_date: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Birthplace
+    birth_place_name: Mapped[str] = mapped_column(String, nullable=True)
+    birth_place_lat: Mapped[float] = mapped_column(Float, nullable=True)
+    birth_place_lng: Mapped[float] = mapped_column(Float, nullable=True)
+
+    # Death details
+    death_date: Mapped[str] = mapped_column(String, nullable=True)
+    death_place: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Address details
+    address_line1: Mapped[str] = mapped_column(String, nullable=True)
+    address_line2: Mapped[str] = mapped_column(String, nullable=True)
+    locality: Mapped[str] = mapped_column(String, nullable=True)
+    sub_region_code: Mapped[str] = mapped_column(String, nullable=True)
+    region_code: Mapped[str] = mapped_column(String, nullable=True)
+    postal_code: Mapped[str] = mapped_column(String, nullable=True)
+    country_code: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Plus code + geolocation
+    plus_code: Mapped[str] = mapped_column(String, nullable=True)
+    geo_lat: Mapped[float] = mapped_column(Float, nullable=True)
+    geo_lng: Mapped[float] = mapped_column(Float, nullable=True)
+
+    # Marital info
     marital_status: Mapped[str] = mapped_column(String, nullable=True)
-    employment_status: Mapped[str] = mapped_column(String, nullable=True)
-    occupation: Mapped[str] = mapped_column(String, nullable=True)
-    income_level: Mapped[str] = mapped_column(String, nullable=True)
-    education_level: Mapped[str] = mapped_column(String, nullable=True)
-    language_codes: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
-    additional_attributes: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
+    marriage_date: Mapped[str] = mapped_column(String, nullable=True)
+    divorce_date: Mapped[str] = mapped_column(String, nullable=True)
 
-    registration_date: Mapped[date] = mapped_column(Date, nullable=False)
-    last_updated: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    # Parents
+    parent1_identifier_value: Mapped[str] = mapped_column(String, nullable=True)
+    parent2_identifier_value: Mapped[str] = mapped_column(String, nullable=True)
+
 
 
 # All Register classes should have the prefix G2PRegister
