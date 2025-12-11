@@ -85,32 +85,28 @@ class G2PRegisterControllerService(BaseService):
 
     async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> tuple[list[SearchResultData], int, int]:
         payload = search_register_request.request_body.request_payload
+        pagination = search_register_request.request_body.pagination_request
         register_id = payload.register_id
-        search_text = payload.search_text
-        current_page = payload.current_page
-        page_size = payload.page_size
-        sort_by = payload.sort_by
-        filter_by = payload.filter_by
 
-        _logger.info(f"Searching in register_id: {register_id} with search_text: {search_text}, page: {current_page}, page_size: {page_size} through controller service")
+        _logger.info(f"Searching in register_id: {register_id} with search_text: {pagination.search_text}, page: {pagination.current_page}, page_size: {pagination.page_size} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         search_results_list, total_items = await g2p_register_service.search_in_a_register(
-            register_id, search_text, current_page, page_size, sort_by, filter_by
+            register_id, pagination.search_text, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
 
         # Calculate number of pages
-        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
 
         return search_results_list, total_items, number_of_pages
 
     async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> tuple[list[ChangeLogSearchResultData], int, int]:
-        payload = search_change_log_request.request_body.request_payload
-        _logger.info(f"Searching in change logs with search_text: {payload.search_text} through controller service")
+        pagination = search_change_log_request.request_body.pagination_request
+        _logger.info(f"Searching in change logs with search_text: {pagination.search_text} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         search_results_list, total_items = await g2p_register_service.search_in_change_log(
-            payload.search_text, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+            pagination.search_text, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return search_results_list, total_items, number_of_pages
 
     async def get_number_of_versions(self, get_number_of_versions_request: GetNumberOfVersionsRequest) -> NumberOfVersionsData:
@@ -131,14 +127,15 @@ class G2PRegisterControllerService(BaseService):
 
     async def get_change_logs(self, get_change_logs_request: GetChangeLogsRequest) -> tuple[list[ChangeLogData], int, int]:
         payload = get_change_logs_request.request_body.request_payload
+        pagination = get_change_logs_request.request_body.pagination_request
         register_id = payload.register_id
         internal_record_id = payload.internal_record_id
         _logger.info(f"Getting change logs for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         change_logs_list, total_items = await g2p_register_service.get_change_logs(
-            register_id, internal_record_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+            register_id, internal_record_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return change_logs_list, total_items, number_of_pages
 
     async def get_change_log(self, get_change_log_request: GetChangeLogRequest) -> ChangeLogData:
@@ -172,13 +169,14 @@ class G2PRegisterControllerService(BaseService):
 
     async def get_verifications_for_change_log(self, get_verifications_request: GetVerificationsRequest) -> tuple[list[VerificationData], int, int]:
         payload = get_verifications_request.request_body.request_payload
+        pagination = get_verifications_request.request_body.pagination_request
         change_log_id = payload.change_log_id
         _logger.info(f"Getting verifications for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         verifications_list, total_items = await g2p_register_service.get_verifications_for_change_log(
-            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+            change_log_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return verifications_list, total_items, number_of_pages
 
     async def add_verification_for_change_log(self, add_verification_request: AddVerificationRequest) -> VerificationData:
@@ -193,13 +191,14 @@ class G2PRegisterControllerService(BaseService):
         Get deduplication results for a change log against register records.
         """
         payload = get_deduplication_register_results_request.request_body.request_payload
+        pagination = get_deduplication_register_results_request.request_body.pagination_request
         change_log_id = payload.change_log_id
         _logger.info(f"Getting deduplication register results for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         dedup_results_list, total_items = await g2p_register_service.get_deduplication_register_results(
-            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+            change_log_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages
 
     async def get_deduplication_changelog_results(self, get_deduplication_changelog_results_request: GetDeduplicationChangelogResultsRequest) -> tuple[list[DeduplicationChangelogResultData], int, int]:
@@ -207,11 +206,12 @@ class G2PRegisterControllerService(BaseService):
         Get deduplication results for a change log against other change logs.
         """
         payload = get_deduplication_changelog_results_request.request_body.request_payload
+        pagination = get_deduplication_changelog_results_request.request_body.pagination_request
         change_log_id = payload.change_log_id
         _logger.info(f"Getting deduplication changelog results for change_log_id: {change_log_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         dedup_results_list, total_items = await g2p_register_service.get_deduplication_changelog_results(
-            change_log_id, payload.current_page, payload.page_size, payload.sort_by, payload.filter_by
+            change_log_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + payload.page_size - 1) // payload.page_size if total_items > 0 else 0
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages
