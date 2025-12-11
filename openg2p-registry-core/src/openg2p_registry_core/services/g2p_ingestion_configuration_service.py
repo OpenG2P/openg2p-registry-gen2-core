@@ -159,6 +159,7 @@ class G2PIngestionConfigurationService(BaseService):
                 data_model_id=pattern_payload.data_model_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
                 key_path_for_signature=pattern_payload.key_path_for_signature,
+                key_path_for_signature_payload=pattern_payload.key_path_for_signature_payload,
             )
             session.add(pattern)
             await session.commit()
@@ -207,6 +208,8 @@ class G2PIngestionConfigurationService(BaseService):
                 pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
             if pattern_payload.key_path_for_signature is not None:
                 pattern_obj.key_path_for_signature = pattern_payload.key_path_for_signature
+            if pattern_payload.key_path_for_signature_payload is not None:
+                pattern_obj.key_path_for_signature_payload = pattern_payload.key_path_for_signature_payload
 
             await session.commit()
             await session.refresh(pattern_obj)
