@@ -1,4 +1,6 @@
 import logging
+from typing import Optional
+from fastapi import UploadFile
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PIngestionConfigurationControllerService
@@ -16,6 +18,7 @@ from openg2p_registry_core.schemas import (
     IncomingTemplateRequest,
     IncomingTemplateUpdateRequest,
     IncomingTemplateResponse,
+    IncomingTemplateData,
     IncomingPayloadEnricherRequest,
     IncomingPayloadEnricherUpdateRequest,
     IncomingPayloadEnricherResponse,
@@ -342,11 +345,11 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, pattern_request)
 
     async def create_template(
-        self, template_request: IncomingTemplateRequest
+        self, template_request: IncomingTemplateRequest, template_file: UploadFile
     ) -> IncomingTemplateResponse:
         try:
-            template_data = await self.ingestion_config_service.create_template(
-                template_request.request_body.request_payload
+            template_data: IncomingTemplateData = await self.ingestion_config_service.create_template(
+                template_request.request_body.request_payload, template_file
             )
             return self.helper.construct_ingestion_config_success_response(
                 template_data, IncomingTemplateResponse, template_request
@@ -356,7 +359,7 @@ class IngestionConfigurationController(BaseController):
 
     async def get_template(self, template_request: IncomingTemplateRequest) -> IncomingTemplateResponse:
         try:
-            template_data = await self.ingestion_config_service.get_template(
+            template_data: IncomingTemplateData = await self.ingestion_config_service.get_template(
                 template_request.request_body.request_payload.template_id
             )
             return self.helper.construct_ingestion_config_success_response(
@@ -366,18 +369,17 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, template_request)
 
     async def update_template(
-        self, template_request: IncomingTemplateUpdateRequest
+        self, template_update_request: IncomingTemplateUpdateRequest, template_file: Optional[UploadFile] = None
     ) -> IncomingTemplateResponse:
         try:
-            template_data = await self.ingestion_config_service.update_template(
-                template_request.request_body.request_payload.template_id,
-                template_request.request_body.request_payload
+            template_data: IncomingTemplateData = await self.ingestion_config_service.update_template(
+                template_update_request.request_body.request_payload, template_file
             )
             return self.helper.construct_ingestion_config_success_response(
-                template_data, IncomingTemplateResponse, template_request
+                template_data, IncomingTemplateResponse, template_update_request
             )
         except Exception as error:
-            return self.helper.construct_error_response(error, template_request)
+            return self.helper.construct_error_response(error, template_update_request)
 
     async def create_payload_enricher(
         self, enricher_request: IncomingPayloadEnricherRequest

@@ -1,12 +1,14 @@
 import logging
 import uuid
 from datetime import datetime
+from typing import Optional
 import httpx
+from fastapi import UploadFile
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy import select
 
 from ..models import (
@@ -41,6 +43,7 @@ from ..schemas import (
     SubscriptionActivityLogData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
+from ..helpers import MinioClient, TemplateHelper
 
 _logger = logging.getLogger("g2p-ingestion-configuration-service")
 
@@ -287,18 +290,22 @@ class G2PIngestionConfigurationService(BaseService):
 
     # IncomingTemplate Methods
     async def create_template(
-        self, template_payload: IncomingTemplatePayload
+        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
     ) -> IncomingTemplateData:
         """Create a new template"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            template_id = template_payload.template_id or str(uuid.uuid4())
-            template = IncomingTemplate(
+            await self._check_incoming_template_exists(session, template_payload)
+
+            file_id: str = await self._upload_template_file(template_file, template_payload.template_file_id)
+
+            template_id: str = template_payload.template_id or str(uuid.uuid4())
+            template: IncomingTemplate = IncomingTemplate(
                 template_id=template_id,
                 register_id=template_payload.register_id,
                 operation_id=template_payload.operation_id,
                 data_model_id=template_payload.data_model_id,
-                template_file_id=template_payload.template_file_id,
+                template_file_id=file_id,
             )
             session.add(template)
             await session.commit()
@@ -309,39 +316,81 @@ class G2PIngestionConfigurationService(BaseService):
         """Get template by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            template = await session.execute(
-                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
-            )
-            template_obj = template.scalar_one_or_none()
-            if not template_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
-                )
+            template_obj: IncomingTemplate = await self._get_incoming_template(session, template_id)
             return IncomingTemplateData.model_validate(template_obj)
 
     async def update_template(
-        self, template_id: str, template_payload: IncomingTemplateUpdatePayload
+        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
     ) -> IncomingTemplateData:
         """Update template - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            template = await session.execute(
-                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
+            template_obj: IncomingTemplate = await self._get_incoming_template(
+                session, template_update_payload.template_id
             )
-            template_obj = template.scalar_one_or_none()
-            if not template_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
-                )
 
-            if template_payload.template_file_id is not None:
-                template_obj.template_file_id = template_payload.template_file_id
+            if template_file:
+                template_obj.template_file_id = await self._upload_template_file(
+                    template_file, template_update_payload.template_file_id
+                )
 
             await session.commit()
             await session.refresh(template_obj)
             return IncomingTemplateData.model_validate(template_obj)
+
+    async def _get_incoming_template(self, session: AsyncSession, template_id: str) -> IncomingTemplate:
+        """Get incoming template by ID - helper method"""
+        if not template_id:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
+            )
+        template = await session.execute(
+            select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
+        )
+        template_obj: Optional[IncomingTemplate] = template.scalar_one_or_none()
+        if not template_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
+            )
+        return template_obj
+
+    async def _check_incoming_template_exists(
+        self, session: AsyncSession, template_payload: IncomingTemplatePayload
+    ) -> None:
+        """Check if template with same data_model_id, register_id, and operation_id already exists"""
+        if not template_payload.data_model_id or not template_payload.register_id or not template_payload.operation_id:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
+            )
+        existing_template = await session.execute(
+            select(IncomingTemplate).where(
+                IncomingTemplate.data_model_id == template_payload.data_model_id,
+                IncomingTemplate.register_id == template_payload.register_id,
+                IncomingTemplate.operation_id == template_payload.operation_id,
+            )
+        )
+        existing_template_obj: Optional[IncomingTemplate] = existing_template.scalar_one_or_none()
+        if existing_template_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[1],
+                message=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[0],
+            )
+
+    async def _upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str]) -> str:
+        """Upload template file to MinIO and return the file ID"""
+        minio_client: MinioClient = MinioClient.get_component()
+        template_helper: TemplateHelper = TemplateHelper.get_component()
+
+        template_text: str = (await template_file.read()).decode("utf-8")
+        file_id: str = template_helper.put_template(
+            minio_client=minio_client,
+            template_file_id=template_file_id,
+            template=template_text
+        )
+        return file_id
 
     # IncomingPayloadEnricher Methods
     async def create_payload_enricher(

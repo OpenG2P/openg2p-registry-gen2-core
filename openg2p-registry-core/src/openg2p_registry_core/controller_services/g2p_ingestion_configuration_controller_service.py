@@ -1,4 +1,6 @@
 import logging
+from typing import Optional
+from fastapi import UploadFile
 from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PIngestionConfigurationService
@@ -111,11 +113,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         )
 
     async def create_template(
-        self, template_payload: IncomingTemplatePayload
+        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
     ) -> IncomingTemplateData:
         """Create a new template"""
         return await self.g2p_ingestion_configuration_service.create_template(
-            template_payload
+            template_payload, template_file
         )
 
     async def get_template(self, template_id: str) -> IncomingTemplateData:
@@ -123,11 +125,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         return await self.g2p_ingestion_configuration_service.get_template(template_id)
 
     async def update_template(
-        self, template_id: str, template_payload: IncomingTemplateUpdatePayload
+        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
     ) -> IncomingTemplateData:
         """Update template"""
         return await self.g2p_ingestion_configuration_service.update_template(
-            template_id, template_payload
+            template_update_payload, template_file
         )
 
     async def create_payload_enricher(
