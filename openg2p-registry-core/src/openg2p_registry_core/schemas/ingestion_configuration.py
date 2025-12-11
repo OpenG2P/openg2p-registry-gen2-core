@@ -73,6 +73,7 @@ class IncomingModelSemanticPatternPayload(BaseModel):
     operation_id: str
     pattern_for_register: str
     pattern_for_operation: str
+    key_path_for_business_payload: str
 
     class Config:
         from_attributes: bool = True
@@ -82,6 +83,7 @@ class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
     pattern_for_register: Optional[str] = None
     pattern_for_operation: Optional[str] = None
+    key_path_for_business_payload: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -94,6 +96,7 @@ class IncomingModelSemanticPatternData(BaseModel):
     operation_id: str
     pattern_for_register: str
     pattern_for_operation: str
+    key_path_for_business_payload: str
 
     class Config:
         from_attributes: bool = True

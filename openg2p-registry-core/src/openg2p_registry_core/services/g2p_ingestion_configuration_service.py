@@ -230,6 +230,7 @@ class G2PIngestionConfigurationService(BaseService):
                 operation_id=pattern_payload.operation_id,
                 pattern_for_register=pattern_payload.pattern_for_register,
                 pattern_for_operation=pattern_payload.pattern_for_operation,
+                key_path_for_business_payload=pattern_payload.key_path_for_business_payload,
             )
             session.add(pattern)
             await session.commit()
@@ -277,6 +278,8 @@ class G2PIngestionConfigurationService(BaseService):
                 pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
             if pattern_payload.pattern_for_operation is not None:
                 pattern_obj.pattern_for_operation = pattern_payload.pattern_for_operation
+            if pattern_payload.key_path_for_business_payload is not None:
+                pattern_obj.key_path_for_business_payload = pattern_payload.key_path_for_business_payload
 
             await session.commit()
             await session.refresh(pattern_obj)
