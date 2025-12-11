@@ -69,7 +69,7 @@ class OutgestionConfigurationController(BaseController):
 
         self.router.add_api_route(
             "/re_register_topic",
-            self.rereregister_outgoing_topic,
+            self.re_register_outgoing_topic,
             responses={200: {"model": OutgoingTopicResponse}},
             methods=["POST"],
         )
