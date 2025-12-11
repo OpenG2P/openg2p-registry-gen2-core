@@ -13,25 +13,42 @@ class G2PDciFamilyMemberCreateEnricherService(G2PPayloadEnricherInterface):
     def enrich(self, data: Dict, session: Session) -> Dict:
         _logger.info("Processing G2PDciFamilyMemberCreateEnricherService")
 
-        related_member_identifier: str | None = None
-        if 'related_person' in data and isinstance(data['related_person'], list):
-            for person in data['related_person']:
-                if person['relationship_type'].lower() == 'parent' and \
-                    'related_member' in person and \
-                    isinstance(person['related_member'], dict):
+        parent_link_record_id = None
 
-                    related_member_data = person['related_member']
-                    if 'member_identifier' in related_member_data:
-                        related_member_identifier = related_member_data['member_identifier']
-                        break
+        # Try to find a parent family member using parent1_identifier
+        parent1_identifier_data = data.get('parent1_identifier')
+        if isinstance(parent1_identifier_data, dict):
+            identifier_value = parent1_identifier_data.get('identifier_value')
+            if identifier_value:
+                _logger.debug(f"Checking for parent family member with parent1_identifier: {identifier_value}")
+                parent_family_member = session.execute(
+                    select(G2PRegisterFamilyMember).filter_by(member_identifier=identifier_value)
+                ).scalar_one_or_none()
 
-        if related_member_identifier:
-            related_member = session.execute(
-                select(G2PRegisterFamilyMember).filter(G2PRegisterFamilyMember.member_identifier == related_member_identifier)
-            ).scalar_one_or_none()
-            if related_member:
-                _logger.info(f"Found related_member link_record_id: { related_member.link_record_id }")
-                data['link_record_id'] = related_member.link_record_id
+                if parent_family_member:
+                    parent_link_record_id = parent_family_member.link_record_id
+                    _logger.info(f"Found parent family member via parent1_identifier. Link record ID: {parent_link_record_id}")
+
+        # If parent1_identifier didn't yield a result, try parent2_identifier
+        if parent_link_record_id is None:
+            parent2_identifier_data = data.get('parent2_identifier')
+            if isinstance(parent2_identifier_data, dict):
+                identifier_value = parent2_identifier_data.get('identifier_value')
+                if identifier_value:
+                    _logger.debug(f"Checking for parent family member with parent2_identifier: {identifier_value}")
+                    parent_family_member = session.execute(
+                        select(G2PRegisterFamilyMember).filter_by(member_identifier=identifier_value)
+                    ).scalar_one_or_none()
+
+                    if parent_family_member:
+                        parent_link_record_id = parent_family_member.link_record_id
+                        _logger.info(f"Found parent family member via parent2_identifier. Link record ID: {parent_link_record_id}")
+
+        if parent_link_record_id:
+            data['link_record_id'] = parent_link_record_id
+        else:
+            _logger.warning("Could not find a parent family member using either parent1_identifier or parent2_identifier.")
+            data["link_record_id"] = None
         
         return data
 
