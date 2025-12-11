@@ -22,7 +22,7 @@ class G2PDciFamilyMemberCreateEnricherService(G2PPayloadEnricherInterface):
             if identifier_value:
                 _logger.debug(f"Checking for parent family member with parent1_identifier: {identifier_value}")
                 parent_family_member = session.execute(
-                    select(G2PRegisterFamilyMember).filter_by(member_identifier=identifier_value)
+                    select(G2PRegisterFamilyMember).filter_by(identifier_value=identifier_value)
                 ).scalar_one_or_none()
 
                 if parent_family_member:
@@ -37,7 +37,7 @@ class G2PDciFamilyMemberCreateEnricherService(G2PPayloadEnricherInterface):
                 if identifier_value:
                     _logger.debug(f"Checking for parent family member with parent2_identifier: {identifier_value}")
                     parent_family_member = session.execute(
-                        select(G2PRegisterFamilyMember).filter_by(member_identifier=identifier_value)
+                        select(G2PRegisterFamilyMember).filter_by(identifier_value=identifier_value)
                     ).scalar_one_or_none()
 
                     if parent_family_member:
