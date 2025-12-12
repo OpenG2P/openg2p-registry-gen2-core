@@ -145,7 +145,7 @@ def _enrich_raw_data_json(
     ).scalar_one_or_none()
 
     enriched_data_json = _get_business_payload(
-        incoming_raw_data_payload.raw_data_json, 
+        incoming_raw_data_payload, 
         incoming_classified_data, 
         session
     )
@@ -153,7 +153,7 @@ def _enrich_raw_data_json(
     if incoming_payload_enricher:
         raw_payload_enricher_class: str = incoming_payload_enricher.raw_payload_enricher_class
         g2p_payload_enricher_service: G2PPayloadEnricherInterface = G2PPayloadEnricherFactory().get_enricher_service(raw_payload_enricher_class)
-        enriched_data_json = g2p_payload_enricher_service.enrich(enriched_data_json)
+        enriched_data_json = g2p_payload_enricher_service.enrich(enriched_data_json, session)
     
     return enriched_data_json
 

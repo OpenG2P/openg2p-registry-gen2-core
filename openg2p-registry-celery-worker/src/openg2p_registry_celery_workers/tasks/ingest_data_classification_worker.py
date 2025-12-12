@@ -91,6 +91,9 @@ def _match_model_semantic_pattern(
     incoming_model_semantic_patterns: List[IncomingModelSemanticPattern],
     incoming_raw_data_payload: IncomingRawDataPayload
 ) -> Tuple[str, str]:
+    register_id: str = None
+    operation_id: str = None
+
     pattern_matcher = PatternMatcher().get_component()
     for pattern in incoming_model_semantic_patterns:
         if pattern_matcher.validate_semantic_pattern_match(
@@ -99,7 +102,7 @@ def _match_model_semantic_pattern(
             register_id = pattern.register_id
             operation_id = pattern.operation_id
     
-    if not register_id and not operation_id:
+    if not register_id or not operation_id:
         raise Exception("Ingest request payload doesn't match data model semantic patterns")
     
     return register_id, operation_id

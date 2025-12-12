@@ -41,10 +41,26 @@ class PatternMatcher(BaseService):
     def get_business_payload(
         self, incoming_model_semantic_pattern: IncomingModelSemanticPattern, data: Dict
     ) -> Optional[Dict]:
-        business_payload: str = self._extract_jsonpath(
+        business_payload = self._extract_jsonpath(
             data, incoming_model_semantic_pattern.key_path_for_business_payload
         )
-        return json.loads(business_payload) if business_payload else None
+
+        if business_payload is None:
+            return None
+
+        if isinstance(business_payload, dict):
+            return business_payload
+
+        if isinstance(business_payload, str):
+            business_payload = business_payload.strip()
+            if not business_payload:
+                return None
+            try:
+                return json.loads(business_payload)
+            except json.JSONDecodeError:
+                raise ValueError(f"Business payload is not valid JSON: {business_payload}")
+
+        raise TypeError(f"Unsupported business_payload type: {type(business_payload)}")
     
     def get_data_model_pattern_match(
         self, data_model: DataModel, data: Dict

@@ -38,6 +38,7 @@ class IncomingModelSignaturePatternPayload(BaseModel):
     data_model_id: str
     key_path_for_sender: str
     key_path_for_signature: str
+    key_path_for_signature_payload: str
 
     class Config:
         from_attributes: bool = True
@@ -47,6 +48,7 @@ class IncomingModelSignaturePatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSignaturePattern - only allows updating specific fields"""
     key_path_for_sender: Optional[str] = None
     key_path_for_signature: Optional[str] = None
+    key_path_for_signature_payload: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -57,6 +59,7 @@ class IncomingModelSignaturePatternData(BaseModel):
     data_model_id: str
     key_path_for_sender: str
     key_path_for_signature: str
+    key_path_for_signature_payload: str
 
     class Config:
         from_attributes: bool = True
@@ -70,6 +73,7 @@ class IncomingModelSemanticPatternPayload(BaseModel):
     operation_id: str
     pattern_for_register: str
     pattern_for_operation: str
+    key_path_for_business_payload: str
 
     class Config:
         from_attributes: bool = True
@@ -79,6 +83,7 @@ class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
     pattern_for_register: Optional[str] = None
     pattern_for_operation: Optional[str] = None
+    key_path_for_business_payload: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -91,6 +96,7 @@ class IncomingModelSemanticPatternData(BaseModel):
     operation_id: str
     pattern_for_register: str
     pattern_for_operation: str
+    key_path_for_business_payload: str
 
     class Config:
         from_attributes: bool = True

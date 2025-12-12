@@ -34,8 +34,8 @@ class Initializer(BaseInitializer):
         # DCI
         DciRequestResponseHelper()
         DciKeymanagerHelper()
+        G2PDciService()
         G2PDciController().post_init()
-        G2PDciService().post_init()
 
     def migrate_database(self, args):
         _logger.info("Starting partner database migration")

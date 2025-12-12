@@ -14,11 +14,11 @@ from sqlalchemy import select
 
 from openg2p_registry_core.services import G2PRegisterService
 from openg2p_registry_core.helpers import TemplateHelper, MinioClient
-from openg2p_registry_core.models import G2PRegisterDefinition, G2PDataModelDefinition, OutgoingTemplate
+from openg2p_registry_core.models import G2PRegisterDefinition, DataModel, OutgoingTemplate
 
 from ..schemas import (
     DciSearchResponseItem,
-    SearchCriteria,
+    DciSearchCriteria,
     DciRequestHeader,
     DciSearchRequest,
     DciSearchResultData,
@@ -40,7 +40,7 @@ class G2PDciService(BaseService):
         
         dci_search_response_items: List[DciSearchResponseItem] = []
         for search_request_item in message.search_request:
-            search_criteria: SearchCriteria = search_request_item.search_criteria
+            search_criteria: DciSearchCriteria = search_request_item.search_criteria
 
             register_id: str = await self._get_register_id(search_criteria.reg_type)
             data_model_id: str = await self._get_data_model_id()
@@ -103,7 +103,7 @@ class G2PDciService(BaseService):
     
     def _get_registry_search_parameters(
         self,
-        search_criteria: SearchCriteria
+        search_criteria: DciSearchCriteria
     ) -> Tuple[str, int, int, Optional[str]]:
         # Search text
         search_text: str = search_criteria.query.value.expression
@@ -142,8 +142,8 @@ class G2PDciService(BaseService):
         async with session_maker() as session:
             data_model_id: str = (
                 await session.execute(
-                    select(G2PDataModelDefinition.data_model_id)
-                    .where(G2PDataModelDefinition.data_model_mnemonic == "g2p_register")
+                    select(DataModel.data_model_id)
+                    .where(DataModel.data_model_mnemonic == "g2p_register")
                 )
             ).scalar_one_or_none()
             return data_model_id

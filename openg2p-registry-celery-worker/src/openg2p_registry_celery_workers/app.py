@@ -19,7 +19,6 @@ class Initializer(BaseInitializer):
         super().init_app()
         BaseExceptionHandler()
 
-        ExtensionsInitializer().initialize()
 
 celery_app = Celery(
     "g2p_registry_celery_worker",
