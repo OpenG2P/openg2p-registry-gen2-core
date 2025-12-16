@@ -303,7 +303,6 @@ class G2PIngestionConfigurationService(BaseService):
             template: IncomingTemplate = IncomingTemplate(
                 template_id=template_id,
                 register_id=template_payload.register_id,
-                operation_id=template_payload.operation_id,
                 data_model_id=template_payload.data_model_id,
                 template_file_id=file_id,
             )
@@ -369,7 +368,6 @@ class G2PIngestionConfigurationService(BaseService):
             select(IncomingTemplate).where(
                 IncomingTemplate.data_model_id == template_payload.data_model_id,
                 IncomingTemplate.register_id == template_payload.register_id,
-                IncomingTemplate.operation_id == template_payload.operation_id,
             )
         )
         existing_template_obj: Optional[IncomingTemplate] = existing_template.scalar_one_or_none()
@@ -404,7 +402,7 @@ class G2PIngestionConfigurationService(BaseService):
                 incoming_factory_id=enricher_id,
                 data_model_id=enricher_payload.data_model_id,
                 register_id=enricher_payload.register_id,
-                operation_id=enricher_payload.operation_id,
+                semantic_pattern_id=enricher_payload.semantic_pattern_id,
                 raw_payload_enricher_class=enricher_payload.raw_payload_enricher_class,
             )
             session.add(enricher)

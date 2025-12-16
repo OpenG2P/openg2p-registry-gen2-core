@@ -19,10 +19,10 @@ class Initializer(BaseInitializer):
         BaseExceptionHandler()
 
 celery_app = Celery(
-    "openg2p_registry_workers",
+    "openg2p_celery_workers",
     broker=_config.celery_broker_url,
     backend=_config.celery_backend_url,
-    include=["openg2p_registry_workers.tasks"],
+    include=["openg2p_celery_workers.tasks"],
 )
 
 celery_app.conf.timezone = "UTC"

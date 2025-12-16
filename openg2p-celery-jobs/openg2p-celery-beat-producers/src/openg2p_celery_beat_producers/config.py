@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     openapi_version: str = __version__
 
     # Celery Jobs Database
-    db_driver: str = "postgresql"
     db_username: str = "postgres"
     db_password: str = "password"
     db_hostname: str = "localhost"
@@ -33,8 +32,9 @@ class Settings(BaseSettings):
     batch_size: int = 2000
     no_of_tasks_to_process: int = 4
 
+    g2p_celery_job_poll_frequency_seconds: int = 0      # Poll frequency seconds component
     g2p_celery_job_poll_frequency_minutes: int = 0      # Poll frequency minutes component
     g2p_celery_job_poll_frequency_hours: int = 6        # Poll frequency hours component
     g2p_celery_job_poll_frequency_days: int = 0         # Poll frequency days component
     g2p_celery_job_poll_frequency_weeks: int = 0        # Poll frequency weeks component
-    g2p_celery_job_ingest_frequency: int = 10           # Check if able to push frequency in seconds
+    g2p_celery_job_data_q_frequency: int = 10           # Check if able to push frequency in seconds

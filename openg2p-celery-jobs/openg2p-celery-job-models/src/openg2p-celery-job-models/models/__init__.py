@@ -1,2 +1,0 @@
-from .g2p_registry_external_data_providers import G2PRegistryExternalDataProvider
-from .g2p_registry_external_data_payloads import G2PRegistryExternalDataPayload

@@ -99,14 +99,12 @@ def _get_business_payload(
 ) -> Dict:
     incoming_model_semantic_pattern: IncomingModelSemanticPattern | None = session.execute(
         select(IncomingModelSemanticPattern).filter_by(
-            data_model_id=incoming_classified_data.data_model_id,
-            register_id=incoming_classified_data.register_id,
-            operation_id=incoming_classified_data.operation_id
+            semantic_pattern_id=incoming_classified_data.semantic_pattern_id
         )
     ).scalar_one_or_none()
     if not incoming_model_semantic_pattern:
         raise Exception(
-            f"Model semantic pattern not found data_model_id {incoming_classified_data.data_model_id}, register_id {incoming_classified_data.register_id} and operation_id {incoming_classified_data.operation_id} combination"
+            f"Model semantic pattern not found semantic_pattern_id {incoming_classified_data.semantic_pattern_id}"
         )
     pattern_matcher = PatternMatcher().get_component()
     business_payload: Dict | None = pattern_matcher.get_business_payload(
@@ -115,7 +113,7 @@ def _get_business_payload(
     )
     if not business_payload:
         raise Exception(
-            f"Business payload not found using data_model_id {incoming_classified_data.data_model_id}, register_id {incoming_classified_data.register_id} and operation_id {incoming_classified_data.operation_id} combination"
+            f"Business payload not found using key_path_for_business_payload {incoming_classified_data.key_path_for_business_payload}"
         )
     return business_payload
     
@@ -138,9 +136,7 @@ def _enrich_raw_data_json(
 ) -> Dict:
     incoming_payload_enricher: IncomingPayloadEnricher | None = session.execute(
         select(IncomingPayloadEnricher).filter_by(
-            data_model_id=incoming_classified_data.data_model_id,
-            register_id=incoming_classified_data.register_id,
-            operation_id=incoming_classified_data.operation_id
+           semantic_pattern_id=incoming_classified_data.semantic_pattern_id
         )
     ).scalar_one_or_none()
 
@@ -165,8 +161,7 @@ def _transform_enriched_data_json(
     incoming_template: IncomingTemplate | None = session.execute(
         select(IncomingTemplate).filter_by(
             data_model_id=incoming_classified_data.data_model_id,
-            register_id=incoming_classified_data.register_id,
-            operation_id=incoming_classified_data.operation_id
+            register_id=incoming_classified_data.register_id
         )
     ).scalar_one_or_none()
     if not incoming_template:

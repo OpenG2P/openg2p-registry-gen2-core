@@ -12,7 +12,7 @@ from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 
 from .ingestion import G2PIngestController, RequestResponseHelper
 # Search imports (standard specific impl)
-from .search.dci import (
+from .search import (
     G2PDciController,
     G2PDciService,
     DciRequestResponseHelper,
@@ -32,10 +32,10 @@ class Initializer(BaseInitializer):
         G2PIngestController().post_init()
 
         # DCI
-        DciRequestResponseHelper()
-        DciKeymanagerHelper()
-        G2PDciService()
         G2PDciController().post_init()
+        G2PDciService()
+        DciKeymanagerHelper()
+        DciRequestResponseHelper()
 
     def migrate_database(self, args):
         _logger.info("Starting partner database migration")

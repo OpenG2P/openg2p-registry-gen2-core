@@ -44,7 +44,6 @@ class G2PTemplateService(BaseService):
             template = IncomingTemplate(
                 template_id=template_id,
                 register_id=template_payload.register_id,
-                operation_id=template_payload.operation_id,
                 data_model_id=template_payload.data_model_id,
                 template_file_id=template_payload.template_file_id,
             )
