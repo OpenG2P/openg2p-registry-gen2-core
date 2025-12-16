@@ -106,7 +106,6 @@ class IncomingModelSemanticPatternData(BaseModel):
 class IncomingTemplatePayload(BaseModel):
     template_id: Optional[str] = None
     register_id: str
-    operation_id: str
     data_model_id: str
     template_file_id: Optional[str] = None
 
@@ -126,7 +125,6 @@ class IncomingTemplateUpdatePayload(BaseModel):
 class IncomingTemplateData(BaseModel):
     template_id: str
     register_id: str
-    operation_id: str
     data_model_id: str
     template_file_id: str
 
@@ -139,7 +137,7 @@ class IncomingPayloadEnricherPayload(BaseModel):
     incoming_factory_id: Optional[str] = None
     data_model_id: str
     register_id: str
-    operation_id: str
+    semantic_pattern_id: str
     raw_payload_enricher_class: str
 
     class Config:
@@ -158,7 +156,7 @@ class IncomingPayloadEnricherData(BaseModel):
     incoming_factory_id: str
     data_model_id: str
     register_id: str
-    operation_id: str
+    semantic_pattern_id: str
     raw_payload_enricher_class: str
 
     class Config:

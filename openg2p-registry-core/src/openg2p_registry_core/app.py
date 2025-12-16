@@ -28,6 +28,7 @@ from .models import (
     G2PRegisterOperation,
     G2PRegisterVerification,
     G2PRegisterChangeLog,
+    G2PRegisterChangeLogPayload,
     G2PRegisterChangeLogDocuments,
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
@@ -91,6 +92,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterOperation.create_migrate()
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeLog.create_migrate()
+            await G2PRegisterChangeLogPayload.create_migrate()
             await G2PRegisterChangeLogDocuments.create_migrate()
 
             # Incoming Models
