@@ -20,7 +20,6 @@ class G2PRegisterDefinition(BaseORMModel):
     # Deduplication configuration
     dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     dedup_threshold_score: Mapped[float] = mapped_column(Float, nullable=True)
-    dedup_fields_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
 
     @validates('register_mnemonic')
     def set_register_subject(self, _key: str, register_mnemonic_value: str) -> str:

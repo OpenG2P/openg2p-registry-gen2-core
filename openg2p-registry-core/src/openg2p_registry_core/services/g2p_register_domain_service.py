@@ -21,6 +21,7 @@ from ..models import (
     G2PRegisterDefinition,
     G2PRegisterOperation,
     G2PRegisterVerification,
+    G2PRegisterSchema,
     DeduplicationRegisterResult,
     DeduplicationChangelogResult,
     DeduplicationStatusEnum
@@ -68,10 +69,24 @@ class G2PRegisterDomainService(BaseService):
                 _logger.info(f"Deduplication is disabled for register {register_id}")
                 return []
 
+            # Get register schema with deduplicate_schema
+            register_schema: G2PRegisterSchema = (
+                session.execute(
+                    select(G2PRegisterSchema).where(
+                        G2PRegisterSchema.register_id == register_id
+                    )
+                )
+            ).scalar()
+
+            deduplicate_schema: List[DeduplicationFieldConfig] = (
+                register_schema.deduplicate_schema if register_schema else None
+            ) or []
+
             # Find candidate records
             candidates = self._find_candidate_records(
                 incoming_data,
                 register_definition,
+                deduplicate_schema,
                 session
             )
 
@@ -81,14 +96,14 @@ class G2PRegisterDomainService(BaseService):
                 score = self._compute_score(
                     incoming_data,
                     candidate,
-                    register_definition
+                    deduplicate_schema
                 )
 
                 if score >= (register_definition.dedup_threshold_score or 0):
                     field_matches = self._compute_field_matches(
                         incoming_data,
                         candidate,
-                        register_definition
+                        deduplicate_schema
                     )
                     results.append({
                         "candidate_id": candidate.internal_record_id,
@@ -128,6 +143,19 @@ class G2PRegisterDomainService(BaseService):
                 _logger.info(f"Deduplication is disabled for register {register_id}")
                 return []
 
+            # Get register schema with deduplicate_schema
+            register_schema: G2PRegisterSchema = (
+                session.execute(
+                    select(G2PRegisterSchema).where(
+                        G2PRegisterSchema.register_id == register_id
+                    )
+                )
+            ).scalar()
+
+            deduplicate_schema: List[DeduplicationFieldConfig] = (
+                register_schema.deduplicate_schema if register_schema else None
+            ) or []
+
             results = []
             for other_changelog in other_changelogs:
                 # Create a simple object from the other payload for field matching
@@ -136,14 +164,14 @@ class G2PRegisterDomainService(BaseService):
                 score = self._compute_score(
                     incoming_data,
                     other_obj,
-                    register_definition
+                    deduplicate_schema
                 )
 
                 if score >= (register_definition.dedup_threshold_score or 0):
                     field_matches = self._compute_field_matches(
                         incoming_data,
                         other_obj,
-                        register_definition
+                        deduplicate_schema
                     )
                     results.append({
                         "candidate_id": other_changelog.get('change_log_id'),
@@ -161,15 +189,14 @@ class G2PRegisterDomainService(BaseService):
         self,
         incoming_data: dict,
         candidate_record,
-        register_definition: G2PRegisterDefinition
+        deduplicate_schema: List[DeduplicationFieldConfig]
     ) -> float:
         """Compute similarity score between incoming data and candidate record."""
         try:
             total_weighted_score = 0.0
             total_weight = 0.0
-            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
-            for dedup_field in dedup_fields:
+            for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
                 weight = dedup_field.get("weight", 1.0)
@@ -205,6 +232,7 @@ class G2PRegisterDomainService(BaseService):
         self,
         incoming_data: dict,
         register_definition: G2PRegisterDefinition,
+        deduplicate_schema: List[DeduplicationFieldConfig],
         session: Session
     ) -> list:
         """Find candidate records from the register based on dedup fields."""
@@ -217,9 +245,8 @@ class G2PRegisterDomainService(BaseService):
 
             # Build query conditions
             query_conditions = []
-            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
-            for dedup_field in dedup_fields:
+            for dedup_field in deduplicate_schema:
 
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
@@ -281,14 +308,13 @@ class G2PRegisterDomainService(BaseService):
         self,
         incoming_data: dict,
         candidate_record,
-        register_definition: G2PRegisterDefinition
+        deduplicate_schema: List[DeduplicationFieldConfig]
     ) -> dict:
         """Compute field matches with similarity scores for each dedup field."""
         try:
             field_matches = {}
-            dedup_fields: List[DeduplicationFieldConfig] = register_definition.dedup_fields_json or []
 
-            for dedup_field in dedup_fields:
+            for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
                 match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
 

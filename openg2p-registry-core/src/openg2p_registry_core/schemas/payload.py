@@ -207,3 +207,25 @@ class DeduplicationChangelogResultsData(BaseModel):
 
 class IngestDataPayload(BaseModel):
     ingest_id: str
+
+
+class RegisterSchemaData(BaseModel):
+    """Schema data for a register including deduplication, search result, and filter configurations."""
+    register_id: str
+    deduplicate_schema: Optional[List[dict]] = None
+    search_result_schema: Optional[List[dict]] = None
+    filter_schema: Optional[List[dict]] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class RegisterSectionData(BaseModel):
+    """Section data for a register representing a grouping of fields."""
+    section_name: str
+    section_label: str
+    section_order: int
+    fields: Optional[List[dict]] = None
+
+    class Config:
+        from_attributes: bool = True

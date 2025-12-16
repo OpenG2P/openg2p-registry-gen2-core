@@ -33,7 +33,10 @@ from openg2p_registry_core.schemas import (
     VerificationDataResponse, VerificationData,
     AddVerificationPayload,
     DeduplicationRegisterResultsDataResponse,
-    DeduplicationChangelogResultsDataResponse
+    DeduplicationChangelogResultsDataResponse,
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest,
+    RegisterSchemaDataResponse, RegisterSchemaData,
+    RegisterSectionsDataResponse, RegisterSectionData
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -170,6 +173,20 @@ class G2PRegisterController(BaseController):
             "/get_deduplication_changelog_results",
             self.get_deduplication_changelog_results,
             responses={200: {"model": DeduplicationChangelogResultsDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_schema",
+            self.get_register_schema,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_sections",
+            self.get_register_sections,
+            responses={200: {"model": RegisterSectionsDataResponse}},
             methods=["POST"],
         )
 
@@ -391,4 +408,34 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_deduplication_changelog_results: {str(error_exception)}")
             error_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_error_response(error_exception, get_deduplication_changelog_results_request)
+            return error_response
+
+    async def get_register_schema(self, get_register_schema_request: GetRegisterSchemaRequest) -> RegisterSchemaDataResponse:
+        """
+        Get register schema configuration for a given register_id.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_controller_service.get_register_schema(get_register_schema_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=get_register_schema_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_schema: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, get_register_schema_request)
+            return error_response
+
+    async def get_register_sections(self, get_register_sections_request: GetRegisterSectionsRequest) -> RegisterSectionsDataResponse:
+        """
+        Get register sections for a given register_id.
+        """
+        try:
+            register_sections_list: list[RegisterSectionData] = await self.g2p_register_controller_service.get_register_sections(get_register_sections_request)
+            register_sections_response: RegisterSectionsDataResponse = self.helper.construct_register_sections_success_response(
+                register_sections_list=register_sections_list, g2p_request=get_register_sections_request
+            )
+            return register_sections_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_sections: {str(error_exception)}")
+            error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_sections_request)
             return error_response

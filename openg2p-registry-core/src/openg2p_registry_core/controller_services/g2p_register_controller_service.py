@@ -17,7 +17,9 @@ from ..schemas import (
     GetChangeLogsRequest, GetChangeLogRequest, GetRecordRequest,
     GetVerificationsRequest, GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangelogResultsRequest, AddVerificationRequest,
-    GetRegisterSummaryDataRequest, GetAllRegistersRequest
+    GetRegisterSummaryDataRequest, GetAllRegistersRequest,
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest,
+    RegisterSchemaData, RegisterSectionData
 )
 
 _logger = logging.getLogger('g2p-register-controller-service')
@@ -215,3 +217,25 @@ class G2PRegisterControllerService(BaseService):
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages
+
+    async def get_register_schema(self, get_register_schema_request: GetRegisterSchemaRequest) -> RegisterSchemaData:
+        """
+        Get register schema configuration for a given register_id.
+        """
+        payload = get_register_schema_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Getting register schema for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.get_register_schema(register_id)
+        return register_schema_data
+
+    async def get_register_sections(self, get_register_sections_request: GetRegisterSectionsRequest) -> list[RegisterSectionData]:
+        """
+        Get register sections for a given register_id.
+        """
+        payload = get_register_sections_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Getting register sections for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
+        return register_sections_list

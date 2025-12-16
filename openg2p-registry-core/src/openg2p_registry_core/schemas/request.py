@@ -199,3 +199,27 @@ class AddVerificationRequest(G2PRequest):
 class IngestDataRequest(Request):
     # Request struture is internal to partners
     pass
+
+
+class GetRegisterSchemaRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetRegisterSchemaRequestBody(G2PRequestBody):
+    request_payload: GetRegisterSchemaRequestPayload
+
+
+class GetRegisterSchemaRequest(G2PRequest):
+    request_body: GetRegisterSchemaRequestBody
+
+
+class GetRegisterSectionsRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetRegisterSectionsRequestBody(G2PRequestBody):
+    request_payload: GetRegisterSectionsRequestPayload
+
+
+class GetRegisterSectionsRequest(G2PRequest):
+    request_body: GetRegisterSectionsRequestBody

@@ -15,7 +15,9 @@ from .request import (
     EmptyRequest, EmptyRequestBody, EmptyRequestPayload,
     GetRegisterSummaryDataRequest, GetRegisterSummaryDataRequestBody,
     GetAllRegistersRequest, GetAllRegistersRequestBody,
-    IngestDataRequest
+    IngestDataRequest,
+    GetRegisterSchemaRequest, GetRegisterSchemaRequestBody, GetRegisterSchemaRequestPayload,
+    GetRegisterSectionsRequest, GetRegisterSectionsRequestBody, GetRegisterSectionsRequestPayload
 )
 from .response import (
     ChangeLogResponse, ChangeLogResponseBody,
@@ -33,7 +35,9 @@ from .response import (
     VerificationsDataResponse, VerificationsDataResponseBody,
     VerificationDataResponse, VerificationDataResponseBody,
     DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
-    DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody
+    DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody,
+    RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
+    RegisterSectionsDataResponse, RegisterSectionsDataResponseBody
 )
 from .payload import (
     ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
@@ -42,7 +46,7 @@ from .payload import (
     ChangeLogsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangelogResultsData, DeduplicationRegisterResultData,
-    DeduplicationChangelogResultData
+    DeduplicationChangelogResultData, RegisterSchemaData, RegisterSectionData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

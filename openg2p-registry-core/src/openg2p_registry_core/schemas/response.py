@@ -10,7 +10,7 @@ from .payload import (
     NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
     ChangeLogsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
-    DeduplicationChangelogResultsData
+    DeduplicationChangelogResultsData, RegisterSchemaData, RegisterSectionData
 )
 
 
@@ -123,3 +123,19 @@ class DeduplicationChangelogResultsDataResponseBody(G2PResponseBody):
 
 class DeduplicationChangelogResultsDataResponse(G2PResponse):
     response_body: Optional[DeduplicationChangelogResultsDataResponseBody] = None
+
+
+class RegisterSchemaDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RegisterSchemaData] = None
+
+
+class RegisterSchemaDataResponse(G2PResponse):
+    response_body: Optional[RegisterSchemaDataResponseBody] = None
+
+
+class RegisterSectionsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterSectionData]] = None
+
+
+class RegisterSectionsDataResponse(G2PResponse):
+    response_body: Optional[RegisterSectionsDataResponseBody] = None

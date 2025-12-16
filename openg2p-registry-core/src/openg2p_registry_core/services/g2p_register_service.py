@@ -15,7 +15,7 @@ from sqlalchemy.inspection import inspect
 from ..models import (
     G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
     G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum,
-    DeduplicationRegisterResult, DeduplicationChangelogResult
+    DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema
 )
 from ..schemas import (
     ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
@@ -23,7 +23,8 @@ from ..schemas import (
     NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
-    DeduplicationRegisterResultData, DeduplicationChangelogResultData
+    DeduplicationRegisterResultData, DeduplicationChangelogResultData,
+    RegisterSchemaData, RegisterSectionData
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -498,21 +499,34 @@ class G2PRegisterService(BaseService):
         # Search using LIKE with trigram index optimization
         search_query: str = f"%{search_text}%"
 
-        # Get total count
+        # Build filter conditions from filter_by dict
+        filter_conditions: list = [implementation_class.search_text.ilike(search_query)]
+        if filter_by:
+            for column_name, filter_value in filter_by.items():
+                try:
+                    column = getattr(implementation_class, column_name)
+                    if filter_value is None:
+                        filter_conditions.append(column.is_(None))
+                    elif isinstance(filter_value, str):
+                        # Use ILIKE for string values (case-insensitive partial match)
+                        filter_conditions.append(column.ilike(f"%{filter_value}%"))
+                    else:
+                        # Use exact match for non-string values
+                        filter_conditions.append(column == filter_value)
+                except AttributeError:
+                    _logger.warning(f"Filter column {column_name} not found, skipping filter")
+
+        # Get total count with filters applied
         count_result = await session.execute(
-            select(func.count()).select_from(implementation_class).where(
-                implementation_class.search_text.ilike(search_query)
-            )
+            select(func.count()).select_from(implementation_class).where(*filter_conditions)
         )
         total_items = count_result.scalar_one()
 
         # Calculate offset
         offset = (current_page - 1) * page_size
 
-        # Build query with pagination
-        query = select(implementation_class).where(
-            implementation_class.search_text.ilike(search_query)
-        )
+        # Build query with filters applied
+        query = select(implementation_class).where(*filter_conditions)
 
         # Apply sorting if provided
         if sort_by:
@@ -1075,3 +1089,84 @@ class G2PRegisterService(BaseService):
                 dedup_result_data_list.append(dedup_result_data)
 
             return dedup_result_data_list, total_items
+
+    async def get_register_schema(self, register_id: str) -> RegisterSchemaData:
+        """
+        Get register schema configuration for a given register_id.
+        Returns deduplication, search result, and filter schema configurations.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch register schema
+            register_schema_data: RegisterSchemaData = await self._fetch_register_schema(register_id, session)
+            return register_schema_data
+
+    async def get_register_sections(self, register_id: str) -> list[RegisterSectionData]:
+        """
+        Get register sections for a given register_id.
+        Returns a list of section configurations from the search_result_schema.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch register sections
+            register_sections_list: list[RegisterSectionData] = await self._fetch_register_sections(register_id, session)
+            return register_sections_list
+
+    async def _fetch_register_schema(self, register_id: str, session) -> RegisterSchemaData:
+        """Fetch register schema from database."""
+        result = await session.execute(
+            select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+        )
+        register_schema: G2PRegisterSchema = result.scalar()
+
+        if not register_schema:
+            # Return empty schema data if no schema exists
+            return RegisterSchemaData(
+                register_id=register_id,
+                deduplicate_schema=None,
+                search_result_schema=None,
+                filter_schema=None
+            )
+
+        return RegisterSchemaData(
+            register_id=register_schema.register_id,
+            deduplicate_schema=register_schema.deduplicate_schema,
+            search_result_schema=register_schema.search_result_schema,
+            filter_schema=register_schema.filter_schema
+        )
+
+    async def _fetch_register_sections(self, register_id: str, session) -> list[RegisterSectionData]:
+        """Fetch register sections from the search_result_schema."""
+        result = await session.execute(
+            select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+        )
+        register_schema: G2PRegisterSchema = result.scalar()
+
+        if not register_schema or not register_schema.search_result_schema:
+            return []
+
+        # Parse sections from search_result_schema
+        # Expected format: [{"section_name": str, "section_label": str, "section_order": int, "fields": [...]}]
+        sections_list: list[RegisterSectionData] = []
+        search_result_schema = register_schema.search_result_schema
+
+        if isinstance(search_result_schema, list):
+            for section in search_result_schema:
+                if isinstance(section, dict):
+                    section_data = RegisterSectionData(
+                        section_name=section.get('section_name', ''),
+                        section_label=section.get('section_label', ''),
+                        section_order=section.get('section_order', 0),
+                        fields=section.get('fields', None)
+                    )
+                    sections_list.append(section_data)
+
+        # Sort by section_order
+        sections_list.sort(key=lambda x: x.section_order)
+        return sections_list

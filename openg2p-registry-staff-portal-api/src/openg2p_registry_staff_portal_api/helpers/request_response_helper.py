@@ -22,6 +22,8 @@ from openg2p_registry_core.schemas import (
     IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
     IncomingPayloadEnricherResponseBody, DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
+    RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
+    RegisterSectionData, RegisterSectionsDataResponse, RegisterSectionsDataResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -489,3 +491,43 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return response
+
+    def construct_register_schema_success_response(self, register_schema_data: RegisterSchemaData, g2p_request: G2PRequest = None) -> RegisterSchemaDataResponse:
+        """Construct success response for get_register_schema endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterSchemaDataResponseBody = RegisterSchemaDataResponseBody(
+            response_payload=register_schema_data
+        )
+
+        register_schema_response: RegisterSchemaDataResponse = RegisterSchemaDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_schema_response
+
+    def construct_register_sections_success_response(self, register_sections_list: List[RegisterSectionData], g2p_request: G2PRequest = None) -> RegisterSectionsDataResponse:
+        """Construct success response for get_register_sections endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterSectionsDataResponseBody = RegisterSectionsDataResponseBody(
+            response_payload=register_sections_list
+        )
+
+        register_sections_response: RegisterSectionsDataResponse = RegisterSectionsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_sections_response
