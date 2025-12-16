@@ -1,2 +1,6 @@
-# SPDX-License-Identifier: MPL-2.0
-__version__ = "0.1.0"
+from .dci import (
+    DciRequestResponseHelper,
+    DciKeymanagerHelper,
+    G2PDciService,
+    G2PDciController
+)
