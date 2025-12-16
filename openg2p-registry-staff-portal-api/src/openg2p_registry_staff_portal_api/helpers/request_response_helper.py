@@ -5,6 +5,7 @@ from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseH
 from openg2p_registry_core.schemas import (
     ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
+    ChangeLogSummaryData, ChangeLogSummaryDataResponse, ChangeLogSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
     ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
@@ -102,6 +103,27 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return register_summary_data_response
+
+    def construct_changelog_summary_data_success_response(self, changelog_summary_data_list: List[ChangeLogSummaryData], g2p_request: G2PRequest = None) -> ChangeLogSummaryDataResponse:
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: ChangeLogSummaryDataResponseBody = ChangeLogSummaryDataResponseBody(
+            response_payload=changelog_summary_data_list
+        )
+
+        changelog_summary_data_response: ChangeLogSummaryDataResponse = ChangeLogSummaryDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return changelog_summary_data_response
 
     def construct_all_registers_success_response(self, all_registers_list: List[RegisterData], g2p_request: G2PRequest = None) -> AllRegistersResponse:
         request_id = g2p_request.request_header.request_id if g2p_request else ""

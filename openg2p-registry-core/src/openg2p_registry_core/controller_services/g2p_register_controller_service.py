@@ -6,7 +6,7 @@ import importlib
 
 from ..services import G2PRegisterService, G2PRegisterDomainService
 from ..schemas import (
-    ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, RegisterData,
+    ChangeLogRequest, ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData,
     ChildRegisterData, SearchResultData, ChangeLogSearchResultData,
     NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
     ChangeLogsData, RecordData, VerificationsData, AddVerificationPayload,
@@ -17,7 +17,7 @@ from ..schemas import (
     GetChangeLogsRequest, GetChangeLogRequest, GetRecordRequest,
     GetVerificationsRequest, GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangelogResultsRequest, AddVerificationRequest,
-    GetRegisterSummaryDataRequest, GetAllRegistersRequest,
+    GetRegisterSummaryDataRequest, GetChangeLogSummaryDataRequest, GetAllRegistersRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest,
     RegisterSchemaData, RegisterSectionData
 )
@@ -71,6 +71,12 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         register_summary_data_list: list[RegisterSummaryData] = await g2p_register_service.get_register_summary_data()
         return register_summary_data_list
+
+    async def get_changelog_summary_data(self, get_changelog_summary_data_request: GetChangeLogSummaryDataRequest) -> list[ChangeLogSummaryData]:
+        _logger.info("Fetching changelog summary data through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        changelog_summary_data_list: list[ChangeLogSummaryData] = await g2p_register_service.get_changelog_summary_data()
+        return changelog_summary_data_list
 
     async def get_all_registers(self, get_all_registers_request: GetAllRegistersRequest) -> list[RegisterData]:
         _logger.info("Fetching all registers through controller service")

@@ -18,7 +18,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema
 )
 from ..schemas import (
-    ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
+    ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
     SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData,
     NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
@@ -61,6 +61,12 @@ class G2PRegisterService(BaseService):
         async with session_maker() as session:
             register_summary_data_list: list[RegisterSummaryData] = await self._fetch_register_summary_data(session)
             return register_summary_data_list
+
+    async def get_changelog_summary_data(self) -> list[ChangeLogSummaryData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            changelog_summary_data_list: list[ChangeLogSummaryData] = await self._fetch_changelog_summary_data(session)
+            return changelog_summary_data_list
 
     async def get_all_registers(self) -> list[RegisterData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -420,6 +426,46 @@ class G2PRegisterService(BaseService):
             register_summary_data_list.append(register_summary_data)
 
         return register_summary_data_list
+
+    async def _fetch_changelog_summary_data(self, session) -> list[ChangeLogSummaryData]:
+        register_definitions: list[G2PRegisterDefinition] = (
+            await session.execute(select(G2PRegisterDefinition))
+        ).scalars().all()
+
+        changelog_summary_data_list: list[ChangeLogSummaryData] = []
+
+        for register_definition in register_definitions:
+            total_count: int = await self._count_changelogs_for_register(
+                register_definition.register_id, None, session
+            )
+            approved_count: int = await self._count_changelogs_for_register(
+                register_definition.register_id, ApprovalStatusEnum.APPROVED.value, session
+            )
+            pending_count: int = await self._count_changelogs_for_register(
+                register_definition.register_id, ApprovalStatusEnum.PENDING.value, session
+            )
+
+            changelog_summary_data: ChangeLogSummaryData = ChangeLogSummaryData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                total_count=total_count,
+                approved_count=approved_count,
+                pending_count=pending_count
+            )
+            changelog_summary_data_list.append(changelog_summary_data)
+
+        return changelog_summary_data_list
+
+    async def _count_changelogs_for_register(self, register_id: str, approval_status: str | None, session) -> int:
+        query = select(func.count()).select_from(G2PRegisterChangeLog).where(
+            G2PRegisterChangeLog.register_id == register_id
+        )
+        if approval_status is not None:
+            query = query.where(G2PRegisterChangeLog.approval_status == approval_status)
+
+        count: int = (await session.execute(query)).scalar_one()
+        return count
 
     async def _count_records_for_register(self, register_definition: G2PRegisterDefinition, session) -> int:
         try:

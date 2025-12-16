@@ -33,6 +33,13 @@ class GetRegisterSummaryDataRequest(G2PRequest):
     request_body: GetRegisterSummaryDataRequestBody
 
 
+class GetChangeLogSummaryDataRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+class GetChangeLogSummaryDataRequest(G2PRequest):
+    request_body: GetChangeLogSummaryDataRequestBody
+
+
 class GetAllRegistersRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
 

@@ -14,6 +14,7 @@ from .request import (
     AddVerificationRequest, AddVerificationRequestBody,
     EmptyRequest, EmptyRequestBody, EmptyRequestPayload,
     GetRegisterSummaryDataRequest, GetRegisterSummaryDataRequestBody,
+    GetChangeLogSummaryDataRequest, GetChangeLogSummaryDataRequestBody,
     GetAllRegistersRequest, GetAllRegistersRequestBody,
     IngestDataRequest,
     GetRegisterSchemaRequest, GetRegisterSchemaRequestBody, GetRegisterSchemaRequestPayload,
@@ -22,6 +23,7 @@ from .request import (
 from .response import (
     ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
+    ChangeLogSummaryDataResponse, ChangeLogSummaryDataResponseBody,
     AllRegistersResponse, AllRegistersResponseBody,
     ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultsResponse, SearchResultsResponseBody,
@@ -40,7 +42,7 @@ from .response import (
     RegisterSectionsDataResponse, RegisterSectionsDataResponseBody
 )
 from .payload import (
-    ChangeLogPayload, RegisterSummaryData, RegisterData, ChildRegisterData,
+    ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
     SearchResultData, ChangeLogSearchResultData, IngestDataPayload,
     NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
     ChangeLogsData, RecordData, VerificationData, VerificationsData,

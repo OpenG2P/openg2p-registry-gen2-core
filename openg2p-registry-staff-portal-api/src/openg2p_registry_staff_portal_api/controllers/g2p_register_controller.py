@@ -5,6 +5,7 @@ from openg2p_registry_core.controller_services import G2PRegisterControllerServi
 from openg2p_registry_core.schemas import (
     ChangeLogRequest, ChangeLogResponse, ChangeLogPayload,
     RegisterSummaryDataResponse, RegisterSummaryData,
+    ChangeLogSummaryDataResponse, ChangeLogSummaryData,
     AllRegistersResponse, RegisterData,
     ChildRegistersResponse, ChildRegisterData,
     ChildRegisterRequest,
@@ -22,6 +23,7 @@ from openg2p_registry_core.schemas import (
     GetDeduplicationChangelogResultsRequest,
     AddVerificationRequest,
     GetRegisterSummaryDataRequest,
+    GetChangeLogSummaryDataRequest,
     GetAllRegistersRequest,
     ChangeLogSearchResultsResponse, ChangeLogSearchResultData,
     NumberOfVersionsResponse, NumberOfVersionsData,
@@ -82,6 +84,13 @@ class G2PRegisterController(BaseController):
             "/get_register_summary_data",
             self.get_register_summary_data,
             responses={200: {"model": RegisterSummaryDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_changelog_data",
+            self.get_register_changelog_data,
+            responses={200: {"model": ChangeLogSummaryDataResponse}},
             methods=["POST"],
         )
 
@@ -240,6 +249,18 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_register_summary_data: {str(error_exception)}")
             error_response: RegisterSummaryDataResponse = self.helper.construct_error_response(error_exception, get_register_summary_data_request)
+            return error_response
+
+    async def get_register_changelog_data(self, get_changelog_summary_data_request: GetChangeLogSummaryDataRequest) -> ChangeLogSummaryDataResponse:
+        try:
+            changelog_summary_data_list: list[ChangeLogSummaryData] = await self.g2p_register_controller_service.get_changelog_summary_data(get_changelog_summary_data_request)
+            changelog_summary_data_response: ChangeLogSummaryDataResponse = self.helper.construct_changelog_summary_data_success_response(
+                changelog_summary_data_list=changelog_summary_data_list, g2p_request=get_changelog_summary_data_request
+            )
+            return changelog_summary_data_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_changelog_data: {str(error_exception)}")
+            error_response: ChangeLogSummaryDataResponse = self.helper.construct_error_response(error_exception, get_changelog_summary_data_request)
             return error_response
 
     async def get_all_registers(self, get_all_registers_request: GetAllRegistersRequest) -> AllRegistersResponse:
