@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "openg2p-celery-jobs"
+name = "openg2p-celery-workers"
 authors = [
   { name="OpenG2P", email="info@openg2p.org" },
 ]
-description = "OpenG2P Celery Jobs"
+description = "OpenG2P Celery Workers"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -27,8 +27,8 @@ dynamic = ["version"]
 [project.urls]
 Homepage = "https://openg2p.org"
 Documentation = "https://docs.openg2p.org/"
-Repository = "https://github.com/OpenG2P/openg2p-celery-jobs"
-Source = "https://github.com/OpenG2P/openg2p-celery-jobs"
+Repository = "https://github.com/OpenG2P/openg2p-celery-workers"
+Source = "https://github.com/OpenG2P/openg2p-celery-workers"
 
 [tool.hatch.version]
 path = "src/openg2p_celery_workers/__init__.py"
