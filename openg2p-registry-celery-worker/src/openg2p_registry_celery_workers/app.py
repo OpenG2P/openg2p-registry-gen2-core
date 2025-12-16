@@ -11,12 +11,15 @@ from celery import Celery
 from openg2p_registry_core.helpers import MinioClient, TemplateHelper
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_fastapi_common.exception import BaseExceptionHandler        
+from openg2p_registry_core.services import G2PRegisterService
 
 class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
-        super().init_logger()
-        super().init_app()
+        super().initialize()
         BaseExceptionHandler()
+
+        # Services
+        G2PRegisterService()
 
         # Helpers
         MinioClient(

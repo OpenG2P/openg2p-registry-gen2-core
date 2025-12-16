@@ -41,11 +41,11 @@ def ingest_data_worker(ingest_id: str):
                 session
             )
 
-            g2p_register_service = G2PRegisterService().get_component()
-            async_loop_create_change_log(
-                g2p_register_service,
-                change_log_payload,
-                incoming_classified_data.partner_id
+            asyncio.run(
+                _process_change_log_async(
+                    change_log_payload,
+                    incoming_classified_data.partner_id
+                )
             )
 
             # Update incoming_classified_data ingestion_status -> PROCESSED
@@ -92,17 +92,9 @@ def _construct_change_log_payload(
         change_payload=incoming_enriched_transformed_data.transformed_data_json
     )
 
-def async_loop_create_change_log(
-    g2p_register_service: G2PRegisterService,
-    change_log_payload: ChangeLogPayload,
-    source_partner_id: str
-):
-    loop: AbstractEventLoop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(
-        g2p_register_service.create_change_log(
-            change_log_payload=change_log_payload,
-            source_partner_id=source_partner_id
-        )
+async def _process_change_log_async(payload: ChangeLogPayload, partner_id: str):
+    g2p_register_service = G2PRegisterService.get_component()
+    await g2p_register_service.create_change_log(
+        change_log_payload=payload,
+        source_partner_id=partner_id
     )
-    loop.close()

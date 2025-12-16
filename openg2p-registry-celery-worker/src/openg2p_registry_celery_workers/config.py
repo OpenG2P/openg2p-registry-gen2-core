@@ -18,7 +18,6 @@ class Settings(ExtSettings):
     openapi_version: str = __version__
 
     # Registry Database
-    db_driver: str = "postgresql"
     db_username: str = "postgres"
     db_password: str = "postgres"
     db_hostname: str = "localhost"
@@ -28,7 +27,7 @@ class Settings(ExtSettings):
     # Celery Configuration
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_backend_url: str = "redis://localhost:6379/0"
-    worker_queue: str = "registry_worker_queue"
+    worker_queue: str = "celery_jobs_worker_queue"
 
     batch_size: int = 2000
     worker_max_attempts: int = 5
