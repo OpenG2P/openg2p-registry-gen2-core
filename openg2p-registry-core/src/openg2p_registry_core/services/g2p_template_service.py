@@ -35,17 +35,21 @@ class G2PTemplateService(BaseService):
 
     # IncomingTemplate Methods
     async def create_incoming_template(
-        self, template_payload: IncomingTemplatePayload
+        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
     ) -> IncomingTemplateData:
         """Create a new template"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            await self._check_incoming_template_exists(session, template_payload)
+
+            file_id = await self._upload_template_file(template_file, template_payload.template_file_id)
+
             template_id = template_payload.template_id or str(uuid.uuid4())
             template = IncomingTemplate(
                 template_id=template_id,
                 register_id=template_payload.register_id,
                 data_model_id=template_payload.data_model_id,
-                template_file_id=template_payload.template_file_id,
+                template_file_id=file_id,
             )
             session.add(template)
             await session.commit()
@@ -56,38 +60,38 @@ class G2PTemplateService(BaseService):
         """Get template by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            template = await session.execute(
-                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
-            )
-            template_obj = template.scalar_one_or_none()
-            if not template_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
-                )
+            template_obj = await self._get_incoming_template(session, template_id)
             return IncomingTemplateData.model_validate(template_obj)
 
     async def update_incoming_template(
-        self, template_id: str, template_payload: IncomingTemplateUpdatePayload
+        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None 
     ) -> IncomingTemplateData:
         """Update template - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            template = await session.execute(
-                select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
-            )
-            template_obj = template.scalar_one_or_none()
-            if not template_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
-                )
+            template_obj = await self._get_incoming_template(session, template_update_payload.template_id)
 
-            if template_payload.template_file_id is not None:
-                template_obj.template_file_id = template_payload.template_file_id
+            if template_file:
+                template_obj.template_file_id = await self._upload_template_file(template_file, template_update_payload.template_file_id)
+            if template_update_payload.register_id:
+                template_obj.register_id = template_update_payload.register_id
+            if template_update_payload.data_model_id:
+                template_obj.data_model_id = template_update_payload.data_model_id
 
             await session.commit()
             await session.refresh(template_obj)
+            return IncomingTemplateData.model_validate(template_obj)
+    
+    async def delete_incoming_template(self, template_id: str) -> None:
+        """Delete template by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            template_obj = await self._get_incoming_template(session, template_id)
+
+            await self._delete_template_file(template_obj.template_file_id)
+
+            await session.delete(template_obj)
+            await session.commit()
             return IncomingTemplateData.model_validate(template_obj)
 
     # OutgoingTemplate Methods
@@ -97,7 +101,7 @@ class G2PTemplateService(BaseService):
         """Create a new template"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            await self._check_template_exists(session, template_payload)
+            await self._check_outgoing_template_exists(session, template_payload)
 
             file_id = await self._upload_template_file(template_file, template_payload.template_file_id)
 
@@ -151,6 +155,23 @@ class G2PTemplateService(BaseService):
             await session.commit()
             return OutgoingTemplateData.model_validate(template_obj)
 
+    # Template Methods
+    async def _get_incoming_template(self, session: AsyncSession, template_id: str) -> IncomingTemplate:
+        if not template_id:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
+            )
+        template = await session.execute(
+            select(IncomingTemplate).where(IncomingTemplate.template_id == template_id)
+        )
+        template_obj = template.scalar_one_or_none()
+        if not template_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
+            )
+        return template_obj
 
     async def _get_outgoing_template(self, session: AsyncSession, template_id: str) -> OutgoingTemplate:
         if not template_id:
@@ -168,8 +189,27 @@ class G2PTemplateService(BaseService):
                 message=G2PRegistryErrorCodes.TEMPLATE_NOT_FOUND.value[0],
             )
         return template_obj
+    
+    async def _check_incoming_template_exists(self, session: AsyncSession, template_payload: IncomingTemplatePayload) -> None:
+        if not template_payload.data_model_id or not template_payload.register_id:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
+            )
+        existing_template = await session.execute(
+            select(IncomingTemplate).where(
+                IncomingTemplate.data_model_id == template_payload.data_model_id,
+                IncomingTemplate.register_id == template_payload.register_id,
+            )
+        )
+        existing_template_obj = existing_template.scalar_one_or_none()
+        if existing_template_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[1],
+                message=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[0],
+            )
 
-    async def _check_template_exists(self, session: AsyncSession, template_payload: OutgoingTemplatePayload) -> None:
+    async def _check_outgoing_template_exists(self, session: AsyncSession, template_payload: OutgoingTemplatePayload) -> None:
         if not template_payload.data_model_id or not template_payload.register_id:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
