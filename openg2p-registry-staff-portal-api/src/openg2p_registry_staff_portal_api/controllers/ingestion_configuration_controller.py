@@ -147,6 +147,13 @@ class IngestionConfigurationController(BaseController):
             methods=["POST"],
         )
 
+        self.router.add_api_route(
+            "/delete_template",
+            self.delete_template,
+            responses={200: {"model": IncomingTemplateResponse}},
+            methods=["POST"],
+        )
+
         # IncomingPayloadEnricher endpoints
         self.router.add_api_route(
             "/create_payload_enricher",
@@ -380,6 +387,17 @@ class IngestionConfigurationController(BaseController):
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_update_request)
+    
+    async def delete_template(self, template_delete_request: IncomingTemplateUpdateRequest) -> IncomingTemplateResponse:
+        try:
+            template_data: IncomingTemplateData = await self.ingestion_config_service.delete_template(
+                template_delete_request.request_body.request_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                template_data, IncomingTemplateResponse, template_delete_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, template_delete_request)
 
     async def create_payload_enricher(
         self, enricher_request: IncomingPayloadEnricherRequest
