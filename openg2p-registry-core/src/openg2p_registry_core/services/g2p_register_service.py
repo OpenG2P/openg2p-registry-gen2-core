@@ -1350,10 +1350,13 @@ class G2PRegisterService(BaseService):
             if not existing_schema:
                 raise ValueError(f"Register schema does not exist for register_id: {register_id}. Use create instead.")
 
-            # Update schema fields
-            existing_schema.deduplicate_schema = deduplicate_schema
-            existing_schema.search_result_schema = search_result_schema
-            existing_schema.filter_schema = filter_schema
+            # Update schema fields only if provided (partial update support)
+            if deduplicate_schema is not None:
+                existing_schema.deduplicate_schema = deduplicate_schema
+            if search_result_schema is not None:
+                existing_schema.search_result_schema = search_result_schema
+            if filter_schema is not None:
+                existing_schema.filter_schema = filter_schema
 
             await session.commit()
 
