@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from fastapi import Request
 from openg2p_fastapi_common.schemas import (
@@ -230,3 +231,33 @@ class GetRegisterSectionsRequestBody(G2PRequestBody):
 
 class GetRegisterSectionsRequest(G2PRequest):
     request_body: GetRegisterSectionsRequestBody
+
+
+class CreateRegisterSchemaRequestPayload(BaseModel):
+    register_id: str
+    deduplicate_schema: Optional[list[dict]] = None
+    search_result_schema: Optional[list[dict]] = None
+    filter_schema: Optional[list[dict]] = None
+
+
+class CreateRegisterSchemaRequestBody(G2PRequestBody):
+    request_payload: CreateRegisterSchemaRequestPayload
+
+
+class CreateRegisterSchemaRequest(G2PRequest):
+    request_body: CreateRegisterSchemaRequestBody
+
+
+class UpdateRegisterSchemaRequestPayload(BaseModel):
+    register_id: str
+    deduplicate_schema: Optional[list[dict]] = None
+    search_result_schema: Optional[list[dict]] = None
+    filter_schema: Optional[list[dict]] = None
+
+
+class UpdateRegisterSchemaRequestBody(G2PRequestBody):
+    request_payload: UpdateRegisterSchemaRequestPayload
+
+
+class UpdateRegisterSchemaRequest(G2PRequest):
+    request_body: UpdateRegisterSchemaRequestBody

@@ -18,7 +18,9 @@ from .request import (
     GetAllRegistersRequest, GetAllRegistersRequestBody,
     IngestDataRequest,
     GetRegisterSchemaRequest, GetRegisterSchemaRequestBody, GetRegisterSchemaRequestPayload,
-    GetRegisterSectionsRequest, GetRegisterSectionsRequestBody, GetRegisterSectionsRequestPayload
+    GetRegisterSectionsRequest, GetRegisterSectionsRequestBody, GetRegisterSectionsRequestPayload,
+    CreateRegisterSchemaRequest, CreateRegisterSchemaRequestBody, CreateRegisterSchemaRequestPayload,
+    UpdateRegisterSchemaRequest, UpdateRegisterSchemaRequestBody, UpdateRegisterSchemaRequestPayload
 )
 from .response import (
     ChangeLogResponse, ChangeLogResponseBody,

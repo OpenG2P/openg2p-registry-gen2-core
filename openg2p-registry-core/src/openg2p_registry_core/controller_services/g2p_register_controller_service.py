@@ -19,6 +19,7 @@ from ..schemas import (
     GetDeduplicationChangelogResultsRequest, AddVerificationRequest,
     GetRegisterSummaryDataRequest, GetChangeLogSummaryDataRequest, GetAllRegistersRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest,
+    CreateRegisterSchemaRequest, UpdateRegisterSchemaRequest,
     RegisterSchemaData, RegisterSectionData
 )
 
@@ -245,3 +246,35 @@ class G2PRegisterControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
         return register_sections_list
+
+    async def create_register_schema(self, create_register_schema_request: CreateRegisterSchemaRequest) -> RegisterSchemaData:
+        """
+        Create a new register schema configuration for a given register_id.
+        """
+        payload = create_register_schema_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Creating register schema for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.create_register_schema(
+            register_id=register_id,
+            deduplicate_schema=payload.deduplicate_schema,
+            search_result_schema=payload.search_result_schema,
+            filter_schema=payload.filter_schema
+        )
+        return register_schema_data
+
+    async def update_register_schema(self, update_register_schema_request: UpdateRegisterSchemaRequest) -> RegisterSchemaData:
+        """
+        Update an existing register schema configuration for a given register_id.
+        """
+        payload = update_register_schema_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Updating register schema for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.update_register_schema(
+            register_id=register_id,
+            deduplicate_schema=payload.deduplicate_schema,
+            search_result_schema=payload.search_result_schema,
+            filter_schema=payload.filter_schema
+        )
+        return register_schema_data

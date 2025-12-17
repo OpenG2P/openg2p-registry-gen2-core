@@ -37,6 +37,7 @@ from openg2p_registry_core.schemas import (
     DeduplicationRegisterResultsDataResponse,
     DeduplicationChangelogResultsDataResponse,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest,
+    CreateRegisterSchemaRequest, UpdateRegisterSchemaRequest,
     RegisterSchemaDataResponse, RegisterSchemaData,
     RegisterSectionsDataResponse, RegisterSectionData
 )
@@ -188,6 +189,20 @@ class G2PRegisterController(BaseController):
         self.router.add_api_route(
             "/get_register_schema",
             self.get_register_schema,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/create_register_schema",
+            self.create_register_schema,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/update_register_schema",
+            self.update_register_schema,
             responses={200: {"model": RegisterSchemaDataResponse}},
             methods=["POST"],
         )
@@ -459,4 +474,34 @@ class G2PRegisterController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_schema_definitions_for_register: {str(error_exception)}")
             error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_sections_request)
+            return error_response
+
+    async def create_register_schema(self, create_register_schema_request: CreateRegisterSchemaRequest) -> RegisterSchemaDataResponse:
+        """
+        Create a new register schema configuration for a given register_id.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_controller_service.create_register_schema(create_register_schema_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=create_register_schema_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in create_register_schema: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, create_register_schema_request)
+            return error_response
+
+    async def update_register_schema(self, update_register_schema_request: UpdateRegisterSchemaRequest) -> RegisterSchemaDataResponse:
+        """
+        Update an existing register schema configuration for a given register_id.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_controller_service.update_register_schema(update_register_schema_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=update_register_schema_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in update_register_schema: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_register_schema_request)
             return error_response

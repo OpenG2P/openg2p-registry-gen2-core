@@ -1205,3 +1205,86 @@ class G2PRegisterService(BaseService):
             sections_list.append(section_data)
 
         return sections_list
+
+    async def create_register_schema(
+        self,
+        register_id: str,
+        deduplicate_schema: list[dict] | None = None,
+        search_result_schema: list[dict] | None = None,
+        filter_schema: list[dict] | None = None
+    ) -> RegisterSchemaData:
+        """
+        Create a new register schema configuration for a given register_id.
+        Raises an error if schema already exists for the register.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Check if schema already exists
+            existing_schema = await session.execute(
+                select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            )
+            if existing_schema.scalar():
+                raise ValueError(f"Register schema already exists for register_id: {register_id}. Use update instead.")
+
+            # Create new schema
+            new_schema = G2PRegisterSchema(
+                register_id=register_id,
+                deduplicate_schema=deduplicate_schema,
+                search_result_schema=search_result_schema,
+                filter_schema=filter_schema
+            )
+            session.add(new_schema)
+            await session.commit()
+
+            _logger.info(f"Created register schema for register_id: {register_id}")
+
+            return RegisterSchemaData(
+                register_id=register_id,
+                deduplicate_schema=deduplicate_schema,
+                search_result_schema=search_result_schema,
+                filter_schema=filter_schema
+            )
+
+    async def update_register_schema(
+        self,
+        register_id: str,
+        deduplicate_schema: list[dict] | None = None,
+        search_result_schema: list[dict] | None = None,
+        filter_schema: list[dict] | None = None
+    ) -> RegisterSchemaData:
+        """
+        Update an existing register schema configuration for a given register_id.
+        Raises an error if schema does not exist for the register.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch existing schema
+            result = await session.execute(
+                select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            )
+            existing_schema: G2PRegisterSchema = result.scalar()
+
+            if not existing_schema:
+                raise ValueError(f"Register schema does not exist for register_id: {register_id}. Use create instead.")
+
+            # Update schema fields
+            existing_schema.deduplicate_schema = deduplicate_schema
+            existing_schema.search_result_schema = search_result_schema
+            existing_schema.filter_schema = filter_schema
+
+            await session.commit()
+
+            _logger.info(f"Updated register schema for register_id: {register_id}")
+
+            return RegisterSchemaData(
+                register_id=register_id,
+                deduplicate_schema=deduplicate_schema,
+                search_result_schema=search_result_schema,
+                filter_schema=filter_schema
+            )
