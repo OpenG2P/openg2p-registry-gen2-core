@@ -440,11 +440,11 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, enricher_request)
 
     async def create_data_model(
-        self, data_model_request: DataModelRequest
+        self, data_model_request: DataModelRequest, response_template_file: Optional[UploadFile] = None
     ) -> DataModelResponse:
         try:
             data_model_data = await self.ingestion_config_service.create_data_model(
-                data_model_request.request_body.request_payload
+                data_model_request.request_body.request_payload, response_template_file
             )
             return self.helper.construct_ingestion_config_success_response(
                 data_model_data, DataModelResponse, data_model_request
@@ -464,12 +464,12 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, data_model_request)
 
     async def update_data_model(
-        self, data_model_request: DataModelUpdateRequest
+        self, data_model_request: DataModelUpdateRequest, response_template_file: Optional[UploadFile] = None
     ) -> DataModelResponse:
         try:
             data_model_data = await self.ingestion_config_service.update_data_model(
                 data_model_request.request_body.request_payload.data_model_id,
-                data_model_request.request_body.request_payload
+                data_model_request.request_body.request_payload, response_template_file
             )
             return self.helper.construct_ingestion_config_success_response(
                 data_model_data, DataModelResponse, data_model_request
