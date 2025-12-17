@@ -40,14 +40,23 @@ class ChildRegisterData(BaseModel):
     register_description: Optional[str] = None
 
 
+class DisplayField(BaseModel):
+    field_name: str
+    display_label: str
+    order: int
+
+
 class SearchResultData(BaseModel):
     internal_record_id: str
     functional_record_id: str
     link_record_id: Optional[str] = None
+    record_name: Optional[str] = None
+    image: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[str] = None
     last_approved_at: Optional[str] = None
     last_approved_by: Optional[str] = None
+    display_fields: Optional[List[DisplayField]] = None
     additional_fields: Optional[dict] = None
 
     class Config:

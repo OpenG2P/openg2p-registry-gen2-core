@@ -18,8 +18,8 @@ from ..schemas import (
     GetVerificationsRequest, GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangelogResultsRequest, AddVerificationRequest,
     GetRegisterSummaryDataRequest, GetChangeLogSummaryDataRequest, GetAllRegistersRequest,
-    GetRegisterSchemaRequest, GetRegisterSectionsRequest,
-    CreateRegisterSchemaRequest, UpdateRegisterSchemaRequest,
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterSectionRequest,
+    CreateRegisterRequest, UpdateRegisterSchemaRequest,
     RegisterSchemaData, RegisterSectionData
 )
 
@@ -247,21 +247,33 @@ class G2PRegisterControllerService(BaseService):
         register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
         return register_sections_list
 
-    async def create_register_schema(self, create_register_schema_request: CreateRegisterSchemaRequest) -> RegisterSchemaData:
+    async def get_register_section(self, get_register_section_request: GetRegisterSectionRequest) -> RegisterSectionData:
         """
-        Create a new register schema configuration for a given register_id.
+        Get a single register section for a given register_id and section_id.
         """
-        payload = create_register_schema_request.request_body.request_payload
-        register_id = payload.register_id
-        _logger.info(f"Creating register schema for register_id: {register_id} through controller service")
+        payload = get_register_section_request.request_body.request_payload
+        register_id: str = payload.register_id
+        section_id: str = payload.section_id
+        _logger.info(f"Getting register section for register_id: {register_id}, section_id: {section_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_schema_data: RegisterSchemaData = await g2p_register_service.create_register_schema(
-            register_id=register_id,
-            deduplicate_schema=payload.deduplicate_schema,
-            search_result_schema=payload.search_result_schema,
-            filter_schema=payload.filter_schema
+        register_section_data: RegisterSectionData = await g2p_register_service.get_register_section(register_id, section_id)
+        return register_section_data
+
+    async def create_register(self, create_register_request: CreateRegisterRequest) -> RegisterData:
+        """
+        Create a new register definition and null schema record.
+        """
+        payload = create_register_request.request_body.request_payload
+        _logger.info(f"Creating register with mnemonic: {payload.register_mnemonic} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_data: RegisterData = await g2p_register_service.create_register(
+            register_mnemonic=payload.register_mnemonic,
+            register_description=payload.register_description,
+            master_register_id=payload.master_register_id,
+            dedup_is_enabled=payload.dedup_is_enabled,
+            dedup_threshold_score=payload.dedup_threshold_score
         )
-        return register_schema_data
+        return register_data
 
     async def update_register_schema(self, update_register_schema_request: UpdateRegisterSchemaRequest) -> RegisterSchemaData:
         """

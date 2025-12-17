@@ -25,7 +25,7 @@ from ..schemas import (
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
     DeduplicationRegisterResultData, DeduplicationChangelogResultData,
-    RegisterSchemaData, RegisterSectionData
+    RegisterSchemaData, RegisterSectionData, DisplayField
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -543,6 +543,17 @@ class G2PRegisterService(BaseService):
                 message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
             )
 
+        # Fetch search_result_schema from G2PRegisterSchema for display field filtering
+        schema_result = await session.execute(
+            select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+        )
+        register_schema: G2PRegisterSchema = schema_result.scalar()
+        search_result_schema: list = register_schema.search_result_schema if register_schema and register_schema.search_result_schema else []
+
+        # Sort display fields by order if schema exists
+        display_fields_sorted: list = sorted(search_result_schema, key=lambda x: x.get("order", 999)) if search_result_schema else []
+        display_field_names: set = {f["field_name"] for f in display_fields_sorted} if display_fields_sorted else set()
+
         # Search using LIKE with trigram index optimization
         search_query: str = f"%{search_text}%"
 
@@ -592,39 +603,58 @@ class G2PRegisterService(BaseService):
 
         search_results_list: list[SearchResultData] = []
 
+        # Base fields to exclude from additional_fields
+        base_fields: set = {
+            'internal_record_id', 'functional_record_id', 'link_record_id', 'record_name',
+            'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
+        }
+
         # Convert ORM objects to SearchResultData while still in session context
         for result in search_results:
-            # Get all attributes from the ORM object using mapper
-            mapper = inspect(result.__class__)
             additional_fields: dict = {}
 
-            # Base fields
-            base_fields: set = {
-                'internal_record_id', 'functional_record_id', 'link_record_id',
-                'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
-            }
+            if display_fields_sorted:
+                # Use configured display fields (ordered by order field)
+                for field_config in display_fields_sorted:
+                    field_name: str = field_config["field_name"]
+                    if hasattr(result, field_name):
+                        value = getattr(result, field_name, None)
+                        if value is not None and hasattr(value, 'isoformat'):
+                            value = value.isoformat()
+                        additional_fields[field_name] = value
+            else:
+                # Fallback: use all non-base fields (existing behavior)
+                mapper = inspect(result.__class__)
+                for column in mapper.columns:
+                    column_name: str = column.name
+                    if column_name not in base_fields:
+                        value = getattr(result, column_name, None)
+                        if value is not None and hasattr(value, 'isoformat'):
+                            value = value.isoformat()
+                        additional_fields[column_name] = value
 
-            for column in mapper.columns:
-                column_name: str = column.name
-                value = getattr(result, column_name, None)
-
-                # Convert datetime objects to strings
-                if value is not None and hasattr(value, 'isoformat'):
-                    value = value.isoformat()
-
-                # Add to additional_fields if not a base field
-                if column_name not in base_fields:
-                    additional_fields[column_name] = value
+            # Build display_fields list from schema
+            display_fields_list: list[DisplayField] = []
+            if display_fields_sorted:
+                for field_config in display_fields_sorted:
+                    display_fields_list.append(DisplayField(
+                        field_name=field_config.get("field_name"),
+                        display_label=field_config.get("display_label", field_config.get("field_name")),
+                        order=field_config.get("order", 999)
+                    ))
 
             # Create SearchResultData object
             search_result_data: SearchResultData = SearchResultData(
                 internal_record_id=result.internal_record_id,
                 functional_record_id=result.functional_record_id,
                 link_record_id=result.link_record_id,
+                record_name=result.record_name,
+                image=result.image,
                 created_by=result.created_by,
                 created_at=str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None,
                 last_approved_at=str(result.last_approved_at.isoformat()) if result.last_approved_at and hasattr(result.last_approved_at, 'isoformat') else None,
                 last_approved_by=result.last_approved_by,
+                display_fields=display_fields_list if display_fields_list else None,
                 additional_fields=additional_fields if additional_fields else None
             )
             search_results_list.append(search_result_data)
@@ -1165,6 +1195,20 @@ class G2PRegisterService(BaseService):
             register_sections_list: list[RegisterSectionData] = await self._fetch_register_sections(register_id, session)
             return register_sections_list
 
+    async def get_register_section(self, register_id: str, section_id: str) -> RegisterSectionData:
+        """
+        Get a single register section by register_id and section_id.
+        Returns the section UI schema configuration from g2p_register_sections table.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch register section
+            register_section_data: RegisterSectionData = await self._fetch_register_section(register_id, section_id, session)
+            return register_section_data
+
     async def _fetch_register_schema(self, register_id: str, session) -> RegisterSchemaData:
         """Fetch register schema from database."""
         result = await session.execute(
@@ -1206,46 +1250,79 @@ class G2PRegisterService(BaseService):
 
         return sections_list
 
-    async def create_register_schema(
+    async def _fetch_register_section(self, register_id: str, section_id: str, session) -> RegisterSectionData:
+        """Fetch a single register section from g2p_register_sections table."""
+        result = await session.execute(
+            select(G2PRegisterSection).where(
+                G2PRegisterSection.register_id == register_id,
+                G2PRegisterSection.section_id == section_id
+            )
+        )
+        section: G2PRegisterSection = result.scalar()
+
+        if not section:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.DATA_NOT_FOUND.value[1],
+                message=f"Section not found for register_id: {register_id}, section_id: {section_id}"
+            )
+
+        return RegisterSectionData(
+            register_id=section.register_id,
+            section_id=section.section_id,
+            section_ui_schema=section.section_ui_schema
+        )
+
+    async def create_register(
         self,
-        register_id: str,
-        deduplicate_schema: list[dict] | None = None,
-        search_result_schema: list[dict] | None = None,
-        filter_schema: list[dict] | None = None
-    ) -> RegisterSchemaData:
+        register_mnemonic: str,
+        register_description: str | None = None,
+        master_register_id: str | None = None,
+        dedup_is_enabled: bool = False,
+        dedup_threshold_score: float | None = None
+    ) -> RegisterData:
         """
-        Create a new register schema configuration for a given register_id.
-        Raises an error if schema already exists for the register.
+        Create a new register definition and a null register schema record.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate register exists
-            await self.validate_register_definition(register_id, session)
-
-            # Check if schema already exists
-            existing_schema = await session.execute(
-                select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            # Check if register_mnemonic already exists
+            existing_register = await session.execute(
+                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_mnemonic == register_mnemonic)
             )
-            if existing_schema.scalar():
-                raise ValueError(f"Register schema already exists for register_id: {register_id}. Use update instead.")
+            if existing_register.scalar():
+                raise ValueError(f"Register with mnemonic '{register_mnemonic}' already exists.")
 
-            # Create new schema
-            new_schema = G2PRegisterSchema(
+            # Create the register definition
+            register_id: str = str(uuid.uuid4())
+            register_definition = G2PRegisterDefinition(
                 register_id=register_id,
-                deduplicate_schema=deduplicate_schema,
-                search_result_schema=search_result_schema,
-                filter_schema=filter_schema
+                register_mnemonic=register_mnemonic,
+                register_description=register_description,
+                master_register_id=master_register_id,
+                dedup_is_enabled=dedup_is_enabled,
+                dedup_threshold_score=dedup_threshold_score
             )
-            session.add(new_schema)
+            session.add(register_definition)
+
+            # Create a null register schema record
+            register_schema = G2PRegisterSchema(
+                register_id=register_id,
+                deduplicate_schema=None,
+                search_result_schema=None,
+                filter_schema=None
+            )
+            session.add(register_schema)
+
             await session.commit()
 
-            _logger.info(f"Created register schema for register_id: {register_id}")
+            _logger.info(f"Created register definition and schema for mnemonic: {register_mnemonic}")
 
-            return RegisterSchemaData(
+            return RegisterData(
                 register_id=register_id,
-                deduplicate_schema=deduplicate_schema,
-                search_result_schema=search_result_schema,
-                filter_schema=filter_schema
+                register_mnemonic=register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_description,
+                master_register_id=master_register_id
             )
 
     async def update_register_schema(

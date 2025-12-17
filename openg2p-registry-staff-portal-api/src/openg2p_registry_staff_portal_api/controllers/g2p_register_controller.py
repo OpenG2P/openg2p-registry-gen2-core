@@ -36,10 +36,10 @@ from openg2p_registry_core.schemas import (
     AddVerificationPayload,
     DeduplicationRegisterResultsDataResponse,
     DeduplicationChangelogResultsDataResponse,
-    GetRegisterSchemaRequest, GetRegisterSectionsRequest,
-    CreateRegisterSchemaRequest, UpdateRegisterSchemaRequest,
-    RegisterSchemaDataResponse, RegisterSchemaData,
-    RegisterSectionsDataResponse, RegisterSectionData
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterSectionRequest,
+    CreateRegisterRequest, UpdateRegisterSchemaRequest,
+    RegisterSchemaDataResponse, RegisterSchemaData, RegisterDataResponse,
+    RegisterSectionsDataResponse, RegisterSectionData, RegisterSectionDataResponse
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -194,9 +194,9 @@ class G2PRegisterController(BaseController):
         )
 
         self.router.add_api_route(
-            "/create_register_schema",
-            self.create_register_schema,
-            responses={200: {"model": RegisterSchemaDataResponse}},
+            "/create_register",
+            self.create_register,
+            responses={200: {"model": RegisterDataResponse}},
             methods=["POST"],
         )
 
@@ -208,9 +208,16 @@ class G2PRegisterController(BaseController):
         )
 
         self.router.add_api_route(
-            "/get_schema_definitions_for_register",
-            self.get_schema_definitions_for_register,
+            "/get_register_sections",
+            self.get_register_sections,
             responses={200: {"model": RegisterSectionsDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_schema_definition_for_register_section",
+            self.get_schema_definition_for_register_section,
+            responses={200: {"model": RegisterSectionDataResponse}},
             methods=["POST"],
         )
 
@@ -461,9 +468,9 @@ class G2PRegisterController(BaseController):
             error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, get_register_schema_request)
             return error_response
 
-    async def get_schema_definitions_for_register(self, get_register_sections_request: GetRegisterSectionsRequest) -> RegisterSectionsDataResponse:
+    async def get_register_sections(self, get_register_sections_request: GetRegisterSectionsRequest) -> RegisterSectionsDataResponse:
         """
-        Get schema definitions (sections) for a given register_id.
+        Get all sections for a given register_id.
         """
         try:
             register_sections_list: list[RegisterSectionData] = await self.g2p_register_controller_service.get_register_sections(get_register_sections_request)
@@ -472,23 +479,38 @@ class G2PRegisterController(BaseController):
             )
             return register_sections_response
         except Exception as error_exception:
-            _logger.error(f"Error in get_schema_definitions_for_register: {str(error_exception)}")
+            _logger.error(f"Error in get_register_sections: {str(error_exception)}")
             error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_sections_request)
             return error_response
 
-    async def create_register_schema(self, create_register_schema_request: CreateRegisterSchemaRequest) -> RegisterSchemaDataResponse:
+    async def get_schema_definition_for_register_section(self, get_register_section_request: GetRegisterSectionRequest) -> RegisterSectionDataResponse:
         """
-        Create a new register schema configuration for a given register_id.
+        Get schema definition for a specific section of a register.
         """
         try:
-            register_schema_data: RegisterSchemaData = await self.g2p_register_controller_service.create_register_schema(create_register_schema_request)
-            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
-                register_schema_data=register_schema_data, g2p_request=create_register_schema_request
+            register_section_data: RegisterSectionData = await self.g2p_register_controller_service.get_register_section(get_register_section_request)
+            register_section_response: RegisterSectionDataResponse = self.helper.construct_register_section_success_response(
+                register_section_data=register_section_data, g2p_request=get_register_section_request
             )
-            return register_schema_response
+            return register_section_response
         except Exception as error_exception:
-            _logger.error(f"Error in create_register_schema: {str(error_exception)}")
-            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, create_register_schema_request)
+            _logger.error(f"Error in get_schema_definition_for_register_section: {str(error_exception)}")
+            error_response: RegisterSectionDataResponse = self.helper.construct_error_response(error_exception, get_register_section_request)
+            return error_response
+
+    async def create_register(self, create_register_request: CreateRegisterRequest) -> RegisterDataResponse:
+        """
+        Create a new register definition and null register schema record.
+        """
+        try:
+            register_data: RegisterData = await self.g2p_register_controller_service.create_register(create_register_request)
+            register_data_response: RegisterDataResponse = self.helper.construct_register_data_success_response(
+                register_data=register_data, g2p_request=create_register_request
+            )
+            return register_data_response
+        except Exception as error_exception:
+            _logger.error(f"Error in create_register: {str(error_exception)}")
+            error_response: RegisterDataResponse = self.helper.construct_error_response(error_exception, create_register_request)
             return error_response
 
     async def update_register_schema(self, update_register_schema_request: UpdateRegisterSchemaRequest) -> RegisterSchemaDataResponse:

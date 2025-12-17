@@ -141,9 +141,25 @@ class RegisterSchemaDataResponse(G2PResponse):
     response_body: Optional[RegisterSchemaDataResponseBody] = None
 
 
+class RegisterDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RegisterData] = None
+
+
+class RegisterDataResponse(G2PResponse):
+    response_body: Optional[RegisterDataResponseBody] = None
+
+
 class RegisterSectionsDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterSectionData]] = None
 
 
 class RegisterSectionsDataResponse(G2PResponse):
     response_body: Optional[RegisterSectionsDataResponseBody] = None
+
+
+class RegisterSectionDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RegisterSectionData] = None
+
+
+class RegisterSectionDataResponse(G2PResponse):
+    response_body: Optional[RegisterSectionDataResponseBody] = None

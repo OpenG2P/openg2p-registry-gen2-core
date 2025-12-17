@@ -7,6 +7,7 @@ from openg2p_registry_core.schemas import (
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
     ChangeLogSummaryData, ChangeLogSummaryDataResponse, ChangeLogSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
+    RegisterDataResponse, RegisterDataResponseBody,
     ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
     ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
@@ -25,6 +26,7 @@ from openg2p_registry_core.schemas import (
     IncomingPayloadEnricherResponseBody, DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
     RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
     RegisterSectionData, RegisterSectionsDataResponse, RegisterSectionsDataResponseBody,
+    RegisterSectionDataResponse, RegisterSectionDataResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -534,6 +536,26 @@ class RequestResponseHelper(BaseService):
         )
         return register_schema_response
 
+    def construct_register_data_success_response(self, register_data: RegisterData, g2p_request: G2PRequest = None) -> RegisterDataResponse:
+        """Construct success response for create_register endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterDataResponseBody = RegisterDataResponseBody(
+            response_payload=register_data
+        )
+
+        register_data_response: RegisterDataResponse = RegisterDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_data_response
+
     def construct_register_sections_success_response(self, register_sections_list: List[RegisterSectionData], g2p_request: G2PRequest = None) -> RegisterSectionsDataResponse:
         """Construct success response for get_register_sections endpoint."""
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -553,3 +575,23 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return register_sections_response
+
+    def construct_register_section_success_response(self, register_section_data: RegisterSectionData, g2p_request: G2PRequest = None) -> RegisterSectionDataResponse:
+        """Construct success response for get_schema_definition_for_register_section endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterSectionDataResponseBody = RegisterSectionDataResponseBody(
+            response_payload=register_section_data
+        )
+
+        register_section_response: RegisterSectionDataResponse = RegisterSectionDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_section_response

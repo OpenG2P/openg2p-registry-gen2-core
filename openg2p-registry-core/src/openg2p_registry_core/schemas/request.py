@@ -233,19 +233,33 @@ class GetRegisterSectionsRequest(G2PRequest):
     request_body: GetRegisterSectionsRequestBody
 
 
-class CreateRegisterSchemaRequestPayload(BaseModel):
+class GetRegisterSectionRequestPayload(BaseModel):
     register_id: str
-    deduplicate_schema: Optional[list[dict]] = None
-    search_result_schema: Optional[list[dict]] = None
-    filter_schema: Optional[list[dict]] = None
+    section_id: str
 
 
-class CreateRegisterSchemaRequestBody(G2PRequestBody):
-    request_payload: CreateRegisterSchemaRequestPayload
+class GetRegisterSectionRequestBody(G2PRequestBody):
+    request_payload: GetRegisterSectionRequestPayload
 
 
-class CreateRegisterSchemaRequest(G2PRequest):
-    request_body: CreateRegisterSchemaRequestBody
+class GetRegisterSectionRequest(G2PRequest):
+    request_body: GetRegisterSectionRequestBody
+
+
+class CreateRegisterRequestPayload(BaseModel):
+    register_mnemonic: str
+    register_description: Optional[str] = None
+    master_register_id: Optional[str] = None
+    dedup_is_enabled: bool = False
+    dedup_threshold_score: Optional[float] = None
+
+
+class CreateRegisterRequestBody(G2PRequestBody):
+    request_payload: CreateRegisterRequestPayload
+
+
+class CreateRegisterRequest(G2PRequest):
+    request_body: CreateRegisterRequestBody
 
 
 class UpdateRegisterSchemaRequestPayload(BaseModel):
