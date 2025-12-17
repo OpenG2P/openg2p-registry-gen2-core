@@ -42,6 +42,7 @@ from ..schemas import (
     SubscriptionActivityLogPayload,
     SubscriptionActivityLogData,
 )
+from .g2p_template_service import G2PTemplateService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import MinioClient, TemplateHelper
 
@@ -160,9 +161,12 @@ class G2PIngestionConfigurationService(BaseService):
             pattern = IncomingModelSignaturePattern(
                 signature_pattern_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
+                keypath_for_message_id=pattern_payload.keypath_for_message_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
                 key_path_for_signature=pattern_payload.key_path_for_signature,
                 key_path_for_signature_payload=pattern_payload.key_path_for_signature_payload,
+                is_list=pattern_payload.is_list,
+                key_path_for_list=pattern_payload.key_path_for_list,
             )
             session.add(pattern)
             await session.commit()
@@ -207,12 +211,18 @@ class G2PIngestionConfigurationService(BaseService):
                 )
 
             # Only update fields that are provided (not None)
+            if pattern_payload.keypath_for_message_id is not None:
+                pattern_obj.keypath_for_message_id = pattern_payload.keypath_for_message_id
             if pattern_payload.key_path_for_sender is not None:
                 pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
             if pattern_payload.key_path_for_signature is not None:
                 pattern_obj.key_path_for_signature = pattern_payload.key_path_for_signature
             if pattern_payload.key_path_for_signature_payload is not None:
                 pattern_obj.key_path_for_signature_payload = pattern_payload.key_path_for_signature_payload
+            if pattern_payload.is_list is not None:
+                pattern_obj.is_list = pattern_payload.is_list
+            if pattern_payload.key_path_for_list is not None:
+                pattern_obj.key_path_for_list = pattern_payload.key_path_for_list
 
             await session.commit()
             await session.refresh(pattern_obj)
@@ -456,7 +466,7 @@ class G2PIngestionConfigurationService(BaseService):
 
     # DataModel Methods
     async def create_data_model(
-        self, data_model_payload: DataModelPayload
+        self, data_model_payload: DataModelPayload, response_template_file: Optional[UploadFile] = None
     ) -> DataModelData:
         """Create a new data model"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -474,10 +484,16 @@ class G2PIngestionConfigurationService(BaseService):
                 )
 
             data_model_id = data_model_payload.data_model_id or str(uuid.uuid4())
+
+            response_template_file_id = None
+            if response_template_file:
+                response_template_file_id = await self._upload_template_file(response_template_file)
+
             data_model = DataModel(
                 data_model_id=data_model_id,
                 data_model_mnemonic=data_model_payload.data_model_mnemonic,
                 pattern_for_data_model=data_model_payload.pattern_for_data_model,
+                response_template_file_id=response_template_file_id,
                 is_active=data_model_payload.is_active,
             )
             session.add(data_model)
@@ -501,7 +517,7 @@ class G2PIngestionConfigurationService(BaseService):
             return DataModelData.model_validate(data_model_obj)
 
     async def update_data_model(
-        self, data_model_id: str, data_model_payload: DataModelUpdatePayload
+        self, data_model_id: str, data_model_payload: DataModelUpdatePayload, response_template_file: Optional[UploadFile] = None
     ) -> DataModelData:
         """Update data model - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -516,6 +532,10 @@ class G2PIngestionConfigurationService(BaseService):
                     message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
                 )
 
+            if response_template_file:
+                if data_model_obj.response_template_file_id:
+                    await self._delete_template_file(data_model_obj.response_template_file_id)
+                data_model_obj.response_template_file_id = await self._upload_template_file(response_template_file)
             if data_model_payload.data_model_mnemonic is not None:
                 data_model_obj.data_model_mnemonic = data_model_payload.data_model_mnemonic
             if data_model_payload.pattern_for_data_model is not None:
@@ -581,3 +601,11 @@ class G2PIngestionConfigurationService(BaseService):
             activity_logs = result.scalars().all()
             return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
 
+
+    async def _upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str] = None) -> str:
+        g2p_template_service = G2PTemplateService.get_component()
+        return await g2p_template_service.upload_template_file(template_file, template_file_id)
+    
+    async def _delete_template_file(self, template_file_id: str) -> None:
+        g2p_template_service = G2PTemplateService.get_component()
+        return await g2p_template_service.delete_template_file(template_file_id)

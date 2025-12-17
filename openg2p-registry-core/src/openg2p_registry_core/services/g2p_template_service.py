@@ -42,7 +42,7 @@ class G2PTemplateService(BaseService):
         async with session_maker() as session:
             await self._check_incoming_template_exists(session, template_payload)
 
-            file_id = await self._upload_template_file(template_file, template_payload.template_file_id)
+            file_id = await self.upload_template_file(template_file, template_payload.template_file_id)
 
             template_id = template_payload.template_id or str(uuid.uuid4())
             template = IncomingTemplate(
@@ -72,7 +72,9 @@ class G2PTemplateService(BaseService):
             template_obj = await self._get_incoming_template(session, template_update_payload.template_id)
 
             if template_file:
-                template_obj.template_file_id = await self._upload_template_file(template_file, template_update_payload.template_file_id)
+                if template_obj.template_file_id:
+                    await self.delete_template_file(template_obj.template_file_id)
+                template_obj.template_file_id = await self.upload_template_file(template_file, template_update_payload.template_file_id)
             if template_update_payload.register_id:
                 template_obj.register_id = template_update_payload.register_id
             if template_update_payload.data_model_id:
@@ -88,7 +90,7 @@ class G2PTemplateService(BaseService):
         async with session_maker() as session:
             template_obj = await self._get_incoming_template(session, template_id)
 
-            await self._delete_template_file(template_obj.template_file_id)
+            await self.delete_template_file(template_obj.template_file_id)
 
             await session.delete(template_obj)
             await session.commit()
@@ -103,7 +105,7 @@ class G2PTemplateService(BaseService):
         async with session_maker() as session:
             await self._check_outgoing_template_exists(session, template_payload)
 
-            file_id = await self._upload_template_file(template_file, template_payload.template_file_id)
+            file_id = await self.upload_template_file(template_file, template_payload.template_file_id)
 
             template_id = template_payload.template_id or str(uuid.uuid4())
             template = OutgoingTemplate(
@@ -133,7 +135,9 @@ class G2PTemplateService(BaseService):
             template_obj = await self._get_outgoing_template(session, template_update_payload.template_id)
 
             if template_file:
-                template_obj.template_file_id = await self._upload_template_file(template_file, template_update_payload.template_file_id)
+                if template_obj.template_file_id:
+                    await self.delete_template_file(template_obj.template_file_id)
+                template_obj.template_file_id = await self.upload_template_file(template_file, template_update_payload.template_file_id)
             if template_update_payload.register_id:
                 template_obj.register_id = template_update_payload.register_id
             if template_update_payload.data_model_id:
@@ -149,7 +153,7 @@ class G2PTemplateService(BaseService):
         async with session_maker() as session:
             template_obj = await self._get_outgoing_template(session, template_id)
 
-            await self._delete_template_file(template_obj.template_file_id)
+            await self.delete_template_file(template_obj.template_file_id)
 
             await session.delete(template_obj)
             await session.commit()
@@ -228,7 +232,8 @@ class G2PTemplateService(BaseService):
                 message=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[0],
             )
 
-    async def _upload_template_file(self, template_file: UploadFile, template_file_id: str) -> str:
+
+    async def upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str] = None) -> str:
         minio_client = MinioClient.get_component()
         template_helper = TemplateHelper.get_component()
 
@@ -240,7 +245,7 @@ class G2PTemplateService(BaseService):
         )
         return file_id
     
-    async def _delete_template_file(self, template_file_id: str) -> None:
+    async def delete_template_file(self, template_file_id: str) -> None:
         minio_client = MinioClient.get_component()
         template_helper = TemplateHelper.get_component()
 
