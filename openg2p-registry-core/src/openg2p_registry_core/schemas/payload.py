@@ -1,8 +1,121 @@
-from typing import Optional, List
+from typing import Optional, List, Any, Literal, Union
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator, Field
+from enum import Enum
 
 from ..models import ApprovalStatusEnum
+
+
+# =============================================================================
+# Filter Types and Schemas (GraphQL-style filtering with security)
+# =============================================================================
+
+class FilterOperator(str, Enum):
+    """Supported filter operators."""
+    # Equality
+    EQ = "eq"
+    NEQ = "neq"
+    # List
+    IN = "in"
+    NIN = "nin"
+    # String
+    CONTAINS = "contains"
+    NCONTAINS = "ncontains"
+    STARTS_WITH = "startsWith"
+    ENDS_WITH = "endsWith"
+    # Comparison
+    GT = "gt"
+    GTE = "gte"
+    LT = "lt"
+    LTE = "lte"
+    # Null
+    IS_NULL = "isNull"
+
+
+class FilterCondition(BaseModel):
+    """
+    Single field filter with operators.
+    Supports GraphQL-style filtering like: {"field": {"eq": "value"}}
+    """
+    eq: Optional[Any] = None
+    neq: Optional[Any] = None
+    in_: Optional[List[Any]] = Field(default=None, alias="in")
+    nin: Optional[List[Any]] = None
+    contains: Optional[str] = None
+    ncontains: Optional[str] = None
+    startsWith: Optional[str] = None
+    endsWith: Optional[str] = None
+    gt: Optional[Any] = None
+    gte: Optional[Any] = None
+    lt: Optional[Any] = None
+    lte: Optional[Any] = None
+    isNull: Optional[bool] = None
+
+    class Config:
+        populate_by_name = True
+
+    @model_validator(mode='after')
+    def check_max_operators(self):
+        """Security: Limit operators per field to prevent DoS."""
+        MAX_OPERATORS = 3
+        non_null_count = sum(
+            1 for field_name in self.model_fields.keys()
+            if getattr(self, field_name if field_name != 'in_' else 'in_') is not None
+        )
+        if non_null_count > MAX_OPERATORS:
+            raise ValueError(f"Maximum {MAX_OPERATORS} operators per field allowed")
+        return self
+
+
+class FilterSchemaFieldOption(BaseModel):
+    """Option for dropdown filter type."""
+    value: str
+    label: str
+
+
+class FilterSchemaField(BaseModel):
+    """
+    Schema definition for a filterable field.
+    This is stored in filter_schema and tells the frontend what filters are available.
+    """
+    field_name: str
+    display_label: str
+    filter_type: Literal["dropdown", "text", "date_range", "number_range", "boolean"]
+    order: int
+    allowed_operators: List[str]
+    options: Optional[List[FilterSchemaFieldOption]] = None  # For dropdown with static options
+    options_source: Optional[str] = None  # "distinct" to fetch from DB
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "field_name": "approval_status",
+                    "display_label": "Status",
+                    "filter_type": "dropdown",
+                    "order": 1,
+                    "allowed_operators": ["eq", "in"],
+                    "options": [
+                        {"value": "PENDING", "label": "Pending"},
+                        {"value": "APPROVED", "label": "Approved"}
+                    ]
+                },
+                {
+                    "field_name": "date_of_birth",
+                    "display_label": "Date of Birth",
+                    "filter_type": "date_range",
+                    "order": 2,
+                    "allowed_operators": ["eq", "gte", "lte", "gt", "lt"]
+                },
+                {
+                    "field_name": "first_name",
+                    "display_label": "First Name",
+                    "filter_type": "text",
+                    "order": 3,
+                    "allowed_operators": ["eq", "contains", "startsWith", "endsWith"]
+                }
+            ]
+        }
 
 
 class RegisterPayload(BaseModel):

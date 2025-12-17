@@ -27,6 +27,7 @@ from ..schemas import (
     RegisterSchemaData, RegisterSectionData, DisplayField
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
+from .filter_builder import FilterBuilder
 
 _logger = logging.getLogger('g2p-register-service')
 _engine = dbengine.get()
@@ -542,12 +543,13 @@ class G2PRegisterService(BaseService):
                 message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
             )
 
-        # Fetch search_result_schema from G2PRegisterSchema for display field filtering
+        # Fetch register schema for display fields and filter configuration
         schema_result = await session.execute(
             select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
         )
         register_schema: G2PRegisterSchema = schema_result.scalar()
         search_result_schema: list = register_schema.search_result_schema if register_schema and register_schema.search_result_schema else []
+        filter_schema: list = register_schema.filter_schema if register_schema and register_schema.filter_schema else []
 
         # Sort display fields by order if schema exists
         display_fields_sorted: list = sorted(search_result_schema, key=lambda x: x.get("order", 999)) if search_result_schema else []
@@ -556,22 +558,21 @@ class G2PRegisterService(BaseService):
         # Search using LIKE with trigram index optimization
         search_query: str = f"%{search_text}%"
 
-        # Build filter conditions from filter_by dict
+        # Build base filter condition (search text)
         filter_conditions: list = [implementation_class.search_text.ilike(search_query)]
+
+        # Build filter conditions using FilterBuilder (with security validations)
         if filter_by:
-            for column_name, filter_value in filter_by.items():
-                try:
-                    column = getattr(implementation_class, column_name)
-                    if filter_value is None:
-                        filter_conditions.append(column.is_(None))
-                    elif isinstance(filter_value, str):
-                        # Use ILIKE for string values (case-insensitive partial match)
-                        filter_conditions.append(column.ilike(f"%{filter_value}%"))
-                    else:
-                        # Use exact match for non-string values
-                        filter_conditions.append(column == filter_value)
-                except AttributeError:
-                    _logger.warning(f"Filter column {column_name} not found, skipping filter")
+            filter_builder = FilterBuilder(filter_schema)
+            try:
+                user_filter_conditions = filter_builder.build_conditions(filter_by, implementation_class)
+                filter_conditions.extend(user_filter_conditions)
+            except ValueError as validation_error:
+                _logger.warning(f"Filter validation error: {validation_error}")
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                    message=str(validation_error)
+                )
 
         # Get total count with filters applied
         count_result = await session.execute(
