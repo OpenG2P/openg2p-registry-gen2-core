@@ -42,7 +42,7 @@ class ChildRegisterData(BaseModel):
 
 class DisplayField(BaseModel):
     field_name: str
-    display_label: str
+    value: Optional[str] = None
     order: int
 
 
@@ -57,7 +57,6 @@ class SearchResultData(BaseModel):
     last_approved_at: Optional[str] = None
     last_approved_by: Optional[str] = None
     display_fields: Optional[List[DisplayField]] = None
-    additional_fields: Optional[dict] = None
 
     class Config:
         from_attributes: bool = True

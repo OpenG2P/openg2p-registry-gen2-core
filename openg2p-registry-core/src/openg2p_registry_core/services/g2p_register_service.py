@@ -10,7 +10,6 @@ from openg2p_registry_core.schemas.payload import ChangeLogPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.inspection import inspect
 
 from ..models import (
     G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
@@ -603,43 +602,23 @@ class G2PRegisterService(BaseService):
 
         search_results_list: list[SearchResultData] = []
 
-        # Base fields to exclude from additional_fields
-        base_fields: set = {
-            'internal_record_id', 'functional_record_id', 'link_record_id', 'record_name',
-            'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
-        }
-
         # Convert ORM objects to SearchResultData while still in session context
         for result in search_results:
-            additional_fields: dict = {}
-
-            if display_fields_sorted:
-                # Use configured display fields (ordered by order field)
-                for field_config in display_fields_sorted:
-                    field_name: str = field_config["field_name"]
-                    if hasattr(result, field_name):
-                        value = getattr(result, field_name, None)
-                        if value is not None and hasattr(value, 'isoformat'):
-                            value = value.isoformat()
-                        additional_fields[field_name] = value
-            else:
-                # Fallback: use all non-base fields (existing behavior)
-                mapper = inspect(result.__class__)
-                for column in mapper.columns:
-                    column_name: str = column.name
-                    if column_name not in base_fields:
-                        value = getattr(result, column_name, None)
-                        if value is not None and hasattr(value, 'isoformat'):
-                            value = value.isoformat()
-                        additional_fields[column_name] = value
-
-            # Build display_fields list from schema
+            # Build display_fields list from schema with actual values
             display_fields_list: list[DisplayField] = []
             if display_fields_sorted:
                 for field_config in display_fields_sorted:
+                    field_name: str = field_config.get("field_name")
+                    value = getattr(result, field_name, None) if hasattr(result, field_name) else None
+                    # Convert datetime objects to string
+                    if value is not None and hasattr(value, 'isoformat'):
+                        value = value.isoformat()
+                    # Convert non-string values to string for consistency
+                    if value is not None and not isinstance(value, str):
+                        value = str(value)
                     display_fields_list.append(DisplayField(
-                        field_name=field_config.get("field_name"),
-                        display_label=field_config.get("display_label", field_config.get("field_name")),
+                        field_name=field_name,
+                        value=value,
                         order=field_config.get("order", 999)
                     ))
 
@@ -654,8 +633,7 @@ class G2PRegisterService(BaseService):
                 created_at=str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None,
                 last_approved_at=str(result.last_approved_at.isoformat()) if result.last_approved_at and hasattr(result.last_approved_at, 'isoformat') else None,
                 last_approved_by=result.last_approved_by,
-                display_fields=display_fields_list if display_fields_list else None,
-                additional_fields=additional_fields if additional_fields else None
+                display_fields=display_fields_list if display_fields_list else None
             )
             search_results_list.append(search_result_data)
 
