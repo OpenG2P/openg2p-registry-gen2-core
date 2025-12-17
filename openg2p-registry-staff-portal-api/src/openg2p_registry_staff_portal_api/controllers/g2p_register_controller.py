@@ -193,8 +193,8 @@ class G2PRegisterController(BaseController):
         )
 
         self.router.add_api_route(
-            "/get_register_sections",
-            self.get_register_sections,
+            "/get_schema_definitions_for_register",
+            self.get_schema_definitions_for_register,
             responses={200: {"model": RegisterSectionsDataResponse}},
             methods=["POST"],
         )
@@ -446,9 +446,9 @@ class G2PRegisterController(BaseController):
             error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, get_register_schema_request)
             return error_response
 
-    async def get_register_sections(self, get_register_sections_request: GetRegisterSectionsRequest) -> RegisterSectionsDataResponse:
+    async def get_schema_definitions_for_register(self, get_register_sections_request: GetRegisterSectionsRequest) -> RegisterSectionsDataResponse:
         """
-        Get register sections for a given register_id.
+        Get schema definitions (sections) for a given register_id.
         """
         try:
             register_sections_list: list[RegisterSectionData] = await self.g2p_register_controller_service.get_register_sections(get_register_sections_request)
@@ -457,6 +457,6 @@ class G2PRegisterController(BaseController):
             )
             return register_sections_response
         except Exception as error_exception:
-            _logger.error(f"Error in get_register_sections: {str(error_exception)}")
+            _logger.error(f"Error in get_schema_definitions_for_register: {str(error_exception)}")
             error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_sections_request)
             return error_response

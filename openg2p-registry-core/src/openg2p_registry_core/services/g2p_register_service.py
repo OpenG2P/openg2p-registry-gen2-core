@@ -15,7 +15,8 @@ from sqlalchemy.inspection import inspect
 from ..models import (
     G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
     G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum,
-    DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema
+    DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema,
+    G2PRegisterSection
 )
 from ..schemas import (
     ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
@@ -1153,7 +1154,7 @@ class G2PRegisterService(BaseService):
     async def get_register_sections(self, register_id: str) -> list[RegisterSectionData]:
         """
         Get register sections for a given register_id.
-        Returns a list of section configurations from the search_result_schema.
+        Returns a list of section UI schema configurations from g2p_register_sections table.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -1188,31 +1189,19 @@ class G2PRegisterService(BaseService):
         )
 
     async def _fetch_register_sections(self, register_id: str, session) -> list[RegisterSectionData]:
-        """Fetch register sections from the search_result_schema."""
+        """Fetch register sections from g2p_register_sections table."""
         result = await session.execute(
-            select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            select(G2PRegisterSection).where(G2PRegisterSection.register_id == register_id)
         )
-        register_schema: G2PRegisterSchema = result.scalar()
+        sections = result.scalars().all()
 
-        if not register_schema or not register_schema.search_result_schema:
-            return []
-
-        # Parse sections from search_result_schema
-        # Expected format: [{"section_name": str, "section_label": str, "section_order": int, "fields": [...]}]
         sections_list: list[RegisterSectionData] = []
-        search_result_schema = register_schema.search_result_schema
+        for section in sections:
+            section_data = RegisterSectionData(
+                register_id=section.register_id,
+                section_id=section.section_id,
+                section_ui_schema=section.section_ui_schema
+            )
+            sections_list.append(section_data)
 
-        if isinstance(search_result_schema, list):
-            for section in search_result_schema:
-                if isinstance(section, dict):
-                    section_data = RegisterSectionData(
-                        section_name=section.get('section_name', ''),
-                        section_label=section.get('section_label', ''),
-                        section_order=section.get('section_order', 0),
-                        fields=section.get('fields', None)
-                    )
-                    sections_list.append(section_data)
-
-        # Sort by section_order
-        sections_list.sort(key=lambda x: x.section_order)
         return sections_list

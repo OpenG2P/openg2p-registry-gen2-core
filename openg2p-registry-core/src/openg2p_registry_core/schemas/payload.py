@@ -230,11 +230,10 @@ class RegisterSchemaData(BaseModel):
 
 
 class RegisterSectionData(BaseModel):
-    """Section data for a register representing a grouping of fields."""
-    section_name: str
-    section_label: str
-    section_order: int
-    fields: Optional[List[dict]] = None
+    """Section data for a register representing UI schema for a section."""
+    register_id: str
+    section_id: str
+    section_ui_schema: Optional[dict] = None
 
     class Config:
         from_attributes: bool = True
