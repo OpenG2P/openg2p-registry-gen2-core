@@ -1,3 +1,4 @@
+# register-ingester-worker
 import logging
 import requests
 from requests import Response
@@ -21,9 +22,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="g2p_register_external_data_q_worker")
-def g2p_register_external_data_q_worker(queue_id: str):
-    _logger.info(f"Processing g2p_register_external_data_q_worker")
+@celery_app.task(name="g2p_register_ingest_worker")
+def g2p_register_ingest_worker(queue_id: str):
+    _logger.info(f"Processing g2p_register_ingest_worker")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -60,7 +61,7 @@ def g2p_register_external_data_q_worker(queue_id: str):
 
         except Exception as e:
             _logger.error(
-                f"Error during processing g2p_register_external_data_q_worker for queue_id {g2p_external_data_queue.queue_id}: {str(e)}"
+                f"Error during processing g2p_register_ingest_worker for queue_id {g2p_external_data_queue.queue_id}: {str(e)}"
             )
             session.rollback()
 
@@ -78,5 +79,5 @@ def g2p_register_external_data_q_worker(queue_id: str):
             raise e
 
         _logger.info(
-            f"Completed processing g2p_register_external_data_q_worker for queue_id: {g2p_external_data_queue.queue_id}"
+            f"Completed processing g2p_register_ingest_worker for queue_id: {g2p_external_data_queue.queue_id}"
         )
