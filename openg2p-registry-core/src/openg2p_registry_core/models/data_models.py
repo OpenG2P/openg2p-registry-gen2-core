@@ -9,6 +9,7 @@ class DataModel(BaseORMModel):
     data_model_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_mnemonic: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     pattern_for_data_model: Mapped[str] = mapped_column(String, nullable=False)
+    response_template_file_id: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 class ProcessStatusEnum(enum.Enum):

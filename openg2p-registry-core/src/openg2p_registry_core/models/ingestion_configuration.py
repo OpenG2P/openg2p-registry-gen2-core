@@ -17,9 +17,12 @@ class IncomingModelSignaturePattern(BaseORMModel):
     __tablename__ = "incoming_model_signature_patterns"
     signature_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    key_path_for_message_id: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_signature: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_signature_payload: Mapped[str] = mapped_column(String, nullable=False)
+    is_list: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    key_path_for_list_elements: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingModelSemanticPattern(BaseORMModel):
 

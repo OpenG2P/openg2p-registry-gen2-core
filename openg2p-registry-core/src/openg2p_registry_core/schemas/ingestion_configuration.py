@@ -35,10 +35,13 @@ class IncomingPartnerData(BaseModel):
 
 class IncomingModelSignaturePatternPayload(BaseModel):
     signature_pattern_id: Optional[str] = None
+    keypath_for_message_id: str
     data_model_id: str
     key_path_for_sender: str
     key_path_for_signature: str
     key_path_for_signature_payload: str
+    is_list: bool = False
+    keypath_for_list_elements: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -46,9 +49,13 @@ class IncomingModelSignaturePatternPayload(BaseModel):
 
 class IncomingModelSignaturePatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSignaturePattern - only allows updating specific fields"""
+    signature_pattern_id: str
+    keypath_for_message_id: Optional[str] = None
     key_path_for_sender: Optional[str] = None
     key_path_for_signature: Optional[str] = None
     key_path_for_signature_payload: Optional[str] = None
+    is_list: Optional[bool] = None
+    keypath_for_list_elements: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -57,9 +64,12 @@ class IncomingModelSignaturePatternUpdatePayload(BaseModel):
 class IncomingModelSignaturePatternData(BaseModel):
     signature_pattern_id: str
     data_model_id: str
+    keypath_for_message_id: str
     key_path_for_sender: str
     key_path_for_signature: str
     key_path_for_signature_payload: str
+    is_list: bool
+    keypath_for_list_elements: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -168,6 +178,7 @@ class DataModelPayload(BaseModel):
     data_model_id: Optional[str] = None
     data_model_mnemonic: str
     pattern_for_data_model: str
+    response_template_file_id: Optional[str] = None
     is_active: bool = True
 
     class Config:
@@ -187,6 +198,7 @@ class DataModelData(BaseModel):
     data_model_id: str
     data_model_mnemonic: str
     pattern_for_data_model: str
+    response_template_file_id: str
     is_active: bool
 
     class Config:

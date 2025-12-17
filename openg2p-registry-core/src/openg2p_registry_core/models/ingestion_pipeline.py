@@ -11,6 +11,8 @@ class IncomingRawData(BaseORMModel):
     ingest_id: Mapped[str] = mapped_column(String, primary_key=True)
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    ingest_message_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    ingest_correlation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     receipt_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     classification_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
     classification_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)

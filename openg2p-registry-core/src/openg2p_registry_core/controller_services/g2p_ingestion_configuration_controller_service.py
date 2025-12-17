@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import UploadFile
 from openg2p_fastapi_common.service import BaseService
 
-from ..services import G2PIngestionConfigurationService
+from ..services import G2PIngestionConfigurationService, G2PTemplateService
 from ..schemas import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
@@ -35,6 +35,7 @@ class G2PIngestionConfigurationControllerService(BaseService):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.g2p_ingestion_configuration_service = G2PIngestionConfigurationService.get_component()
+        self.g2p_template_service = G2PTemplateService.get_component()
 
     async def create_incoming_partner(
         self, incoming_partner_payload: IncomingPartnerPayload
@@ -116,21 +117,25 @@ class G2PIngestionConfigurationControllerService(BaseService):
         self, template_payload: IncomingTemplatePayload, template_file: UploadFile
     ) -> IncomingTemplateData:
         """Create a new template"""
-        return await self.g2p_ingestion_configuration_service.create_template(
+        return await self.g2p_template_service.create_incoming_template(
             template_payload, template_file
         )
 
     async def get_template(self, template_id: str) -> IncomingTemplateData:
         """Get template by ID"""
-        return await self.g2p_ingestion_configuration_service.get_template(template_id)
+        return await self.g2p_template_service.get_incoming_template(template_id)
 
     async def update_template(
         self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
     ) -> IncomingTemplateData:
         """Update template"""
-        return await self.g2p_ingestion_configuration_service.update_template(
+        return await self.g2p_template_service.update_incoming_template(
             template_update_payload, template_file
         )
+
+    async def delete_template(self, template_delete_payload: IncomingTemplateUpdatePayload) -> IncomingTemplateData:
+        """Delete template"""
+        return await self.g2p_template_service.delete_incoming_template(template_delete_payload.template_id)
 
     async def create_payload_enricher(
         self, enricher_payload: IncomingPayloadEnricherPayload
