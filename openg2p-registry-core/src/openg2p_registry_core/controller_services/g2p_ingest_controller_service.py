@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -13,9 +13,9 @@ _engine = dbengine.get()
 
 class G2PIngestControllerService(BaseService):
 
-    async def ingest_data(self, data_model: Optional[str], ingest_data: Dict) -> IngestDataPayload:
+    async def ingest_data(self, data_model: Optional[str], ingest_data: Dict) -> Tuple[IngestDataPayload, Optional[str]]:
         g2p_ingest_service = G2PIngestService.get_component()
-        incoming_raw_data: IncomingRawData = await g2p_ingest_service.ingest_data(data_model.upper() if data_model else None, ingest_data)
+        correlation_id, response_template_file_id = await g2p_ingest_service.ingest_data(data_model.upper() if data_model else None, ingest_data)
 
-        ingest_data_payload = IngestDataPayload(ingest_id=incoming_raw_data.ingest_id)
-        return ingest_data_payload    
+        ingest_data_payload = IngestDataPayload(correlation_id=correlation_id)
+        return ingest_data_payload, response_template_file_id
