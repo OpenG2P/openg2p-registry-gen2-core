@@ -38,6 +38,14 @@ class PatternMatcher(BaseService):
         )
         return sender, signature, signature_payload
     
+    def get_message_id_pattern_match(
+        self, incoming_model_key_path: IncomingModelKeyPath, data: Dict
+    ) -> str:
+        message_id: str = self._extract_jsonpath(
+            data, incoming_model_key_path.key_path_for_message_id
+        )
+        return message_id
+
     def get_business_payload(
         self, incoming_model_semantic_pattern: IncomingModelSemanticPattern, data: Dict
     ) -> Optional[Dict]:
