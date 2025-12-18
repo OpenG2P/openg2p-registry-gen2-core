@@ -84,6 +84,7 @@ class IncomingModelSemanticPatternPayload(BaseModel):
     pattern_for_register: str
     pattern_for_operation: str
     key_path_for_business_payload: str
+    raw_payload_enricher_class: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -94,6 +95,7 @@ class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     pattern_for_register: Optional[str] = None
     pattern_for_operation: Optional[str] = None
     key_path_for_business_payload: Optional[str] = None
+    raw_payload_enricher_class: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -107,6 +109,7 @@ class IncomingModelSemanticPatternData(BaseModel):
     pattern_for_register: str
     pattern_for_operation: str
     key_path_for_business_payload: str
+    raw_payload_enricher_class: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
