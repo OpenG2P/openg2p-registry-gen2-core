@@ -9,7 +9,6 @@ from openg2p_registry_core.models import (
     IncomingTemplate,
     IncomingClassifiedData,
     IncomingRawDataPayload,
-    IncomingPayloadEnricher,
     IncomingEnrichedTransformedData,
     IncomingModelSemanticPattern
 )
@@ -134,8 +133,8 @@ def _enrich_raw_data_json(
     incoming_raw_data_payload: IncomingRawDataPayload,
     session: Session
 ) -> Dict:
-    incoming_payload_enricher: IncomingPayloadEnricher | None = session.execute(
-        select(IncomingPayloadEnricher).filter_by(
+    incoming_model_semantic_pattern: IncomingModelSemanticPattern | None = session.execute(
+        select(IncomingModelSemanticPattern).filter_by(
            semantic_pattern_id=incoming_classified_data.semantic_pattern_id
         )
     ).scalar_one_or_none()
@@ -146,8 +145,8 @@ def _enrich_raw_data_json(
         session
     )
     # Enrich and store in IncomingEnrichedTransformedData as enriched_data_json or enriched_data_xml
-    if incoming_payload_enricher:
-        raw_payload_enricher_class: str = incoming_payload_enricher.raw_payload_enricher_class
+    if incoming_model_semantic_pattern:
+        raw_payload_enricher_class: str = incoming_model_semantic_pattern.raw_payload_enricher_class
         g2p_payload_enricher_service: G2PPayloadEnricherInterface = G2PPayloadEnricherFactory().get_enricher_service(raw_payload_enricher_class)
         enriched_data_json = g2p_payload_enricher_service.enrich(enriched_data_json, session)
     

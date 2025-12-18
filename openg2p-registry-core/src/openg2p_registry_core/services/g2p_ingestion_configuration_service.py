@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from ..models import (
     IncomingPartner,
-    IncomingModelSignaturePattern,
+    IncomingModelKeyPath,
     IncomingModelSemanticPattern,
     IncomingTemplate,
     IncomingPayloadEnricher,
@@ -24,9 +24,9 @@ from ..schemas import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
     IncomingPartnerData,
-    IncomingModelSignaturePatternPayload,
-    IncomingModelSignaturePatternUpdatePayload,
-    IncomingModelSignaturePatternData,
+    IncomingModelKeyPathPayload,
+    IncomingModelKeyPathUpdatePayload,
+    IncomingModelKeyPathData,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -152,14 +152,14 @@ class G2PIngestionConfigurationService(BaseService):
             return [IncomingPartnerData.model_validate(partner) for partner in partners]
 
     async def create_signature_pattern(
-        self, pattern_payload: IncomingModelSignaturePatternPayload
-    ) -> IncomingModelSignaturePatternData:
+        self, pattern_payload: IncomingModelKeyPathPayload
+    ) -> IncomingModelKeyPathData:
         """Create a new signature pattern"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern_id = pattern_payload.signature_pattern_id or str(uuid.uuid4())
-            pattern = IncomingModelSignaturePattern(
-                signature_pattern_id=pattern_id,
+            pattern_id = pattern_payload.key_path_id or str(uuid.uuid4())
+            pattern = IncomingModelKeyPath(
+                key_path_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
                 keypath_for_message_id=pattern_payload.keypath_for_message_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
@@ -171,17 +171,17 @@ class G2PIngestionConfigurationService(BaseService):
             session.add(pattern)
             await session.commit()
             await session.refresh(pattern)
-            return IncomingModelSignaturePatternData.model_validate(pattern)
+            return IncomingModelKeyPathData.model_validate(pattern)
 
     async def get_signature_pattern(
-        self, signature_pattern_id: str
-    ) -> IncomingModelSignaturePatternData:
+        self, key_path_id: str
+    ) -> IncomingModelKeyPathData:
         """Get signature pattern by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern = await session.execute(
-                select(IncomingModelSignaturePattern).where(
-                    IncomingModelSignaturePattern.signature_pattern_id == signature_pattern_id
+                select(IncomingModelKeyPath).where(
+                    IncomingModelKeyPath.key_path_id == key_path_id
                 )
             )
             pattern_obj = pattern.scalar_one_or_none()
@@ -190,17 +190,17 @@ class G2PIngestionConfigurationService(BaseService):
                     code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
                     message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
                 )
-            return IncomingModelSignaturePatternData.model_validate(pattern_obj)
+            return IncomingModelKeyPathData.model_validate(pattern_obj)
 
     async def update_signature_pattern(
-        self, signature_pattern_id: str, pattern_payload: IncomingModelSignaturePatternUpdatePayload
-    ) -> IncomingModelSignaturePatternData:
+        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
+    ) -> IncomingModelKeyPathData:
         """Update signature pattern - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern = await session.execute(
-                select(IncomingModelSignaturePattern).where(
-                    IncomingModelSignaturePattern.signature_pattern_id == signature_pattern_id
+                select(IncomingModelKeyPath).where(
+                    IncomingModelKeyPath.key_path_id == key_path_id
                 )
             )
             pattern_obj = pattern.scalar_one_or_none()
@@ -226,7 +226,7 @@ class G2PIngestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(pattern_obj)
-            return IncomingModelSignaturePatternData.model_validate(pattern_obj)
+            return IncomingModelKeyPathData.model_validate(pattern_obj)
 
     # IncomingModelSemanticPattern Methods
     async def create_semantic_pattern(

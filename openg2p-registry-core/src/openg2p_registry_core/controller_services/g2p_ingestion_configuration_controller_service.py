@@ -8,9 +8,9 @@ from ..schemas import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
     IncomingPartnerData,
-    IncomingModelSignaturePatternPayload,
-    IncomingModelSignaturePatternUpdatePayload,
-    IncomingModelSignaturePatternData,
+    IncomingModelKeyPathPayload,
+    IncomingModelKeyPathUpdatePayload,
+    IncomingModelKeyPathData,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -66,27 +66,27 @@ class G2PIngestionConfigurationControllerService(BaseService):
         return await self.g2p_ingestion_configuration_service.get_all_incoming_partners()
 
     async def create_signature_pattern(
-        self, pattern_payload: IncomingModelSignaturePatternPayload
-    ) -> IncomingModelSignaturePatternData:
+        self, pattern_payload: IncomingModelKeyPathPayload
+    ) -> IncomingModelKeyPathData:
         """Create a new signature pattern"""
         return await self.g2p_ingestion_configuration_service.create_signature_pattern(
             pattern_payload
         )
 
     async def get_signature_pattern(
-        self, signature_pattern_id: str
-    ) -> IncomingModelSignaturePatternData:
+        self, key_path_id: str
+    ) -> IncomingModelKeyPathData:
         """Get signature pattern by ID"""
         return await self.g2p_ingestion_configuration_service.get_signature_pattern(
-            signature_pattern_id
+            key_path_id
         )
 
     async def update_signature_pattern(
-        self, signature_pattern_id: str, pattern_payload: IncomingModelSignaturePatternUpdatePayload
-    ) -> IncomingModelSignaturePatternData:
+        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
+    ) -> IncomingModelKeyPathData:
         """Update signature pattern"""
         return await self.g2p_ingestion_configuration_service.update_signature_pattern(
-            signature_pattern_id, pattern_payload
+            key_path_id, pattern_payload
         )
 
     async def create_semantic_pattern(

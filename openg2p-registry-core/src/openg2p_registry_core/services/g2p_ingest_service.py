@@ -14,7 +14,7 @@ from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import PatternMatcher
 from ..models import (
     IncomingPartner,
-    IncomingModelSignaturePattern,
+    IncomingModelKeyPath,
     IncomingRawData,
     IncomingRawDataPayload,
     DataModel,
@@ -140,10 +140,10 @@ class G2PIngestService(BaseService):
     ) -> Tuple[IncomingPartner, str, Dict]:
         pattern_matcher = PatternMatcher().get_component()
         
-        incoming_model_signature_pattern: IncomingModelSignaturePattern | None = (
+        incoming_model_signature_pattern: IncomingModelKeyPath | None = (
             await session.execute(
-                select(IncomingModelSignaturePattern).where(
-                    IncomingModelSignaturePattern.data_model_id == data_model_id
+                select(IncomingModelKeyPath).where(
+                    IncomingModelKeyPath.data_model_id == data_model_id
                 )
             )
         ).scalar_one_or_none()

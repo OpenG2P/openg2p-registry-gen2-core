@@ -5,7 +5,7 @@ from jsonpath_ng import parse as jsonpath_parse
 
 from openg2p_fastapi_common.service import BaseService
 
-from ..models import DataModel, IncomingModelSignaturePattern, IncomingModelSemanticPattern
+from ..models import DataModel, IncomingModelKeyPath, IncomingModelSemanticPattern
 
 
 class PatternMatcher(BaseService):
@@ -24,7 +24,7 @@ class PatternMatcher(BaseService):
         self.separator: str = "=>"
 
     def get_signature_pattern_path(
-        self, incoming_model_signature_pattern: IncomingModelSignaturePattern, data: Dict
+        self, incoming_model_signature_pattern: IncomingModelKeyPath, data: Dict
     ) -> Tuple[str, str, Dict]:
 
         sender = self._extract_jsonpath(
