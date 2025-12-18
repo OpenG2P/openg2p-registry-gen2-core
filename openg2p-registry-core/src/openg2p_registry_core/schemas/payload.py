@@ -231,6 +231,10 @@ class NumberOfVersionsData(BaseModel):
     register_id: str
     internal_record_id: str
     number_of_versions: int
+    last_updated_by: Optional[str] = None
+    last_updated_at: Optional[datetime] = None
+    last_approved_by: Optional[str] = None
+    last_approved_at: Optional[datetime] = None
 
 
 class NumberOfPendingChangeLogsData(BaseModel):

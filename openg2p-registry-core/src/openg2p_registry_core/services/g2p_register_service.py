@@ -724,11 +724,14 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Dynamically resolve history model class based on register mnemonic
+            # Dynamically resolve register and history model classes based on register mnemonic
             module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix = "G2PRegister"
             history_class_prefix = "G2PRegisterHistory"
-            implementation_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
-            history_class = getattr(module, implementation_class_name)
+            register_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            register_class = getattr(module, register_class_name)
+            history_class = getattr(module, history_class_name)
 
             # Count history records for the given internal_record_id
             count_result = await session.execute(
@@ -738,10 +741,44 @@ class G2PRegisterService(BaseService):
             )
             number_of_versions = count_result.scalar_one()
 
+            # Get last_updated_by and last_updated_at from the register record
+            register_record = (
+                await session.execute(
+                    select(register_class).where(
+                        register_class.internal_record_id == internal_record_id
+                    )
+                )
+            ).scalar()
+
+            last_updated_by: str = None
+            last_updated_at: datetime = None
+            if register_record:
+                last_updated_by = register_record.last_approved_by
+                last_updated_at = register_record.last_approved_at
+
+            # Get last_approved_by and last_approved_at from the latest history record
+            latest_history_record = (
+                await session.execute(
+                    select(history_class).where(
+                        history_class.internal_record_id == internal_record_id
+                    ).order_by(history_class.approved_at.desc()).limit(1)
+                )
+            ).scalar()
+
+            last_approved_by: str = None
+            last_approved_at: datetime = None
+            if latest_history_record:
+                last_approved_by = latest_history_record.approved_by
+                last_approved_at = latest_history_record.approved_at
+
             return NumberOfVersionsData(
                 register_id=register_id,
                 internal_record_id=internal_record_id,
-                number_of_versions=number_of_versions
+                number_of_versions=number_of_versions,
+                last_updated_by=last_updated_by,
+                last_updated_at=last_updated_at,
+                last_approved_by=last_approved_by,
+                last_approved_at=last_approved_at
             )
 
     async def get_number_of_pending_change_logs(self, register_id: str, internal_record_id: str) -> NumberOfPendingChangeLogsData:
