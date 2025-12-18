@@ -30,16 +30,17 @@ class G2PIngestController(BaseController):
         )
 
     async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: Optional[str] = None) -> IngestDataResponse:
+        response_template_file_id: str | None = None
         try:
             _logger.info(f"Data ingestion request received for data_model: {data_model if data_model else 'No data_model detected in query params...'}")
 
             ingest_data: Dict = await self.request_response_helper.construct_http_request(ingest_data_request)
 
-            ingest_data_payload: IngestDataPayload = await self.g2p_ingest_controller_service.ingest_data(data_model, ingest_data)
-            injest_data_response = self.request_response_helper.construct_ingest_data_success_response(ingest_data_payload, ingest_data_request)
+            ingest_data_payload, response_template_file_id = await self.g2p_ingest_controller_service.ingest_data(data_model, ingest_data)
+            injest_data_response = self.request_response_helper.construct_ingest_data_success_response(ingest_data_payload, ingest_data_request, response_template_file_id)
             return injest_data_response
 
         except Exception as error_exception:
             _logger.error(f"Error in ingest_data: {str(error_exception)}")
-            error_response: G2PResponse = self.request_response_helper.construct_error_response(error_exception, ingest_data_request)
+            error_response: G2PResponse = self.request_response_helper.construct_error_response(error_exception, ingest_data_request, response_template_file_id)
             return error_response

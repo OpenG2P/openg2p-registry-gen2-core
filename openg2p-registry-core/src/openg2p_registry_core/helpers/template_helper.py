@@ -30,8 +30,12 @@ class TemplateHelper(BaseService):
         template: Template = self.env.from_string(self.get_template(minio_client,template_file_id))
         return template
     
-    def render_with_template(self, minio_client: MinioClient, template_file_id: str, data: Dict) -> Dict:
-        expanded_data = jsonld.expand(data)
+    def render_with_template(self, minio_client: MinioClient, template_file_id: str, data: Dict, expand_data: bool = True) -> Dict:
+        if expand_data:
+            expanded_data = jsonld.expand(data)
+        else:
+            expanded_data = data
+
         jinja_template = self.get_jinja_template(minio_client, template_file_id)
         rendered_data: str = jinja_template.render(expanded=expanded_data)
         return json.loads(rendered_data)

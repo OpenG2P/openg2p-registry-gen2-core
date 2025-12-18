@@ -337,7 +337,7 @@ class DeduplicationChangelogResultsData(BaseModel):
 
 
 class IngestDataPayload(BaseModel):
-    ingest_id: str
+    correlation_id: str
 
 
 class RegisterSchemaData(BaseModel):

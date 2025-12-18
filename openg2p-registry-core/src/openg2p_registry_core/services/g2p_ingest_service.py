@@ -1,6 +1,7 @@
 import logging
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 import uuid
+from copy import deepcopy
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -9,7 +10,6 @@ from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import async_sessionmaker
-
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import PatternMatcher
 from ..models import (
@@ -23,14 +23,14 @@ from ..models import (
 _logger = logging.getLogger("g2p-partner-service")
 
 class G2PIngestService(BaseService):
-    async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict):
+    async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict) -> Tuple[str, Optional[str]]:
         _logger.info("Starting data ingestion with received request")
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
         async with session_maker() as session:
             data_model: DataModel = await self._get_data_model(ingest_data, data_model_mnemonic, session)
 
-            incoming_partner, signature, signature_payload = await self._match_model_signature_pattern(
+            incoming_partner, signature, signature_payload, incoming_model_key_path = await self._match_model_signature_pattern(
                 data_model.data_model_id, ingest_data, session
             )
             _logger.debug("Matched incoming model signature pattern")
@@ -38,21 +38,37 @@ class G2PIngestService(BaseService):
             # await self._validate_signature(incoming_partner.keymanager_reference_id, signature, signature_payload)
             _logger.debug("Verified request signature")
 
-            ingest_id: str = str(uuid.uuid4())
-            incoming_raw_data: IncomingRawData = self._construct_incoming_raw_data(
-                ingest_id, incoming_partner.partner_id, data_model.data_model_id
-            )
-            incoming_raw_data_payload: IncomingRawDataPayload = (
-                self._construct_incoming_raw_data_payload(ingest_id, ingest_data)
-            )
+            message_id = self._match_message_id_pattern(ingest_data, incoming_model_key_path)
 
-            _logger.debug(f"Storing raw data and payload to db with ingest_id: {ingest_id}")
-            session.add(incoming_raw_data)
-            session.add(incoming_raw_data_payload)
+            ingest_data_payloads: List[Dict] = []
+            if incoming_model_key_path.is_list:
+                ingest_data_payloads = self._get_ingest_data_payloads(ingest_data, incoming_model_key_path)
+            else:
+                ingest_data_payloads = [ingest_data]
+
+            correlation_id = uuid.uuid4().hex
+            for ingest_data_payload in ingest_data_payloads:
+                ingest_id = str(uuid.uuid4())
+                incoming_raw_data = IncomingRawData(
+                    ingest_id=ingest_id,
+                    partner_id=incoming_partner.partner_id,
+                    data_model_id=data_model.data_model_id,
+                    ingest_message_id=message_id,
+                    ingest_correlation_id=correlation_id,
+                    receipt_date_time=func.now(),
+                )
+                incoming_raw_data_payload = IncomingRawDataPayload(
+                    ingest_id=ingest_id,
+                    raw_data_json=ingest_data_payload,
+                )
+
+                _logger.debug(f"Storing raw data and payload to db with ingest_id: {ingest_id}")
+                session.add(incoming_raw_data)
+                session.add(incoming_raw_data_payload)
 
             await session.commit()
 
-            return incoming_raw_data
+            return correlation_id, data_model.response_template_file_id
 
 
     async def _get_data_model(
@@ -105,25 +121,11 @@ class G2PIngestService(BaseService):
             )
         return partner
 
-    def _construct_incoming_raw_data(
-        self, ingest_id: str, partner_id: str, data_model_id: int
-    ) -> IncomingRawData:
-        incoming_raw_data = IncomingRawData(
-            ingest_id=ingest_id,
-            partner_id=partner_id,
-            data_model_id=data_model_id,
-            receipt_date_time=func.now(),
-        )
-        return incoming_raw_data
+    def _match_message_id_pattern(self, ingest_data: Dict, incoming_model_key_path: IncomingModelKeyPath) -> str:
+        pattern_matcher = PatternMatcher().get_component()
 
-    def _construct_incoming_raw_data_payload(
-        self, ingest_id: str, ingest_data: Dict
-    ) -> IncomingRawDataPayload:
-        incoming_raw_data_payload = IncomingRawDataPayload(
-            ingest_id=ingest_id,
-            raw_data_json=ingest_data,
-        )
-        return incoming_raw_data_payload
+        message_id: str = pattern_matcher.get_message_id_pattern_match(ingest_data, incoming_model_key_path)
+        return message_id
     
     def _match_data_model_pattern(
         self, data_model: DataModel, ingest_data: Dict
@@ -137,18 +139,18 @@ class G2PIngestService(BaseService):
 
     async def _match_model_signature_pattern(
         self, data_model_id: str, ingest_data: Dict, session: Session
-    ) -> Tuple[IncomingPartner, str, Dict]:
+    ) -> Tuple[IncomingPartner, str, Dict, IncomingModelKeyPath]:
         pattern_matcher = PatternMatcher().get_component()
         
-        incoming_model_signature_pattern: IncomingModelKeyPath | None = (
+        incoming_model_key_path: IncomingModelKeyPath | None = (
             await session.execute(
                 select(IncomingModelKeyPath).where(
                     IncomingModelKeyPath.data_model_id == data_model_id
                 )
             )
         ).scalar_one_or_none()
-        partner_mnemonic, signature, signature_payload = pattern_matcher.get_signature_pattern_path(
-            incoming_model_signature_pattern, ingest_data
+        partner_mnemonic, signature, signature_payload, incoming_model_key_path = pattern_matcher.get_signature_pattern_path(
+            incoming_model_key_path, ingest_data
         )
         if not partner_mnemonic or not signature or not signature_payload:
             raise G2PRegistryException(
@@ -160,7 +162,7 @@ class G2PIngestService(BaseService):
             partner_mnemonic, session
         )
 
-        return incoming_partner, signature, signature_payload
+        return incoming_partner, signature, signature_payload, incoming_model_key_path
 
     async def _validate_signature(self, keymanager_reference_id: str, signature: str, signature_payload: Dict):
         keymanager_helper = KeymanagerCryptoHelper().get_component()
@@ -176,3 +178,42 @@ class G2PIngestService(BaseService):
                 code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
                 message=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[0],
             )
+
+    def _get_ingest_data_payloads(
+        self,
+        ingest_data: Dict,
+        incoming_model_key_path: IncomingModelKeyPath,
+    ) -> List[Dict]:
+        """
+        Split ingest_data into multiple payloads when a list is present at
+        key_path_for_list_elements.
+
+        Example:
+            $.body.message.notify_event -> [ {...}, {...}, {...} ]
+
+        Result:
+            [
+                ingest_data with notify_event = [{...}],
+                ingest_data with notify_event = [{...}],
+                ingest_data with notify_event = [{...}]
+            ]
+        """
+        elements, jsonpath_expr = self._get_ingest_data_list_elements_path_expr(
+            incoming_model_key_path, ingest_data
+        )
+
+        if not elements or not isinstance(elements, list):
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
+            )
+
+        ingest_data_payloads: List[Dict] = []
+
+        for element in elements:
+            # Deep copy full payload and replace the list of elements with a single element
+            payload_copy = deepcopy(ingest_data)
+            jsonpath_expr.update(payload_copy, [element])
+            ingest_data_payloads.append(payload_copy)
+
+        return ingest_data_payloads

@@ -3,8 +3,9 @@ from typing import Dict
 from datetime import datetime
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.schemas import G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody
-from openg2p_registry_core.schemas import IngestDataPayload, IngestDataRequest, IngestDataResponse, IngestDataResponseBody
+from openg2p_registry_core.schemas import IngestDataPayload, IngestDataResponse, IngestDataResponseBody
 from openg2p_registry_core.errors import G2PRegistryException
+from openg2p_registry_core.helpers import MinioClient, TemplateHelper
 
 class RequestResponseHelper(BaseService):
 
@@ -22,7 +23,7 @@ class RequestResponseHelper(BaseService):
         except Exception as _:
             raise Exception("Request body is empty or invalid JSON")
 
-    def construct_ingest_data_success_response(self, ingest_data_payload: IngestDataPayload, ingest_data_request: IngestDataRequest) -> IngestDataResponse:
+    def construct_ingest_data_success_response(self, ingest_data_payload: IngestDataPayload, response_template_file_id: str) -> IngestDataResponse:
         g2p_response_header = G2PResponseHeader(
             request_id="",
             response_status=G2PResponseStatus.SUCCESS,
@@ -39,9 +40,10 @@ class RequestResponseHelper(BaseService):
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return ingest_data_response
+        data_model_response = self._construct_data_model_response(response_template_file_id, ingest_data_response)
+        return data_model_response
     
-    def construct_error_response(self, error: Exception, g2p_request: IngestDataRequest = None) -> G2PResponse:
+    def construct_error_response(self, error: Exception, response_template_file_id: str) -> G2PResponse:
         """
         Unified error response constructor that handles both G2PRegistryException and generic exceptions.
         For G2PRegistryException, uses the exception's code and message.
@@ -70,4 +72,14 @@ class RequestResponseHelper(BaseService):
             )
         )
 
-        return error_response
+        data_model_error_response = self._construct_data_model_response(response_template_file_id, error_response)
+        return data_model_error_response
+
+
+    def _construct_data_model_response(self, response_template_file_id: str, response: G2PResponse) -> G2PResponse:
+        minio_client = MinioClient.get_component()
+        template_helper = TemplateHelper.get_component()
+
+        response = template_helper.render_with_template(minio_client=minio_client, template_file_id=response_template_file_id, data=response, expand_data=False)
+        return response
+        
