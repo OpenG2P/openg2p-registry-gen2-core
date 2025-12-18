@@ -10,8 +10,15 @@ from openg2p_registry_core.schemas import (
     IncomingPartnerResponse,
     IncomingPartnersResponse,
     IncomingModelKeyPathRequest,
-    IncomingModelKeyPathUpdateRequest,
     IncomingModelKeyPathResponse,
+    IncomingModelKeyPathListResponse,
+    EditKeyPathForMessageIdRequest,
+    EditKeyPathForSenderRequest,
+    EditKeyPathForSignatureRequest,
+    EditKeyPathForSignaturePayloadRequest,
+    EditIsListRequest,
+    EditKeyPathForListElementsRequest,
+    DeleteIncomingKeyPathRequest,
     IncomingModelSemanticPatternRequest,
     IncomingModelSemanticPatternUpdateRequest,
     IncomingModelSemanticPatternResponse,
@@ -83,22 +90,64 @@ class IngestionConfigurationController(BaseController):
 
         # IncomingModelKeyPath endpoints
         self.router.add_api_route(
-            "/create_signature_pattern",
-            self.create_signature_pattern,
+            "/create_new_incoming_key_path",
+            self.create_new_incoming_key_path,
             responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/get_signature_pattern",
-            self.get_signature_pattern,
+            "/get_all_incoming_key_paths",
+            self.get_all_incoming_key_paths,
+            responses={200: {"model": IncomingModelKeyPathListResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/delete_incoming_key_path",
+            self.delete_incoming_key_path,
             responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
-            "/update_signature_pattern",
-            self.update_signature_pattern,
+            "/edit_key_path_for_message_id",
+            self.edit_key_path_for_message_id,
+            responses={200: {"model": IncomingModelKeyPathResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/edit_key_path_for_sender",
+            self.edit_key_path_for_sender,
+            responses={200: {"model": IncomingModelKeyPathResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/edit_key_path_for_signature",
+            self.edit_key_path_for_signature,
+            responses={200: {"model": IncomingModelKeyPathResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/edit_key_path_for_signature_payload",
+            self.edit_key_path_for_signature_payload,
+            responses={200: {"model": IncomingModelKeyPathResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/edit_is_list",
+            self.edit_is_list,
+            responses={200: {"model": IncomingModelKeyPathResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/edit_key_path_for_list_elements",
+            self.edit_key_path_for_list_elements,
             responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
@@ -271,11 +320,12 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, incoming_partner_request)
 
-    async def create_signature_pattern(
+    # IncomingModelKeyPath Methods
+    async def create_new_incoming_key_path(
         self, pattern_request: IncomingModelKeyPathRequest
     ) -> IncomingModelKeyPathResponse:
         try:
-            pattern_data = await self.ingestion_config_service.create_signature_pattern(
+            pattern_data = await self.ingestion_config_service.create_new_incoming_key_path(
                 pattern_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
@@ -284,26 +334,107 @@ class IngestionConfigurationController(BaseController):
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)
 
-    async def get_signature_pattern(
+    async def get_all_incoming_key_paths(
         self, pattern_request: IncomingModelKeyPathRequest
+    ) -> IncomingModelKeyPathListResponse:
+        try:
+            key_paths_data = await self.ingestion_config_service.get_all_incoming_key_paths()
+            return self.helper.construct_ingestion_config_success_response(
+                key_paths_data, IncomingModelKeyPathListResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def delete_incoming_key_path(
+        self, pattern_request: DeleteIncomingKeyPathRequest
     ) -> IncomingModelKeyPathResponse:
         try:
-            pattern_data = await self.ingestion_config_service.get_signature_pattern(
+            await self.ingestion_config_service.delete_incoming_key_path(
                 pattern_request.request_body.request_payload.key_path_id
             )
             return self.helper.construct_ingestion_config_success_response(
+                None, IncomingModelKeyPathResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def edit_key_path_for_message_id(
+        self, pattern_request: EditKeyPathForMessageIdRequest
+    ) -> IncomingModelKeyPathResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.edit_key_path_for_message_id(
+                pattern_request.request_body.request_payload.key_path_id,
+                pattern_request.request_body.request_payload.keypath_for_message_id
+            )
+            return self.helper.construct_ingestion_config_success_response(
                 pattern_data, IncomingModelKeyPathResponse, pattern_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)
 
-    async def update_signature_pattern(
-        self, pattern_request: IncomingModelKeyPathUpdateRequest
+    async def edit_key_path_for_sender(
+        self, pattern_request: EditKeyPathForSenderRequest
     ) -> IncomingModelKeyPathResponse:
         try:
-            pattern_data = await self.ingestion_config_service.update_signature_pattern(
+            pattern_data = await self.ingestion_config_service.edit_key_path_for_sender(
                 pattern_request.request_body.request_payload.key_path_id,
-                pattern_request.request_body.request_payload
+                pattern_request.request_body.request_payload.key_path_for_sender
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def edit_key_path_for_signature(
+        self, pattern_request: EditKeyPathForSignatureRequest
+    ) -> IncomingModelKeyPathResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.edit_key_path_for_signature(
+                pattern_request.request_body.request_payload.key_path_id,
+                pattern_request.request_body.request_payload.key_path_for_signature
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def edit_key_path_for_signature_payload(
+        self, pattern_request: EditKeyPathForSignaturePayloadRequest
+    ) -> IncomingModelKeyPathResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.edit_key_path_for_signature_payload(
+                pattern_request.request_body.request_payload.key_path_id,
+                pattern_request.request_body.request_payload.key_path_for_signature_payload
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def edit_is_list(
+        self, pattern_request: EditIsListRequest
+    ) -> IncomingModelKeyPathResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.edit_is_list(
+                pattern_request.request_body.request_payload.key_path_id,
+                pattern_request.request_body.request_payload.is_list
+            )
+            return self.helper.construct_ingestion_config_success_response(
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
+            )
+        except Exception as error:
+            return self.helper.construct_error_response(error, pattern_request)
+
+    async def edit_key_path_for_list_elements(
+        self, pattern_request: EditKeyPathForListElementsRequest
+    ) -> IncomingModelKeyPathResponse:
+        try:
+            pattern_data = await self.ingestion_config_service.edit_key_path_for_list_elements(
+                pattern_request.request_body.request_payload.key_path_id,
+                pattern_request.request_body.request_payload.keypath_for_list_elements
             )
             return self.helper.construct_ingestion_config_success_response(
                 pattern_data, IncomingModelKeyPathResponse, pattern_request

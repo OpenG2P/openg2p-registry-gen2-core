@@ -12,6 +12,14 @@ from .ingestion_configuration import (
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
+    IncomingModelKeyPathListData,
+    EditKeyPathForMessageIdPayload,
+    EditKeyPathForSenderPayload,
+    EditKeyPathForSignaturePayload,
+    EditKeyPathForSignaturePayloadPayload,
+    EditIsListPayload,
+    EditKeyPathForListElementsPayload,
+    DeleteIncomingKeyPathPayload,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -93,6 +101,72 @@ class IncomingModelKeyPathsResponseBody(G2PResponseBody):
 
 class IncomingModelKeyPathsResponse(G2PResponse):
     response_body: Optional[IncomingModelKeyPathsResponseBody] = None
+
+
+# List response for IncomingModelKeyPath with data_model_mnemonic
+class IncomingModelKeyPathListResponseBody(G2PResponseBody):
+    response_payload: Optional[List[IncomingModelKeyPathListData]] = None
+
+
+class IncomingModelKeyPathListResponse(G2PResponse):
+    response_body: Optional[IncomingModelKeyPathListResponseBody] = None
+
+
+# Individual edit requests for IncomingModelKeyPath
+class EditKeyPathForMessageIdRequestBody(G2PRequestBody):
+    request_payload: EditKeyPathForMessageIdPayload
+
+
+class EditKeyPathForMessageIdRequest(G2PRequest):
+    request_body: EditKeyPathForMessageIdRequestBody
+
+
+class EditKeyPathForSenderRequestBody(G2PRequestBody):
+    request_payload: EditKeyPathForSenderPayload
+
+
+class EditKeyPathForSenderRequest(G2PRequest):
+    request_body: EditKeyPathForSenderRequestBody
+
+
+class EditKeyPathForSignatureRequestBody(G2PRequestBody):
+    request_payload: EditKeyPathForSignaturePayload
+
+
+class EditKeyPathForSignatureRequest(G2PRequest):
+    request_body: EditKeyPathForSignatureRequestBody
+
+
+class EditKeyPathForSignaturePayloadRequestBody(G2PRequestBody):
+    request_payload: EditKeyPathForSignaturePayloadPayload
+
+
+class EditKeyPathForSignaturePayloadRequest(G2PRequest):
+    request_body: EditKeyPathForSignaturePayloadRequestBody
+
+
+class EditIsListRequestBody(G2PRequestBody):
+    request_payload: EditIsListPayload
+
+
+class EditIsListRequest(G2PRequest):
+    request_body: EditIsListRequestBody
+
+
+class EditKeyPathForListElementsRequestBody(G2PRequestBody):
+    request_payload: EditKeyPathForListElementsPayload
+
+
+class EditKeyPathForListElementsRequest(G2PRequest):
+    request_body: EditKeyPathForListElementsRequestBody
+
+
+class DeleteIncomingKeyPathRequestBody(G2PRequestBody):
+    request_payload: DeleteIncomingKeyPathPayload
+
+
+class DeleteIncomingKeyPathRequest(G2PRequest):
+    request_body: DeleteIncomingKeyPathRequestBody
 
 
 # IncomingModelSemanticPattern Request/Response

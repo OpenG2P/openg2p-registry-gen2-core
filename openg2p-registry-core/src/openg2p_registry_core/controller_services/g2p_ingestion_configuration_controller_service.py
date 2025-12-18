@@ -11,6 +11,7 @@ from ..schemas import (
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
+    IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -65,28 +66,71 @@ class G2PIngestionConfigurationControllerService(BaseService):
         """Get all incoming partners"""
         return await self.g2p_ingestion_configuration_service.get_all_incoming_partners()
 
-    async def create_signature_pattern(
+    # IncomingModelKeyPath Methods
+    async def create_new_incoming_key_path(
         self, pattern_payload: IncomingModelKeyPathPayload
     ) -> IncomingModelKeyPathData:
-        """Create a new signature pattern"""
-        return await self.g2p_ingestion_configuration_service.create_signature_pattern(
+        """Create a new incoming key path"""
+        return await self.g2p_ingestion_configuration_service.create_new_incoming_key_path(
             pattern_payload
         )
 
-    async def get_signature_pattern(
-        self, key_path_id: str
-    ) -> IncomingModelKeyPathData:
-        """Get signature pattern by ID"""
-        return await self.g2p_ingestion_configuration_service.get_signature_pattern(
+    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
+        """Get all incoming key paths"""
+        return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths()
+
+    async def delete_incoming_key_path(self, key_path_id: str) -> None:
+        """Delete incoming key path"""
+        return await self.g2p_ingestion_configuration_service.delete_incoming_key_path(
             key_path_id
         )
 
-    async def update_signature_pattern(
-        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
+    async def edit_key_path_for_message_id(
+        self, key_path_id: str, keypath_for_message_id: str
     ) -> IncomingModelKeyPathData:
-        """Update signature pattern"""
-        return await self.g2p_ingestion_configuration_service.update_signature_pattern(
-            key_path_id, pattern_payload
+        """Edit key_path_for_message_id field"""
+        return await self.g2p_ingestion_configuration_service.edit_key_path_for_message_id(
+            key_path_id, keypath_for_message_id
+        )
+
+    async def edit_key_path_for_sender(
+        self, key_path_id: str, key_path_for_sender: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_sender field"""
+        return await self.g2p_ingestion_configuration_service.edit_key_path_for_sender(
+            key_path_id, key_path_for_sender
+        )
+
+    async def edit_key_path_for_signature(
+        self, key_path_id: str, key_path_for_signature: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_signature field"""
+        return await self.g2p_ingestion_configuration_service.edit_key_path_for_signature(
+            key_path_id, key_path_for_signature
+        )
+
+    async def edit_key_path_for_signature_payload(
+        self, key_path_id: str, key_path_for_signature_payload: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_signature_payload field"""
+        return await self.g2p_ingestion_configuration_service.edit_key_path_for_signature_payload(
+            key_path_id, key_path_for_signature_payload
+        )
+
+    async def edit_is_list(
+        self, key_path_id: str, is_list: bool
+    ) -> IncomingModelKeyPathData:
+        """Edit is_list field"""
+        return await self.g2p_ingestion_configuration_service.edit_is_list(
+            key_path_id, is_list
+        )
+
+    async def edit_key_path_for_list_elements(
+        self, key_path_id: str, keypath_for_list_elements: str
+    ) -> IncomingModelKeyPathData:
+        """Edit keypath_for_list_elements field"""
+        return await self.g2p_ingestion_configuration_service.edit_key_path_for_list_elements(
+            key_path_id, keypath_for_list_elements
         )
 
     async def create_semantic_pattern(

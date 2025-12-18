@@ -27,6 +27,7 @@ from ..schemas import (
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
+    IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -151,32 +152,58 @@ class G2PIngestionConfigurationService(BaseService):
             partners = result.scalars().all()
             return [IncomingPartnerData.model_validate(partner) for partner in partners]
 
-    async def create_signature_pattern(
+    # IncomingModelKeyPath Methods
+    async def create_new_incoming_key_path(
         self, pattern_payload: IncomingModelKeyPathPayload
     ) -> IncomingModelKeyPathData:
-        """Create a new signature pattern"""
+        """Create a new incoming key path"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern_id = pattern_payload.key_path_id or str(uuid.uuid4())
             pattern = IncomingModelKeyPath(
                 key_path_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
-                keypath_for_message_id=pattern_payload.keypath_for_message_id,
+                key_path_for_message_id=pattern_payload.keypath_for_message_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
                 key_path_for_signature=pattern_payload.key_path_for_signature,
                 key_path_for_signature_payload=pattern_payload.key_path_for_signature_payload,
                 is_list=pattern_payload.is_list,
-                key_path_for_list=pattern_payload.key_path_for_list,
+                key_path_for_list_elements=pattern_payload.keypath_for_list_elements,
             )
             session.add(pattern)
             await session.commit()
             await session.refresh(pattern)
             return IncomingModelKeyPathData.model_validate(pattern)
 
-    async def get_signature_pattern(
-        self, key_path_id: str
-    ) -> IncomingModelKeyPathData:
-        """Get signature pattern by ID"""
+    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
+        """Get all incoming key paths with data_model_mnemonic"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(IncomingModelKeyPath)
+            )
+            key_paths = result.scalars().all()
+
+            # Build list with data_model_mnemonic
+            key_path_list: list[IncomingModelKeyPathListData] = []
+            for key_path in key_paths:
+                # Get data model to retrieve mnemonic
+                data_model_result = await session.execute(
+                    select(DataModel).where(DataModel.data_model_id == key_path.data_model_id)
+                )
+                data_model = data_model_result.scalar_one_or_none()
+                data_model_mnemonic = data_model.data_model_mnemonic if data_model else ""
+
+                key_path_list.append(IncomingModelKeyPathListData(
+                    key_path_id=key_path.key_path_id,
+                    data_model_id=key_path.data_model_id,
+                    data_model_mnemonic=data_model_mnemonic,
+                    is_list=key_path.is_list,
+                ))
+            return key_path_list
+
+    async def delete_incoming_key_path(self, key_path_id: str) -> None:
+        """Delete incoming key path"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern = await session.execute(
@@ -190,12 +217,61 @@ class G2PIngestionConfigurationService(BaseService):
                     code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
                     message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
                 )
-            return IncomingModelKeyPathData.model_validate(pattern_obj)
+            await session.delete(pattern_obj)
+            await session.commit()
 
-    async def update_signature_pattern(
-        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
+    async def edit_key_path_for_message_id(
+        self, key_path_id: str, keypath_for_message_id: str
     ) -> IncomingModelKeyPathData:
-        """Update signature pattern - only updates provided fields"""
+        """Edit key_path_for_message_id field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "key_path_for_message_id", keypath_for_message_id
+        )
+
+    async def edit_key_path_for_sender(
+        self, key_path_id: str, key_path_for_sender: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_sender field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "key_path_for_sender", key_path_for_sender
+        )
+
+    async def edit_key_path_for_signature(
+        self, key_path_id: str, key_path_for_signature: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_signature field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "key_path_for_signature", key_path_for_signature
+        )
+
+    async def edit_key_path_for_signature_payload(
+        self, key_path_id: str, key_path_for_signature_payload: str
+    ) -> IncomingModelKeyPathData:
+        """Edit key_path_for_signature_payload field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "key_path_for_signature_payload", key_path_for_signature_payload
+        )
+
+    async def edit_is_list(
+        self, key_path_id: str, is_list: bool
+    ) -> IncomingModelKeyPathData:
+        """Edit is_list field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "is_list", is_list
+        )
+
+    async def edit_key_path_for_list_elements(
+        self, key_path_id: str, keypath_for_list_elements: str
+    ) -> IncomingModelKeyPathData:
+        """Edit keypath_for_list_elements field"""
+        return await self._update_incoming_key_path_field(
+            key_path_id, "key_path_for_list_elements", keypath_for_list_elements
+        )
+
+    async def _update_incoming_key_path_field(
+        self, key_path_id: str, field_name: str, field_value
+    ) -> IncomingModelKeyPathData:
+        """Helper method to update a single field on IncomingModelKeyPath"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern = await session.execute(
@@ -210,20 +286,7 @@ class G2PIngestionConfigurationService(BaseService):
                     message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
                 )
 
-            # Only update fields that are provided (not None)
-            if pattern_payload.keypath_for_message_id is not None:
-                pattern_obj.keypath_for_message_id = pattern_payload.keypath_for_message_id
-            if pattern_payload.key_path_for_sender is not None:
-                pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
-            if pattern_payload.key_path_for_signature is not None:
-                pattern_obj.key_path_for_signature = pattern_payload.key_path_for_signature
-            if pattern_payload.key_path_for_signature_payload is not None:
-                pattern_obj.key_path_for_signature_payload = pattern_payload.key_path_for_signature_payload
-            if pattern_payload.is_list is not None:
-                pattern_obj.is_list = pattern_payload.is_list
-            if pattern_payload.key_path_for_list is not None:
-                pattern_obj.key_path_for_list = pattern_payload.key_path_for_list
-
+            setattr(pattern_obj, field_name, field_value)
             await session.commit()
             await session.refresh(pattern_obj)
             return IncomingModelKeyPathData.model_validate(pattern_obj)
