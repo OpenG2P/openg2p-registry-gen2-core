@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openg2p-standards-models"
+authors = [
+  { name="OpenG2P", email="info@openg2p.org" },
+]
+description = "OpenG2P Standards Models"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+  "Operating System :: OS Independent",
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://openg2p.org"
+Documentation = "https://docs.openg2p.org/"
+Repository = "https://github.com/OpenG2P/openg2p-standards-models"
+Source = "https://github.com/OpenG2P/openg2p-standards-models"
+
+[tool.hatch.version]
+path = "src/openg2p_standards_models/__init__.py"
