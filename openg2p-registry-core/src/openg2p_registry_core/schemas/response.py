@@ -30,7 +30,7 @@ class RegisterSummaryDataResponse(G2PResponse):
 
 # ChangeLog Summary Data
 class ChangeLogSummaryDataResponseBody(G2PResponseBody):
-    response_payload: Optional[List[ChangeLogSummaryData]] = None
+    response_payload: Optional[ChangeLogSummaryData] = None
 
 class ChangeLogSummaryDataResponse(G2PResponse):
     response_body: Optional[ChangeLogSummaryDataResponseBody] = None

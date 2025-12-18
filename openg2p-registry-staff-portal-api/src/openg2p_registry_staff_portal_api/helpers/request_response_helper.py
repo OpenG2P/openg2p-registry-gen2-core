@@ -106,7 +106,7 @@ class RequestResponseHelper(BaseService):
         )
         return register_summary_data_response
 
-    def construct_changelog_summary_data_success_response(self, changelog_summary_data_list: List[ChangeLogSummaryData], g2p_request: G2PRequest = None) -> ChangeLogSummaryDataResponse:
+    def construct_changelog_summary_data_success_response(self, changelog_summary_data: ChangeLogSummaryData, g2p_request: G2PRequest = None) -> ChangeLogSummaryDataResponse:
         request_id = g2p_request.request_header.request_id if g2p_request else ""
 
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -118,7 +118,7 @@ class RequestResponseHelper(BaseService):
         )
 
         response_body: ChangeLogSummaryDataResponseBody = ChangeLogSummaryDataResponseBody(
-            response_payload=changelog_summary_data_list
+            response_payload=changelog_summary_data
         )
 
         changelog_summary_data_response: ChangeLogSummaryDataResponse = ChangeLogSummaryDataResponse(

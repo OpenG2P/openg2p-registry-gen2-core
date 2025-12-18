@@ -275,9 +275,9 @@ class G2PRegisterController(BaseController):
 
     async def get_register_changelog_data(self, get_changelog_summary_data_request: GetChangeLogSummaryDataRequest) -> ChangeLogSummaryDataResponse:
         try:
-            changelog_summary_data_list: list[ChangeLogSummaryData] = await self.g2p_register_controller_service.get_changelog_summary_data(get_changelog_summary_data_request)
+            changelog_summary_data: ChangeLogSummaryData = await self.g2p_register_controller_service.get_changelog_summary_data(get_changelog_summary_data_request)
             changelog_summary_data_response: ChangeLogSummaryDataResponse = self.helper.construct_changelog_summary_data_success_response(
-                changelog_summary_data_list=changelog_summary_data_list, g2p_request=get_changelog_summary_data_request
+                changelog_summary_data=changelog_summary_data, g2p_request=get_changelog_summary_data_request
             )
             return changelog_summary_data_response
         except Exception as error_exception:

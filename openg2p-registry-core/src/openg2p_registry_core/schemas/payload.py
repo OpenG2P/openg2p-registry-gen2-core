@@ -130,9 +130,6 @@ class RegisterSummaryData(BaseModel):
 
 
 class ChangeLogSummaryData(BaseModel):
-    register_id: str
-    register_mnemonic: str
-    register_subject: Optional[str] = None
     total_count: int
     approved_count: int
     pending_count: int
