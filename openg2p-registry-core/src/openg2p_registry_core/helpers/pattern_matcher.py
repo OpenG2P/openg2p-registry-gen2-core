@@ -1,6 +1,6 @@
 import re
 import json
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Any
 from jsonpath_ng import parse as jsonpath_parse
 
 from openg2p_fastapi_common.service import BaseService
@@ -24,17 +24,17 @@ class PatternMatcher(BaseService):
         self.separator: str = "=>"
 
     def get_signature_pattern_path(
-        self, incoming_model_signature_pattern: IncomingModelKeyPath, data: Dict
+        self, incoming_model_key_path: IncomingModelKeyPath, data: Dict
     ) -> Tuple[str, str, Dict]:
 
         sender = self._extract_jsonpath(
-            data, incoming_model_signature_pattern.key_path_for_sender
+            data, incoming_model_key_path.key_path_for_sender
         )
         signature = self._extract_jsonpath(
-            data, incoming_model_signature_pattern.key_path_for_signature
+            data, incoming_model_key_path.key_path_for_signature
         )
         signature_payload = self._extract_jsonpath(
-            data, incoming_model_signature_pattern.key_path_for_signature_payload
+            data, incoming_model_key_path.key_path_for_signature_payload
         )
         return sender, signature, signature_payload
     
@@ -84,6 +84,17 @@ class PatternMatcher(BaseService):
 
         return False
 
+    def get_ingest_data_list_elements_path_expr(
+        self, incoming_model_key_path: IncomingModelKeyPath, data: Dict
+    ) -> Tuple[list, Any]:
+        expr = self._get_parsed_jsonpath_expr(
+            incoming_model_key_path.key_path_for_list_elements
+        )
+        elements = self._extract_jsonpath(
+            data, incoming_model_key_path.key_path_for_list_elements
+        )
+
+        return elements, expr
 
     def _extract_with_pattern(self, data: Dict, pattern: str) -> Optional[str]:
         try:
@@ -98,7 +109,7 @@ class PatternMatcher(BaseService):
         except Exception as e:
             raise e
 
-    def _extract_jsonpath(self, data: Dict, jsonpath_expr: str) -> Optional[str]:
+    def _extract_jsonpath(self, data: Dict, jsonpath_expr: str) -> Optional[Any]:
         expr = jsonpath_parse(jsonpath_expr)
         matches = expr.find(data)
         return matches[0].value if matches else None
@@ -108,3 +119,6 @@ class PatternMatcher(BaseService):
         if not pattern.fullmatch(str(value)):
             return None
         return value
+    
+    def _get_parsed_jsonpath_expr(self, pattern: str) -> Any:
+        return jsonpath_parse(pattern)
