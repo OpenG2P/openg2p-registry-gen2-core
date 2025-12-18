@@ -33,8 +33,8 @@ class IncomingPartnerData(BaseModel):
         from_attributes: bool = True
 
 
-class IncomingModelSignaturePatternPayload(BaseModel):
-    signature_pattern_id: Optional[str] = None
+class IncomingModelKeyPathPayload(BaseModel):
+    key_path_id: Optional[str] = None
     keypath_for_message_id: str
     data_model_id: str
     key_path_for_sender: str
@@ -47,9 +47,9 @@ class IncomingModelSignaturePatternPayload(BaseModel):
         from_attributes: bool = True
 
 
-class IncomingModelSignaturePatternUpdatePayload(BaseModel):
-    """Update payload for IncomingModelSignaturePattern - only allows updating specific fields"""
-    signature_pattern_id: str
+class IncomingModelKeyPathUpdatePayload(BaseModel):
+    """Update payload for IncomingModelKeyPath - only allows updating specific fields"""
+    key_path_id: str
     keypath_for_message_id: Optional[str] = None
     key_path_for_sender: Optional[str] = None
     key_path_for_signature: Optional[str] = None
@@ -61,8 +61,8 @@ class IncomingModelSignaturePatternUpdatePayload(BaseModel):
         from_attributes: bool = True
 
 
-class IncomingModelSignaturePatternData(BaseModel):
-    signature_pattern_id: str
+class IncomingModelKeyPathData(BaseModel):
+    key_path_id: str
     data_model_id: str
     keypath_for_message_id: str
     key_path_for_sender: str

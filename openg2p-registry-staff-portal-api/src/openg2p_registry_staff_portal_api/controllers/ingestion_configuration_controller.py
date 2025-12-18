@@ -9,9 +9,9 @@ from openg2p_registry_core.schemas import (
     IncomingPartnerUpdateRequest,
     IncomingPartnerResponse,
     IncomingPartnersResponse,
-    IncomingModelSignaturePatternRequest,
-    IncomingModelSignaturePatternUpdateRequest,
-    IncomingModelSignaturePatternResponse,
+    IncomingModelKeyPathRequest,
+    IncomingModelKeyPathUpdateRequest,
+    IncomingModelKeyPathResponse,
     IncomingModelSemanticPatternRequest,
     IncomingModelSemanticPatternUpdateRequest,
     IncomingModelSemanticPatternResponse,
@@ -81,25 +81,25 @@ class IngestionConfigurationController(BaseController):
             methods=["POST"],
         )
 
-        # IncomingModelSignaturePattern endpoints
+        # IncomingModelKeyPath endpoints
         self.router.add_api_route(
             "/create_signature_pattern",
             self.create_signature_pattern,
-            responses={200: {"model": IncomingModelSignaturePatternResponse}},
+            responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
             "/get_signature_pattern",
             self.get_signature_pattern,
-            responses={200: {"model": IncomingModelSignaturePatternResponse}},
+            responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
 
         self.router.add_api_route(
             "/update_signature_pattern",
             self.update_signature_pattern,
-            responses={200: {"model": IncomingModelSignaturePatternResponse}},
+            responses={200: {"model": IncomingModelKeyPathResponse}},
             methods=["POST"],
         )
 
@@ -272,41 +272,41 @@ class IngestionConfigurationController(BaseController):
             return self.helper.construct_error_response(error, incoming_partner_request)
 
     async def create_signature_pattern(
-        self, pattern_request: IncomingModelSignaturePatternRequest
-    ) -> IncomingModelSignaturePatternResponse:
+        self, pattern_request: IncomingModelKeyPathRequest
+    ) -> IncomingModelKeyPathResponse:
         try:
             pattern_data = await self.ingestion_config_service.create_signature_pattern(
                 pattern_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
-                pattern_data, IncomingModelSignaturePatternResponse, pattern_request
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)
 
     async def get_signature_pattern(
-        self, pattern_request: IncomingModelSignaturePatternRequest
-    ) -> IncomingModelSignaturePatternResponse:
+        self, pattern_request: IncomingModelKeyPathRequest
+    ) -> IncomingModelKeyPathResponse:
         try:
             pattern_data = await self.ingestion_config_service.get_signature_pattern(
-                pattern_request.request_body.request_payload.signature_pattern_id
+                pattern_request.request_body.request_payload.key_path_id
             )
             return self.helper.construct_ingestion_config_success_response(
-                pattern_data, IncomingModelSignaturePatternResponse, pattern_request
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)
 
     async def update_signature_pattern(
-        self, pattern_request: IncomingModelSignaturePatternUpdateRequest
-    ) -> IncomingModelSignaturePatternResponse:
+        self, pattern_request: IncomingModelKeyPathUpdateRequest
+    ) -> IncomingModelKeyPathResponse:
         try:
             pattern_data = await self.ingestion_config_service.update_signature_pattern(
-                pattern_request.request_body.request_payload.signature_pattern_id,
+                pattern_request.request_body.request_payload.key_path_id,
                 pattern_request.request_body.request_payload
             )
             return self.helper.construct_ingestion_config_success_response(
-                pattern_data, IncomingModelSignaturePatternResponse, pattern_request
+                pattern_data, IncomingModelKeyPathResponse, pattern_request
             )
         except Exception as error:
             return self.helper.construct_error_response(error, pattern_request)

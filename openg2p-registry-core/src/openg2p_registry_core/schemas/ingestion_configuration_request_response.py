@@ -9,9 +9,9 @@ from .ingestion_configuration import (
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
     IncomingPartnerData,
-    IncomingModelSignaturePatternPayload,
-    IncomingModelSignaturePatternUpdatePayload,
-    IncomingModelSignaturePatternData,
+    IncomingModelKeyPathPayload,
+    IncomingModelKeyPathUpdatePayload,
+    IncomingModelKeyPathData,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingModelSemanticPatternData,
@@ -62,37 +62,37 @@ class IncomingPartnersResponse(G2PResponse):
     response_body: Optional[IncomingPartnersResponseBody] = None
 
 
-# IncomingModelSignaturePattern Request/Response
-class IncomingModelSignaturePatternRequestBody(G2PRequestBody):
-    request_payload: IncomingModelSignaturePatternPayload
+# IncomingModelKeyPath Request/Response
+class IncomingModelKeyPathRequestBody(G2PRequestBody):
+    request_payload: IncomingModelKeyPathPayload
 
 
-class IncomingModelSignaturePatternRequest(G2PRequest):
-    request_body: IncomingModelSignaturePatternRequestBody
+class IncomingModelKeyPathRequest(G2PRequest):
+    request_body: IncomingModelKeyPathRequestBody
 
 
-class IncomingModelSignaturePatternUpdateRequestBody(G2PRequestBody):
-    request_payload: IncomingModelSignaturePatternUpdatePayload
+class IncomingModelKeyPathUpdateRequestBody(G2PRequestBody):
+    request_payload: IncomingModelKeyPathUpdatePayload
 
 
-class IncomingModelSignaturePatternUpdateRequest(G2PRequest):
-    request_body: IncomingModelSignaturePatternUpdateRequestBody
+class IncomingModelKeyPathUpdateRequest(G2PRequest):
+    request_body: IncomingModelKeyPathUpdateRequestBody
 
 
-class IncomingModelSignaturePatternResponseBody(G2PResponseBody):
-    response_payload: Optional[IncomingModelSignaturePatternData] = None
+class IncomingModelKeyPathResponseBody(G2PResponseBody):
+    response_payload: Optional[IncomingModelKeyPathData] = None
 
 
-class IncomingModelSignaturePatternResponse(G2PResponse):
-    response_body: Optional[IncomingModelSignaturePatternResponseBody] = None
+class IncomingModelKeyPathResponse(G2PResponse):
+    response_body: Optional[IncomingModelKeyPathResponseBody] = None
 
 
-class IncomingModelSignaturePatternsResponseBody(G2PResponseBody):
-    response_payload: Optional[List[IncomingModelSignaturePatternData]] = None
+class IncomingModelKeyPathsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[IncomingModelKeyPathData]] = None
 
 
-class IncomingModelSignaturePatternsResponse(G2PResponse):
-    response_body: Optional[IncomingModelSignaturePatternsResponseBody] = None
+class IncomingModelKeyPathsResponse(G2PResponse):
+    response_body: Optional[IncomingModelKeyPathsResponseBody] = None
 
 
 # IncomingModelSemanticPattern Request/Response

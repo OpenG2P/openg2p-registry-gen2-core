@@ -21,7 +21,7 @@ from openg2p_registry_core.schemas import (
     DeduplicationRegisterResultsData, DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
     DeduplicationChangelogResultsData, DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody,
     IncomingPartnerData, IncomingPartnerResponseBody,
-    IncomingModelSignaturePatternData, IncomingModelSignaturePatternResponseBody,
+    IncomingModelKeyPathData, IncomingModelKeyPathResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
     IncomingPayloadEnricherResponseBody, DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
     RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
@@ -402,8 +402,8 @@ class RequestResponseHelper(BaseService):
         response_class_name = response_class.__name__
         if response_class_name == 'IncomingPartnerResponse':
             response_body = IncomingPartnerResponseBody(response_payload=payload_data)
-        elif response_class_name == 'IncomingModelSignaturePatternResponse':
-            response_body = IncomingModelSignaturePatternResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingModelKeyPathResponse':
+            response_body = IncomingModelKeyPathResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingModelSemanticPatternResponse':
             response_body = IncomingModelSemanticPatternResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingTemplateResponse':

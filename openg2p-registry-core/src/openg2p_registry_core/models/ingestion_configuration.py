@@ -12,10 +12,11 @@ class IncomingPartner(BaseORMModel):
     keymanager_reference_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-class IncomingModelSignaturePattern(BaseORMModel):
+class IncomingModelKeyPath(BaseORMModel):
 
-    __tablename__ = "incoming_model_signature_patterns"
-    signature_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
+    __tablename__ = "incoming_model_key_paths"
+
+    key_path_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     key_path_for_message_id: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
@@ -35,6 +36,7 @@ class IncomingModelSemanticPattern(BaseORMModel):
     pattern_for_register: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_operation: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_business_payload: Mapped[str] = mapped_column(String, nullable=False)
+    raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
 
 class IncomingTemplate(BaseORMModel):
 

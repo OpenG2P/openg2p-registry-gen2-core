@@ -15,9 +15,9 @@ from .deduplication_results import DeduplicationRegisterResult, DeduplicationCha
 from .ingestion_configuration import (
     IncomingPartner,
     IncomingTemplate,
+    IncomingModelKeyPath,
     IncomingPayloadEnricher,
     IncomingModelSemanticPattern,
-    IncomingModelSignaturePattern,
     SubscriptionActivityLog
 )
 from .ingestion_pipeline import (
