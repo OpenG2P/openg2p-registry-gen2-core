@@ -32,9 +32,9 @@ class IncomingModelSemanticPattern(BaseORMModel):
     semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False)
+    section_id: Mapped[str] = mapped_column(String, nullable=False)
     pattern_for_register: Mapped[str] = mapped_column(String, nullable=False)
-    pattern_for_operation: Mapped[str] = mapped_column(String, nullable=False)
+    pattern_for_section: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_business_payload: Mapped[str] = mapped_column(String, nullable=False)
     raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
 

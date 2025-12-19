@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from ..models import (
     G2PRegisterChangeLog,
     G2PRegisterDefinition,
-    G2PRegisterOperation,
+    G2PRegisterSection,
     G2PRegisterVerification,
     G2PRegisterSchema,
     DeduplicationRegisterResult,

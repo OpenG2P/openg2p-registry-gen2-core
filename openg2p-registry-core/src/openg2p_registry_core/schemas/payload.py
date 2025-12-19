@@ -190,7 +190,7 @@ class ChangeLogSearchResultData(BaseModel):
     change_log_id: str
     register_id: str
     internal_record_id: str
-    operation_id: str
+    section_id: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
@@ -208,7 +208,7 @@ class ChangeLogSearchResultData(BaseModel):
 class ChangeLogPayload(RegisterPayload):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
-    operation_id: Optional[str] = None
+    section_id: Optional[str] = None
     change_payload: Optional[dict] = None
 
     # Not sent from Partners
@@ -244,7 +244,7 @@ class ChangeLogData(BaseModel):
     change_log_id: str
     register_id: str
     internal_record_id: str
-    operation_id: str
+    section_id: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
@@ -270,7 +270,7 @@ class VerificationData(BaseModel):
     verification_id: str
     register_id: str
     internal_record_id: str
-    operation_id: str
+    section_id: str
     change_log_id: str
     verified_by: str
     verified_at: Optional[str] = None

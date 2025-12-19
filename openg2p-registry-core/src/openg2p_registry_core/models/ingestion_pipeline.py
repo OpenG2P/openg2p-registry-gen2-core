@@ -44,7 +44,7 @@ class IncomingClassifiedData(BaseORMModel):
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     semantic_pattern_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
