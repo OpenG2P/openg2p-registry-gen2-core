@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, Optional
+from fastapi import Response
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PIngestControllerService
@@ -29,7 +30,7 @@ class G2PIngestController(BaseController):
             methods=["POST"],
         )
 
-    async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: Optional[str] = None) -> IngestDataResponse:
+    async def ingest_data(self, ingest_data_request: IngestDataRequest, data_model: Optional[str] = None) -> Response:
         response_template_file_id: str | None = None
         try:
             _logger.info(f"Data ingestion request received for data_model: {data_model if data_model else 'No data_model detected in query params...'}")
