@@ -25,7 +25,7 @@ from .controller_services import (
 from .models import (
     DataModel,
     G2PRegisterDefinition,
-    G2PRegisterOperation,
+    G2PRegisterSection,
     G2PRegisterVerification,
     G2PRegisterChangeLog,
     G2PRegisterChangeLogPayload,
@@ -89,7 +89,7 @@ class Initializer(BaseInitializer):
 
             # Register Models
             await G2PRegisterDefinition.create_migrate()
-            await G2PRegisterOperation.create_migrate()
+            await G2PRegisterSection.create_migrate()
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeLog.create_migrate()
             await G2PRegisterChangeLogPayload.create_migrate()

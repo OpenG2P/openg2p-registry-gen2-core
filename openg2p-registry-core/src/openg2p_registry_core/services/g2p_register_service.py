@@ -1,6 +1,7 @@
 import logging
 import uuid
 import importlib
+import inspect
 from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
     G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
-    G2PRegisterOperation, G2PRegisterVerification, ApprovalStatusEnum,
+    G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema,
     G2PRegisterSection
 )
@@ -39,13 +40,13 @@ class G2PRegisterService(BaseService):
         async with session_maker() as session:
 
             g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_payload.register_id, session)
-            g2p_register_operation: G2PRegisterOperation = await self.validate_operation(change_log_payload.operation_id, session)
+            g2p_register_section: G2PRegisterSection = await self.validate_section(change_log_payload.section_id, session)
 
-            if not g2p_register_operation.is_new_operation:
+            if not g2p_register_section.is_new_section:
                 # Check whether the record exists with given internal_record_id
                 await self.validate_internal_record(g2p_register_definition, change_log_payload.internal_record_id, session)
 
-            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_payload, g2p_register_operation, source_partner_id)
+            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_payload, g2p_register_section, source_partner_id)
 
             session.add(g2p_register_change_log)
             # Add the payload object if it exists
@@ -111,7 +112,7 @@ class G2PRegisterService(BaseService):
             # Validate change log exists and is pending approval
             change_log = await self.validate_change_log_exists(change_log_id, session)
             _logger.info(f"Validated change log for approval: {change_log}")
-            await self.validate_change_log_operation(change_log, session)
+            await self.validate_change_log_section(change_log, session)
             # Validate whether verifications are done
             await self.validate_change_log_verifications(change_log, session)
             # Ensure there are no earlier change logs for the internal_record_id pending approval
@@ -143,18 +144,18 @@ class G2PRegisterService(BaseService):
             await session.refresh(change_log)
             return change_log
 
-    async def validate_change_log_operation(self, g2p_register_change_log: G2PRegisterChangeLog, session) -> None:
-        g2p_register_operation: G2PRegisterOperation = (
+    async def validate_change_log_section(self, g2p_register_change_log: G2PRegisterChangeLog, session) -> None:
+        g2p_register_section: G2PRegisterSection = (
             await session.execute(
-                select(G2PRegisterOperation).where(
-                    G2PRegisterOperation.operation_id == g2p_register_change_log.operation_id
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.section_id == g2p_register_change_log.section_id
                 )
             )
         ).scalar()
-        if not g2p_register_operation:
+        if not g2p_register_section:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.OPERATION_NOT_FOUND.value[1],
-                message=G2PRegistryErrorCodes.OPERATION_NOT_FOUND.value[0]
+                code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0]
             )
         # Note: internal_record_id is already set during change log creation in construct_change_log
         # Do not generate a new one here during approval
@@ -339,19 +340,19 @@ class G2PRegisterService(BaseService):
             
         return g2p_register_definition
 
-    async def validate_operation(self, operation_id: str, session) -> G2PRegisterOperation:
+    async def validate_section(self, section_id: str, session) -> G2PRegisterSection:
 
-        g2p_register_operation: G2PRegisterOperation =(
+        g2p_register_section: G2PRegisterSection =(
                 await session.execute(
-                select(G2PRegisterOperation).where(
-                    G2PRegisterOperation.operation_id == operation_id
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.section_id == section_id
                 )
             )
         ).scalar()
-        if not g2p_register_operation:
-            raise ValueError(f"Operation with ID {operation_id} does not exist.")
+        if not g2p_register_section:
+            raise ValueError(f"Section with ID {section_id} does not exist.")
             
-        return g2p_register_operation
+        return g2p_register_section
 
 
     async def validate_internal_record(self, g2p_register_definition: G2PRegisterDefinition, internal_record_id: str, session: Session) -> None:
@@ -378,9 +379,9 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_log(self, change_log_payload: ChangeLogPayload, g2p_register_operation: G2PRegisterOperation, source_partner_id: str = None) -> G2PRegisterChangeLog:
+    async def construct_change_log(self, change_log_payload: ChangeLogPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeLog:
         change_log_id = str(uuid.uuid4())
-        if g2p_register_operation.is_new_operation:
+        if g2p_register_section.is_new_section:
             change_log_payload.internal_record_id = str(uuid.uuid4())
 
         # Create the payload object
@@ -394,11 +395,11 @@ class G2PRegisterService(BaseService):
             change_log_id=change_log_id,
             register_id=change_log_payload.register_id,
             internal_record_id=change_log_payload.internal_record_id,
-            operation_id=change_log_payload.operation_id,
+            section_id=change_log_payload.section_id,
             source_partner_id=source_partner_id or "system",
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
-            no_of_verifications_required=g2p_register_operation.no_of_verifications_required,
+            no_of_verifications_required=g2p_register_section.no_of_verifications_required,
             no_of_verifications_done=0,
             approval_status=change_log_payload.approval_status.value,
         )
@@ -681,7 +682,7 @@ class G2PRegisterService(BaseService):
                 change_log_id=change_log.change_log_id,
                 register_id=change_log.register_id,
                 internal_record_id=change_log.internal_record_id,
-                operation_id=change_log.operation_id,
+                section_id=change_log.section_id,
                 source_partner_id=change_log.source_partner_id,
                 created_by=change_log.created_by,
                 created_at=created_at_str,
@@ -846,7 +847,7 @@ class G2PRegisterService(BaseService):
                 change_log_id=change_log.change_log_id,
                 register_id=change_log.register_id,
                 internal_record_id=change_log.internal_record_id,
-                operation_id=change_log.operation_id,
+                section_id=change_log.section_id,
                 source_partner_id=change_log.source_partner_id,
                 created_by=change_log.created_by,
                 created_at=created_at_str,
@@ -894,7 +895,7 @@ class G2PRegisterService(BaseService):
             change_log_id=change_log.change_log_id,
             register_id=change_log.register_id,
             internal_record_id=change_log.internal_record_id,
-            operation_id=change_log.operation_id,
+            section_id=change_log.section_id,
             source_partner_id=change_log.source_partner_id,
             created_by=change_log.created_by,
             created_at=created_at_str,
@@ -1023,7 +1024,7 @@ class G2PRegisterService(BaseService):
                     verification_id=verification.verification_id,
                     register_id=verification.register_id,
                     internal_record_id=verification.internal_record_id,
-                    operation_id=verification.operation_id,
+                    section_id=verification.section_id,
                     change_log_id=verification.change_log_id,
                     verified_by=verification.verified_by,
                     verified_at=verified_at_str,
@@ -1072,7 +1073,7 @@ class G2PRegisterService(BaseService):
                 verification_id=verification_id,
                 register_id=change_log.register_id,
                 internal_record_id=change_log.internal_record_id,
-                operation_id=change_log.operation_id,
+                section_id=change_log.section_id,
                 change_log_id=payload.change_log_id,
                 verified_by="system",  # Will be set by controller with actual user
                 verified_at=datetime.utcnow(),
@@ -1089,7 +1090,7 @@ class G2PRegisterService(BaseService):
                 verification_id=verification.verification_id,
                 register_id=verification.register_id,
                 internal_record_id=verification.internal_record_id,
-                operation_id=verification.operation_id,
+                section_id=verification.section_id,
                 change_log_id=verification.change_log_id,
                 verified_by=verification.verified_by,
                 verified_at=verification.verified_at.isoformat() if verification.verified_at else None,

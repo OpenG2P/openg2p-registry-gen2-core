@@ -165,7 +165,7 @@ def _transform_enriched_data_json(
     ).scalar_one_or_none()
     if not incoming_template:
         raise Exception(
-            f"Template not found data_model_id {incoming_classified_data.data_model_id}, register_id {incoming_classified_data.register_id} and operation_id {incoming_classified_data.operation_id} combination"
+            f"Template not found data_model_id {incoming_classified_data.data_model_id}, register_id {incoming_classified_data.register_id} and section_id {incoming_classified_data.section_id} combination"
         )
     
     minio_client = MinioClient.get_component()

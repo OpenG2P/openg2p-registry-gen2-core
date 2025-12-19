@@ -26,7 +26,7 @@ class G2PRegisterChangeLog(BaseORMModel):
     change_log_id: Mapped[str] = mapped_column(String, primary_key=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)

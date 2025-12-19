@@ -88,7 +88,7 @@ def _construct_change_log_payload(
     return ChangeLogPayload(
         register_id=incoming_classified_data.register_id,
         register_mnemonic=g2p_register_definition.register_mnemonic,
-        operation_id=incoming_classified_data.operation_id,
+        section_id=incoming_classified_data.section_id,
         change_payload=incoming_enriched_transformed_data.transformed_data_json
     )
 

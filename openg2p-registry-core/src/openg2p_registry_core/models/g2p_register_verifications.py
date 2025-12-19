@@ -11,7 +11,7 @@ class G2PRegisterVerification(BaseORMModel):
     verification_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    operation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     change_log_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     verified_by: Mapped[str] = mapped_column(String, nullable=False)
     verified_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)

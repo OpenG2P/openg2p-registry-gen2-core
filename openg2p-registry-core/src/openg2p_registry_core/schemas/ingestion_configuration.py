@@ -154,9 +154,9 @@ class IncomingModelSemanticPatternPayload(BaseModel):
     semantic_pattern_id: Optional[str] = None
     data_model_id: str
     register_id: str
-    operation_id: str
+    section_id: str
     pattern_for_register: str
-    pattern_for_operation: str
+    pattern_for_section: str
     key_path_for_business_payload: str
     raw_payload_enricher_class: Optional[str] = None
 
@@ -167,7 +167,7 @@ class IncomingModelSemanticPatternPayload(BaseModel):
 class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
     pattern_for_register: Optional[str] = None
-    pattern_for_operation: Optional[str] = None
+    pattern_for_section: Optional[str] = None
     key_path_for_business_payload: Optional[str] = None
     raw_payload_enricher_class: Optional[str] = None
 
@@ -179,9 +179,9 @@ class IncomingModelSemanticPatternData(BaseModel):
     semantic_pattern_id: str
     data_model_id: str
     register_id: str
-    operation_id: str
+    section_id: str
     pattern_for_register: str
-    pattern_for_operation: str
+    pattern_for_section: str
     key_path_for_business_payload: str
     raw_payload_enricher_class: Optional[str] = None
 

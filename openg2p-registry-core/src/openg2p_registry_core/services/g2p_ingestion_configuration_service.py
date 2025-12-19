@@ -303,9 +303,9 @@ class G2PIngestionConfigurationService(BaseService):
                 semantic_pattern_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
                 register_id=pattern_payload.register_id,
-                operation_id=pattern_payload.operation_id,
+                section_id=pattern_payload.section_id,
                 pattern_for_register=pattern_payload.pattern_for_register,
-                pattern_for_operation=pattern_payload.pattern_for_operation,
+                pattern_for_section=pattern_payload.pattern_for_section,
                 key_path_for_business_payload=pattern_payload.key_path_for_business_payload,
             )
             session.add(pattern)
@@ -352,8 +352,8 @@ class G2PIngestionConfigurationService(BaseService):
 
             if pattern_payload.pattern_for_register is not None:
                 pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
-            if pattern_payload.pattern_for_operation is not None:
-                pattern_obj.pattern_for_operation = pattern_payload.pattern_for_operation
+            if pattern_payload.pattern_for_section is not None:
+                pattern_obj.pattern_for_section = pattern_payload.pattern_for_section
             if pattern_payload.key_path_for_business_payload is not None:
                 pattern_obj.key_path_for_business_payload = pattern_payload.key_path_for_business_payload
 
@@ -431,8 +431,8 @@ class G2PIngestionConfigurationService(BaseService):
     async def _check_incoming_template_exists(
         self, session: AsyncSession, template_payload: IncomingTemplatePayload
     ) -> None:
-        """Check if template with same data_model_id, register_id, and operation_id already exists"""
-        if not template_payload.data_model_id or not template_payload.register_id or not template_payload.operation_id:
+        """Check if template with same data_model_id, register_id, and section_id already exists"""
+        if not template_payload.data_model_id or not template_payload.register_id or not template_payload.section_id:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
                 message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
