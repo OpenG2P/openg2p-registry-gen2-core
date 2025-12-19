@@ -23,7 +23,7 @@ from openg2p_registry_core.schemas import (
     IncomingPartnerData, IncomingPartnerResponseBody,
     IncomingModelKeyPathData, IncomingModelKeyPathResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
-    IncomingPayloadEnricherResponseBody, DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
+    DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
     RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
     RegisterSectionData, RegisterSectionsDataResponse, RegisterSectionsDataResponseBody,
     RegisterSectionDataResponse, RegisterSectionDataResponseBody,
@@ -408,8 +408,6 @@ class RequestResponseHelper(BaseService):
             response_body = IncomingModelSemanticPatternResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingTemplateResponse':
             response_body = IncomingTemplateResponseBody(response_payload=payload_data)
-        elif response_class_name == 'IncomingPayloadEnricherResponse':
-            response_body = IncomingPayloadEnricherResponseBody(response_payload=payload_data)
         elif response_class_name == 'DataModelResponse':
             response_body = DataModelResponseBody(response_payload=payload_data)
         else:

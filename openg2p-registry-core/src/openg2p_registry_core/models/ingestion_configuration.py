@@ -51,16 +51,6 @@ class IncomingTemplate(BaseORMModel):
         UniqueConstraint('data_model_id', 'register_id', name='uix_dro_2'),
     )
 
-class IncomingPayloadEnricher(BaseORMModel):
-
-    __tablename__ = "incoming_payload_enrichers"
-
-    incoming_factory_id: Mapped[str] = mapped_column(String, primary_key=True)
-    data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    semantic_pattern_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    raw_payload_enricher_class: Mapped[str] = mapped_column(String, nullable=False)
-
 class SubscriptionActivityLog(BaseORMModel):
 
     __tablename__ = "subscription_activity_logs"

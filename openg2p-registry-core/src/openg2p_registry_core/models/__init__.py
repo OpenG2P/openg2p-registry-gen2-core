@@ -16,7 +16,6 @@ from .ingestion_configuration import (
     IncomingPartner,
     IncomingTemplate,
     IncomingModelKeyPath,
-    IncomingPayloadEnricher,
     IncomingModelSemanticPattern,
     SubscriptionActivityLog
 )

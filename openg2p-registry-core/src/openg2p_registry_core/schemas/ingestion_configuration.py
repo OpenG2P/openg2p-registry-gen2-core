@@ -219,37 +219,6 @@ class IncomingTemplateData(BaseModel):
         from_attributes: bool = True
 
 
-# IncomingPayloadEnricher Schemas
-class IncomingPayloadEnricherPayload(BaseModel):
-    incoming_factory_id: Optional[str] = None
-    data_model_id: str
-    register_id: str
-    semantic_pattern_id: str
-    raw_payload_enricher_class: str
-
-    class Config:
-        from_attributes: bool = True
-
-
-class IncomingPayloadEnricherUpdatePayload(BaseModel):
-    """Update payload for IncomingPayloadEnricher - only allows updating specific fields"""
-    raw_payload_enricher_class: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class IncomingPayloadEnricherData(BaseModel):
-    incoming_factory_id: str
-    data_model_id: str
-    register_id: str
-    semantic_pattern_id: str
-    raw_payload_enricher_class: str
-
-    class Config:
-        from_attributes: bool = True
-
-
 # DataModel Schemas
 class DataModelPayload(BaseModel):
     data_model_id: Optional[str] = None
