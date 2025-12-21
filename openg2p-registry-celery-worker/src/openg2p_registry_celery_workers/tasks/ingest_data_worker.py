@@ -2,7 +2,7 @@ import logging
 import asyncio
 from asyncio import AbstractEventLoop
 
-from openg2p_registry_core.schemas import ChangeLogPayload
+from openg2p_registry_core.schemas import ChangeLogRequestPayload
 from openg2p_registry_core.services import G2PRegisterService
 from sqlalchemy import func
 from sqlalchemy.orm import Session, sessionmaker
@@ -35,7 +35,7 @@ def ingest_data_worker(ingest_id: str):
             incoming_classified_data = session.get(IncomingClassifiedData, ingest_id)
             incoming_enriched_transformed_data = session.get(IncomingEnrichedTransformedData, ingest_id)
             
-            change_log_payload: ChangeLogPayload = _construct_change_log_payload(
+            change_log_request_payload: ChangeLogRequestPayload = _construct_change_log_request_payload(
                 incoming_classified_data,
                 incoming_enriched_transformed_data,
                 session
@@ -43,7 +43,7 @@ def ingest_data_worker(ingest_id: str):
 
             asyncio.run(
                 _process_change_log_async(
-                    change_log_payload,
+                    change_log_request_payload,
                     incoming_classified_data.partner_id
                 )
             )
@@ -79,22 +79,22 @@ def ingest_data_worker(ingest_id: str):
         )
 
 
-def _construct_change_log_payload(
+def _construct_change_log_request_payload(
     incoming_classified_data: IncomingClassifiedData,
     incoming_enriched_transformed_data: IncomingEnrichedTransformedData,
     session: Session
-) -> ChangeLogPayload:
+) -> ChangeLogRequestPayload:
     g2p_register_definition = session.get(G2PRegisterDefinition, incoming_classified_data.register_id)
-    return ChangeLogPayload(
+    return ChangeLogRequestPayload(
         register_id=incoming_classified_data.register_id,
         register_mnemonic=g2p_register_definition.register_mnemonic,
         section_id=incoming_classified_data.section_id,
         change_payload=incoming_enriched_transformed_data.transformed_data_json
     )
 
-async def _process_change_log_async(payload: ChangeLogPayload, partner_id: str):
+async def _process_change_log_async(change_log_request_payload: ChangeLogRequestPayload, partner_id: str):
     g2p_register_service = G2PRegisterService.get_component()
     await g2p_register_service.create_change_log(
-        change_log_payload=payload,
+        change_log_request_payload=change_log_request_payload,
         source_partner_id=partner_id
     )

@@ -5,17 +5,18 @@ from openg2p_fastapi_common.schemas import (
     G2PResponseBody,
 )
 from .payload import (
-    ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
-    SearchResultData, ChangeLogSearchResultData, IngestDataPayload,
-    NumberOfVersionsData, NumberOfPendingChangeLogsData, ChangeLogData,
-    ChangeLogsData, RecordData, VerificationData, VerificationsData,
+    ChangeLogResponsePayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
+    RegisterUITabData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload,
+    NumberOfVersionsData, NumberOfPendingChangeLogsData, NumberOfCrossRegisterChangesData,
+    CrossRegisterChangeLogData, CrossRegisterChangesData,
+    ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangelogResultsData, RegisterSchemaData, RegisterSectionData
 )
 
 
 class ChangeLogResponseBody(G2PResponseBody):
-    response_payload: Optional[ChangeLogPayload] = None
+    response_payload: Optional[ChangeLogResponsePayload] = None
 
 class ChangeLogResponse(G2PResponse):
     response_body: Optional[ChangeLogResponseBody] = None
@@ -82,6 +83,22 @@ class NumberOfPendingChangeLogsResponseBody(G2PResponseBody):
 
 class NumberOfPendingChangeLogsResponse(G2PResponse):
     response_body: Optional[NumberOfPendingChangeLogsResponseBody] = None
+
+
+class NumberOfCrossRegisterChangesResponseBody(G2PResponseBody):
+    response_payload: Optional[NumberOfCrossRegisterChangesData] = None
+
+
+class NumberOfCrossRegisterChangesResponse(G2PResponse):
+    response_body: Optional[NumberOfCrossRegisterChangesResponseBody] = None
+
+
+class CrossRegisterChangesDataResponseBody(G2PResponseBody):
+    response_payload: Optional[CrossRegisterChangesData] = None
+
+
+class CrossRegisterChangesDataResponse(G2PResponse):
+    response_body: Optional[CrossRegisterChangesDataResponseBody] = None
 
 
 class ChangeLogDataResponseBody(G2PResponseBody):
@@ -163,3 +180,27 @@ class RegisterSectionDataResponseBody(G2PResponseBody):
 
 class RegisterSectionDataResponse(G2PResponse):
     response_body: Optional[RegisterSectionDataResponseBody] = None
+
+
+class RegisterTabsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterUITabData]] = None
+
+
+class RegisterTabsDataResponse(G2PResponse):
+    response_body: Optional[RegisterTabsDataResponseBody] = None
+
+
+class RegisterTabDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RegisterUITabData] = None
+
+
+class RegisterTabDataResponse(G2PResponse):
+    response_body: Optional[RegisterTabDataResponseBody] = None
+
+
+class SectionRecordsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RecordData]] = None
+
+
+class SectionRecordsDataResponse(G2PResponse):
+    response_body: Optional[SectionRecordsDataResponseBody] = None

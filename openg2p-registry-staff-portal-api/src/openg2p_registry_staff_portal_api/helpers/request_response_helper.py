@@ -3,7 +3,7 @@ from typing import List
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody, G2PPaginationResponse
 from openg2p_registry_core.schemas import (
-    ChangeLogPayload, ChangeLogResponse, ChangeLogResponseBody,
+    ChangeLogResponsePayload, ChangeLogResponse, ChangeLogResponseBody,
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
     ChangeLogSummaryData, ChangeLogSummaryDataResponse, ChangeLogSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
@@ -13,6 +13,8 @@ from openg2p_registry_core.schemas import (
     ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
     NumberOfVersionsData, NumberOfVersionsResponse, NumberOfVersionsResponseBody,
     NumberOfPendingChangeLogsData, NumberOfPendingChangeLogsResponse, NumberOfPendingChangeLogsResponseBody,
+    NumberOfCrossRegisterChangesData, NumberOfCrossRegisterChangesResponse, NumberOfCrossRegisterChangesResponseBody,
+    CrossRegisterChangeLogData, CrossRegisterChangesData, CrossRegisterChangesDataResponse, CrossRegisterChangesDataResponseBody,
     ChangeLogData, ChangeLogDataResponse, ChangeLogDataResponseBody,
     ChangeLogsData, ChangeLogsDataResponse, ChangeLogsDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
@@ -27,12 +29,15 @@ from openg2p_registry_core.schemas import (
     RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
     RegisterSectionData, RegisterSectionsDataResponse, RegisterSectionsDataResponseBody,
     RegisterSectionDataResponse, RegisterSectionDataResponseBody,
+    RegisterUITabData, RegisterTabsDataResponse, RegisterTabsDataResponseBody,
+    RegisterTabDataResponse, RegisterTabDataResponseBody,
+    SectionRecordsDataResponse, SectionRecordsDataResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
 
 class RequestResponseHelper(BaseService):
-    def construct_change_log_success_response(self, change_log_payload: ChangeLogPayload, g2p_request: G2PRequest) -> ChangeLogResponse:
+    def construct_change_log_success_response(self, change_log_response_payload: ChangeLogResponsePayload, g2p_request: G2PRequest) -> ChangeLogResponse:
 
         g2p_response_header = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id,
@@ -41,9 +46,9 @@ class RequestResponseHelper(BaseService):
             response_error_message="",
             response_timestamp=datetime.now()
         )
-        
+
         response_body: ChangeLogResponseBody = ChangeLogResponseBody(
-            response_payload=change_log_payload
+            response_payload=change_log_response_payload
         )
 
         change_log_response: ChangeLogResponse = ChangeLogResponse(
@@ -262,6 +267,44 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return number_of_pending_change_logs_response
+
+    def construct_number_of_cross_register_changes_success_response(self, number_of_cross_register_changes_data: NumberOfCrossRegisterChangesData, g2p_request: G2PRequest = None) -> NumberOfCrossRegisterChangesResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: NumberOfCrossRegisterChangesResponseBody = NumberOfCrossRegisterChangesResponseBody(
+            response_payload=number_of_cross_register_changes_data
+        )
+
+        number_of_cross_register_changes_response: NumberOfCrossRegisterChangesResponse = NumberOfCrossRegisterChangesResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return number_of_cross_register_changes_response
+
+    def construct_cross_register_changes_success_response(self, cross_register_changes: List[CrossRegisterChangeLogData], g2p_request: G2PRequest = None) -> CrossRegisterChangesDataResponse:
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: CrossRegisterChangesDataResponseBody = CrossRegisterChangesDataResponseBody(
+            response_payload=CrossRegisterChangesData(cross_register_changes=cross_register_changes)
+        )
+
+        cross_register_changes_response: CrossRegisterChangesDataResponse = CrossRegisterChangesDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return cross_register_changes_response
 
     def construct_change_logs_success_response(self, change_logs_list: List[ChangeLogData] = None, change_logs_data: ChangeLogsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeLogsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -595,3 +638,67 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return register_section_response
+
+    def construct_register_tabs_success_response(self, register_tabs_list: List[RegisterUITabData], g2p_request: G2PRequest = None) -> RegisterTabsDataResponse:
+        """Construct success response for get_register_tabs endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterTabsDataResponseBody = RegisterTabsDataResponseBody(
+            response_payload=register_tabs_list
+        )
+
+        register_tabs_response: RegisterTabsDataResponse = RegisterTabsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_tabs_response
+
+    def construct_register_tab_success_response(self, register_tab_data: RegisterUITabData, g2p_request: G2PRequest = None) -> RegisterTabDataResponse:
+        """Construct success response for add_register_tab endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterTabDataResponseBody = RegisterTabDataResponseBody(
+            response_payload=register_tab_data
+        )
+
+        register_tab_response: RegisterTabDataResponse = RegisterTabDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return register_tab_response
+
+    def construct_section_records_success_response(
+        self,
+        section_records: List[RecordData],
+        g2p_request: G2PRequest = None
+    ) -> SectionRecordsDataResponse:
+        """Construct success response for get_section_records endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: SectionRecordsDataResponseBody = SectionRecordsDataResponseBody(
+            response_payload=section_records
+        )
+
+        section_records_response: SectionRecordsDataResponse = SectionRecordsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return section_records_response

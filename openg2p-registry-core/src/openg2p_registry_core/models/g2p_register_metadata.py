@@ -1,7 +1,5 @@
-from enum import unique
-from operator import index
-from site import venv
 import uuid
+import re
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, validates
@@ -16,6 +14,10 @@ class G2PRegisterDefinition(BaseORMModel):
     register_subject: Mapped[str] = mapped_column(String, nullable=True)
     register_description: Mapped[Text] = mapped_column(Text, nullable=True)
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
+    # Register type flags
+    is_register: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_program_application: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Deduplication configuration
     dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -33,3 +35,42 @@ class G2PRegisterDefinition(BaseORMModel):
             capitalized_plural: str = plural_form[0].upper() + plural_form[1:]
             self.register_subject = capitalized_plural
         return register_mnemonic_value
+
+    @validates('is_register', 'is_program_application')
+    def validate_register_type_flags(self, key: str, value: bool) -> bool:
+        """
+        Validate that is_register and is_program_application cannot both be true.
+        Both can be false.
+        """
+        if key == 'is_register' and value is True:
+            if getattr(self, 'is_program_application', False) is True:
+                raise ValueError("is_register and is_program_application cannot both be true")
+        elif key == 'is_program_application' and value is True:
+            if getattr(self, 'is_register', False) is True:
+                raise ValueError("is_register and is_program_application cannot both be true")
+        return value
+
+
+class G2PRegisterUITab(BaseORMModel):
+    __tablename__ = "g2p_register_ui_tabs"
+
+    tab_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tab_label: Mapped[str] = mapped_column(String, nullable=False)
+    tab_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    @validates('tab_label')
+    def validate_tab_label(self, _key: str, tab_label_value: str) -> str:
+        """
+        Validate that tab_label is lowercase and uses underscores (no spaces or special characters).
+        Example valid: 'personal_info', 'contact_details'
+        Example invalid: 'Personal Info', 'contact-details', 'ContactDetails'
+        """
+        if tab_label_value:
+            pattern: str = r'^[a-z][a-z0-9_]*$'
+            if not re.match(pattern, tab_label_value):
+                raise ValueError(
+                    f"tab_label must be lowercase with underscores only. "
+                    f"Got: '{tab_label_value}'. Example valid: 'personal_info'"
+                )
+        return tab_label_value

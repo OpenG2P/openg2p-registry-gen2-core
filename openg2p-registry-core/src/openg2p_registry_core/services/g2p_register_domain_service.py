@@ -10,7 +10,7 @@ from difflib import SequenceMatcher
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeLogPayload
+from openg2p_registry_core.schemas.payload import ChangeLogRequestPayload
 from openg2p_registry_core.schemas.deduplication import DeduplicationFieldConfig
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, or_
@@ -41,7 +41,7 @@ class G2PRegisterDomainService(BaseService):
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
 
-    async def validate_domain_attributes(self, change_log_payload: ChangeLogPayload):
+    async def validate_domain_attributes(self, change_log_request_payload: ChangeLogRequestPayload):
         pass
 
     def compute_deduplication_score_for_register(

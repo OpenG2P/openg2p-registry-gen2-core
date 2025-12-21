@@ -16,6 +16,10 @@ from .register_domain.models import (
     G2PRegisterHistoryFamily,
     G2PRegisterFamilyMember,
     G2PRegisterHistoryFamilyMember,
+    G2PRegisterHousehold,
+    G2PRegisterHistoryHousehold,
+    G2PRegisterAsset,
+    G2PRegisterHistoryAsset,
 )
 from .register_domain.factory import G2PRegisterDomainFactory
 from .register_domain.services import G2PRegisterFarmerDomainService
@@ -43,5 +47,11 @@ class Initializer(BaseInitializer):
 
             await G2PRegisterFamilyMember.create_migrate()
             await G2PRegisterHistoryFamilyMember.create_migrate()
+
+            await G2PRegisterHousehold.create_migrate()
+            await G2PRegisterHistoryHousehold.create_migrate()
+
+            await G2PRegisterAsset.create_migrate()
+            await G2PRegisterHistoryAsset.create_migrate()
 
         asyncio.run(migrate())

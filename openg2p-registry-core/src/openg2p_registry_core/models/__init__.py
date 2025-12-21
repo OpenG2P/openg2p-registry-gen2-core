@@ -7,7 +7,7 @@ from .g2p_register_change_log import (
 )
 from .g2p_register import G2PRegister
 from .g2p_register_history import G2PRegisterHistory
-from .g2p_register_metadata import G2PRegisterDefinition
+from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterUITab
 from .g2p_register_schema import G2PRegisterSchema
 from .g2p_register_sections import G2PRegisterSection
 from .g2p_register_verifications import G2PRegisterVerification
