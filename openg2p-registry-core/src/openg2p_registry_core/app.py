@@ -36,7 +36,6 @@ from .models import (
     IncomingEnrichedTransformedData,
     IncomingRawData,
     IncomingRawDataPayload,
-    IncomingPayloadEnricher,
     IncomingModelSemanticPattern,
     IncomingModelKeyPath,
     IncomingPartner,
@@ -105,7 +104,6 @@ class Initializer(BaseInitializer):
             await IncomingTemplate.create_migrate()
             await IncomingRawDataPayload.create_migrate()
             await IncomingClassifiedData.create_migrate()
-            await IncomingPayloadEnricher.create_migrate()
             await IncomingEnrichedTransformedData.create_migrate()
             await IncomingModelSemanticPattern.create_migrate()
             await IncomingModelKeyPath.create_migrate()

@@ -16,7 +16,6 @@ from ..models import (
     IncomingModelKeyPath,
     IncomingModelSemanticPattern,
     IncomingTemplate,
-    IncomingPayloadEnricher,
     DataModel,
     SubscriptionActivityLog,
 )
@@ -34,9 +33,6 @@ from ..schemas import (
     IncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     IncomingTemplateData,
-    IncomingPayloadEnricherPayload,
-    IncomingPayloadEnricherUpdatePayload,
-    IncomingPayloadEnricherData,
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
@@ -462,70 +458,6 @@ class G2PIngestionConfigurationService(BaseService):
             template=template_text
         )
         return file_id
-
-    # IncomingPayloadEnricher Methods
-    async def create_payload_enricher(
-        self, enricher_payload: IncomingPayloadEnricherPayload
-    ) -> IncomingPayloadEnricherData:
-        """Create a new payload enricher"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            enricher_id = enricher_payload.incoming_factory_id or str(uuid.uuid4())
-            enricher = IncomingPayloadEnricher(
-                incoming_factory_id=enricher_id,
-                data_model_id=enricher_payload.data_model_id,
-                register_id=enricher_payload.register_id,
-                semantic_pattern_id=enricher_payload.semantic_pattern_id,
-                raw_payload_enricher_class=enricher_payload.raw_payload_enricher_class,
-            )
-            session.add(enricher)
-            await session.commit()
-            await session.refresh(enricher)
-            return IncomingPayloadEnricherData.model_validate(enricher)
-
-    async def get_payload_enricher(
-        self, incoming_factory_id: str
-    ) -> IncomingPayloadEnricherData:
-        """Get payload enricher by ID"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            enricher = await session.execute(
-                select(IncomingPayloadEnricher).where(
-                    IncomingPayloadEnricher.incoming_factory_id == incoming_factory_id
-                )
-            )
-            enricher_obj = enricher.scalar_one_or_none()
-            if not enricher_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[0],
-                )
-            return IncomingPayloadEnricherData.model_validate(enricher_obj)
-
-    async def update_payload_enricher(
-        self, incoming_factory_id: str, enricher_payload: IncomingPayloadEnricherUpdatePayload
-    ) -> IncomingPayloadEnricherData:
-        """Update payload enricher - only updates provided fields"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            enricher = await session.execute(
-                select(IncomingPayloadEnricher).where(
-                    IncomingPayloadEnricher.incoming_factory_id == incoming_factory_id
-                )
-            )
-            enricher_obj = enricher.scalar_one_or_none()
-            if not enricher_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PAYLOAD_ENRICHER_NOT_FOUND.value[0],
-                )
-
-            if enricher_payload.raw_payload_enricher_class is not None:
-                enricher_obj.raw_payload_enricher_class = enricher_payload.raw_payload_enricher_class
-
-            await session.commit()
-            await session.refresh(enricher_obj)
-            return IncomingPayloadEnricherData.model_validate(enricher_obj)
 
     # DataModel Methods
     async def create_data_model(

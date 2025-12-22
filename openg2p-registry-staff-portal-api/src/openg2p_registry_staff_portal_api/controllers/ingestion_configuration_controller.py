@@ -26,9 +26,6 @@ from openg2p_registry_core.schemas import (
     IncomingTemplateUpdateRequest,
     IncomingTemplateResponse,
     IncomingTemplateData,
-    IncomingPayloadEnricherRequest,
-    IncomingPayloadEnricherUpdateRequest,
-    IncomingPayloadEnricherResponse,
     DataModelRequest,
     DataModelUpdateRequest,
     DataModelResponse,
@@ -200,28 +197,6 @@ class IngestionConfigurationController(BaseController):
             "/delete_template",
             self.delete_template,
             responses={200: {"model": IncomingTemplateResponse}},
-            methods=["POST"],
-        )
-
-        # IncomingPayloadEnricher endpoints
-        self.router.add_api_route(
-            "/create_payload_enricher",
-            self.create_payload_enricher,
-            responses={200: {"model": IncomingPayloadEnricherResponse}},
-            methods=["POST"],
-        )
-
-        self.router.add_api_route(
-            "/get_payload_enricher",
-            self.get_payload_enricher,
-            responses={200: {"model": IncomingPayloadEnricherResponse}},
-            methods=["POST"],
-        )
-
-        self.router.add_api_route(
-            "/update_payload_enricher",
-            self.update_payload_enricher,
-            responses={200: {"model": IncomingPayloadEnricherResponse}},
             methods=["POST"],
         )
 
@@ -529,46 +504,6 @@ class IngestionConfigurationController(BaseController):
             )
         except Exception as error:
             return self.helper.construct_error_response(error, template_delete_request)
-
-    async def create_payload_enricher(
-        self, enricher_request: IncomingPayloadEnricherRequest
-    ) -> IncomingPayloadEnricherResponse:
-        try:
-            enricher_data = await self.ingestion_config_service.create_payload_enricher(
-                enricher_request.request_body.request_payload
-            )
-            return self.helper.construct_ingestion_config_success_response(
-                enricher_data, IncomingPayloadEnricherResponse, enricher_request
-            )
-        except Exception as error:
-            return self.helper.construct_error_response(error, enricher_request)
-
-    async def get_payload_enricher(
-        self, enricher_request: IncomingPayloadEnricherRequest
-    ) -> IncomingPayloadEnricherResponse:
-        try:
-            enricher_data = await self.ingestion_config_service.get_payload_enricher(
-                enricher_request.request_body.request_payload.incoming_factory_id
-            )
-            return self.helper.construct_ingestion_config_success_response(
-                enricher_data, IncomingPayloadEnricherResponse, enricher_request
-            )
-        except Exception as error:
-            return self.helper.construct_error_response(error, enricher_request)
-
-    async def update_payload_enricher(
-        self, enricher_request: IncomingPayloadEnricherUpdateRequest
-    ) -> IncomingPayloadEnricherResponse:
-        try:
-            enricher_data = await self.ingestion_config_service.update_payload_enricher(
-                enricher_request.request_body.request_payload.incoming_factory_id,
-                enricher_request.request_body.request_payload
-            )
-            return self.helper.construct_ingestion_config_success_response(
-                enricher_data, IncomingPayloadEnricherResponse, enricher_request
-            )
-        except Exception as error:
-            return self.helper.construct_error_response(error, enricher_request)
 
     async def create_data_model(
         self, data_model_request: DataModelRequest, response_template_file: Optional[UploadFile] = None

@@ -26,9 +26,6 @@ from .ingestion_configuration import (
     IncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     IncomingTemplateData,
-    IncomingPayloadEnricherPayload,
-    IncomingPayloadEnricherUpdatePayload,
-    IncomingPayloadEnricherData,
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
@@ -233,39 +230,6 @@ class IncomingTemplatesResponseBody(G2PResponseBody):
 
 class IncomingTemplatesResponse(G2PResponse):
     response_body: Optional[IncomingTemplatesResponseBody] = None
-
-
-# IncomingPayloadEnricher Request/Response
-class IncomingPayloadEnricherRequestBody(G2PRequestBody):
-    request_payload: IncomingPayloadEnricherPayload
-
-
-class IncomingPayloadEnricherRequest(G2PRequest):
-    request_body: IncomingPayloadEnricherRequestBody
-
-
-class IncomingPayloadEnricherUpdateRequestBody(G2PRequestBody):
-    request_payload: IncomingPayloadEnricherUpdatePayload
-
-
-class IncomingPayloadEnricherUpdateRequest(G2PRequest):
-    request_body: IncomingPayloadEnricherUpdateRequestBody
-
-
-class IncomingPayloadEnricherResponseBody(G2PResponseBody):
-    response_payload: Optional[IncomingPayloadEnricherData] = None
-
-
-class IncomingPayloadEnricherResponse(G2PResponse):
-    response_body: Optional[IncomingPayloadEnricherResponseBody] = None
-
-
-class IncomingPayloadEnrichersResponseBody(G2PResponseBody):
-    response_payload: Optional[List[IncomingPayloadEnricherData]] = None
-
-
-class IncomingPayloadEnrichersResponse(G2PResponse):
-    response_body: Optional[IncomingPayloadEnrichersResponseBody] = None
 
 
 # DataModel Request/Response

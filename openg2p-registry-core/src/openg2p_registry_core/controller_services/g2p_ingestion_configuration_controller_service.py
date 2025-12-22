@@ -18,9 +18,6 @@ from ..schemas import (
     IncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     IncomingTemplateData,
-    IncomingPayloadEnricherPayload,
-    IncomingPayloadEnricherUpdatePayload,
-    IncomingPayloadEnricherData,
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
@@ -180,30 +177,6 @@ class G2PIngestionConfigurationControllerService(BaseService):
     async def delete_template(self, template_delete_payload: IncomingTemplateUpdatePayload) -> IncomingTemplateData:
         """Delete template"""
         return await self.g2p_template_service.delete_incoming_template(template_delete_payload.template_id)
-
-    async def create_payload_enricher(
-        self, enricher_payload: IncomingPayloadEnricherPayload
-    ) -> IncomingPayloadEnricherData:
-        """Create a new payload enricher"""
-        return await self.g2p_ingestion_configuration_service.create_payload_enricher(
-            enricher_payload
-        )
-
-    async def get_payload_enricher(
-        self, incoming_factory_id: str
-    ) -> IncomingPayloadEnricherData:
-        """Get payload enricher by ID"""
-        return await self.g2p_ingestion_configuration_service.get_payload_enricher(
-            incoming_factory_id
-        )
-
-    async def update_payload_enricher(
-        self, incoming_factory_id: str, enricher_payload: IncomingPayloadEnricherUpdatePayload
-    ) -> IncomingPayloadEnricherData:
-        """Update payload enricher"""
-        return await self.g2p_ingestion_configuration_service.update_payload_enricher(
-            incoming_factory_id, enricher_payload
-        )
 
     async def create_data_model(
         self, data_model_payload: DataModelPayload
