@@ -20,6 +20,8 @@ from .services import (
 from .controller_services import (
     G2PRegisterDataControllerService,
     G2PRegisterChangelogControllerService,
+    G2PRegisterMetadataControllerService,
+    G2PRegisterSummaryControllerService,
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2POutgestionConfigurationControllerService,
@@ -80,6 +82,8 @@ class Initializer(BaseInitializer):
         G2PIngestControllerService()
         G2PRegisterDataControllerService()
         G2PRegisterChangelogControllerService()
+        G2PRegisterMetadataControllerService()
+        G2PRegisterSummaryControllerService()
         G2PIngestionConfigurationControllerService()
         G2POutgestionConfigurationControllerService()
 

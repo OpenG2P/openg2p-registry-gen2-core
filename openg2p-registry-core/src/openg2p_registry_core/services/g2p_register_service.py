@@ -44,9 +44,9 @@ class G2PRegisterService(BaseService):
             g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request_payload.register_id, session)
             g2p_register_section: G2PRegisterSection = await self.validate_section(change_log_request_payload.section_id, session)
 
-            if change_log_request_payload.internal_record_id:
-                # Check whether the record exists with given internal_record_id
-                await self.validate_internal_record(g2p_register_definition, change_log_request_payload.internal_record_id, session)
+            # Extract internal_record_id from change_payload if present
+            # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
+            # We don't validate internal_record_id existence here - it will be created when the change log is approved
 
             g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_request_payload, g2p_register_section, source_partner_id)
 
@@ -310,6 +310,7 @@ class G2PRegisterService(BaseService):
         await session.refresh(section)
 
         section_data: RegisterSectionData = RegisterSectionData(
+            section_register_id=section.section_register_id,
             register_id=section.register_id,
             section_id=section.section_id,
             tab_id=section.tab_id,
@@ -353,6 +354,7 @@ class G2PRegisterService(BaseService):
         await session.refresh(section)
 
         section_data: RegisterSectionData = RegisterSectionData(
+            section_register_id=section.section_register_id,
             register_id=section.register_id,
             section_id=section.section_id,
             tab_id=section.tab_id,
@@ -701,7 +703,13 @@ class G2PRegisterService(BaseService):
 
     async def construct_change_log(self, change_log_request_payload: ChangeLogRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeLog:
         change_log_id = str(uuid.uuid4())
-        internal_record_id = change_log_request_payload.internal_record_id or str(uuid.uuid4())
+        # Extract internal_record_id from change_payload if present, otherwise generate new UUID
+        internal_record_id: str = None
+        if change_log_request_payload.change_payload:
+            internal_record_id = change_log_request_payload.change_payload.internal_record_id
+        elif change_log_request_payload.change_payload_array and len(change_log_request_payload.change_payload_array) > 0:
+            internal_record_id = change_log_request_payload.change_payload_array[0].internal_record_id
+        internal_record_id = internal_record_id or str(uuid.uuid4())
 
         # Create the payload object
         change_log_payload_obj = G2PRegisterChangeLogPayload(
@@ -1727,6 +1735,7 @@ class G2PRegisterService(BaseService):
         sections_list: list[RegisterSectionData] = []
         for section in sections:
             section_data = RegisterSectionData(
+                section_register_id=section.section_register_id,
                 register_id=section.register_id,
                 section_id=section.section_id,
                 tab_id=section.tab_id,
@@ -1759,6 +1768,7 @@ class G2PRegisterService(BaseService):
             )
 
         return RegisterSectionData(
+            section_register_id=section.section_register_id,
             register_id=section.register_id,
             section_id=section.section_id,
             tab_id=section.tab_id,
