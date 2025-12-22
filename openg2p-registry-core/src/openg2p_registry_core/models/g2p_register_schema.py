@@ -14,7 +14,6 @@ class G2PRegisterSchema(BaseORMModel):
 
     register_id: Mapped[str] = mapped_column(
         String,
-        ForeignKey("g2p_register_definitions.register_id"),
         primary_key=True
     )
 

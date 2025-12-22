@@ -25,8 +25,10 @@ class G2PRegisterChangeLog(BaseORMModel):
 
     change_log_id: Mapped[str] = mapped_column(String, primary_key=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
@@ -58,6 +60,7 @@ class G2PRegisterChangeLogPayload(BaseORMModel):
 
     change_log_id: Mapped[str] = mapped_column(String, ForeignKey("g2p_register_change_logs.change_log_id"), primary_key=True)
     change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    change_payload_array: Mapped[JSON] = mapped_column(JSON, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
     __table_args__ = (

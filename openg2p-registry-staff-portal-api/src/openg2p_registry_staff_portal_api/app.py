@@ -11,7 +11,7 @@ from openg2p_registry_core.app import Initializer as CoreInitializer
 from openg2p_registry_extensions.app import Initializer as ExtensionsInitializer
 
 from .helpers import RequestResponseHelper
-from .controllers import G2PRegisterController, IngestionConfigurationController, OutgestionConfigurationController
+from .controllers import G2PRegisterDataController, G2PRegisterChangelogController, G2PRegisterSummaryController, G2PRegisterMetadataController, IngestionConfigurationController, OutgestionConfigurationController
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
@@ -23,7 +23,10 @@ class Initializer(BaseInitializer):
         
         RequestResponseHelper()
 
-        G2PRegisterController().post_init()
+        G2PRegisterDataController().post_init()
+        G2PRegisterChangelogController().post_init()
+        G2PRegisterSummaryController().post_init()
+        G2PRegisterMetadataController().post_init()
         IngestionConfigurationController().post_init()
         OutgestionConfigurationController().post_init()
 

@@ -7,7 +7,7 @@ from datetime import datetime
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeLogPayload
+from openg2p_registry_core.schemas.payload import ChangeLogRequestPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -16,12 +16,14 @@ from ..models import (
     G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
     G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema,
-    G2PRegisterSection
+    G2PRegisterSection, G2PRegisterUITab
 )
 from ..schemas import (
-    ChangeLogPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
-    SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData,
-    NumberOfPendingChangeLogsData, ChangeLogData, ChangeLogsData, RecordData,
+    ChangeLogRequestPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
+    RegisterUITabData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData,
+    NumberOfPendingChangeLogsData, NumberOfCrossRegisterChangesData,
+    CrossRegisterChangeLogData, CrossRegisterChangesData,
+    ChangeLogData, ChangeLogsData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
     DeduplicationRegisterResultData, DeduplicationChangelogResultData,
@@ -35,18 +37,18 @@ _engine = dbengine.get()
 
 class G2PRegisterService(BaseService):
 
-    async def create_change_log(self, change_log_payload: ChangeLogPayload, source_partner_id: str = None):
+    async def create_change_log(self, change_log_request_payload: ChangeLogRequestPayload, source_partner_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
-            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_payload.register_id, session)
-            g2p_register_section: G2PRegisterSection = await self.validate_section(change_log_payload.section_id, session)
+            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request_payload.register_id, session)
+            g2p_register_section: G2PRegisterSection = await self.validate_section(change_log_request_payload.section_id, session)
 
-            if not g2p_register_section.is_new_section:
+            if change_log_request_payload.internal_record_id:
                 # Check whether the record exists with given internal_record_id
-                await self.validate_internal_record(g2p_register_definition, change_log_payload.internal_record_id, session)
+                await self.validate_internal_record(g2p_register_definition, change_log_request_payload.internal_record_id, session)
 
-            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_payload, g2p_register_section, source_partner_id)
+            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_request_payload, g2p_register_section, source_partner_id)
 
             session.add(g2p_register_change_log)
             # Add the payload object if it exists
@@ -83,6 +85,287 @@ class G2PRegisterService(BaseService):
             child_registers_list: list[ChildRegisterData] = await self._fetch_child_registers(register_id, session)
             return child_registers_list
 
+    async def get_master_register(self, register_id: str) -> RegisterData | None:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+            master_register_data: RegisterData | None = await self._fetch_master_register(register_definition, session)
+            return master_register_data
+
+    async def get_register_tabs(self, register_id: str) -> list[RegisterUITabData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            register_tabs_list: list[RegisterUITabData] = await self._fetch_register_tabs(register_id, session)
+            return register_tabs_list
+
+    async def add_register_tab(self, register_id: str, tab_label: str, tab_order: int = 0) -> RegisterUITabData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            register_tab_data: RegisterUITabData = await self._create_register_tab(register_id, tab_label, tab_order, session)
+            return register_tab_data
+
+    async def _create_register_tab(self, register_id: str, tab_label: str, tab_order: int, session) -> RegisterUITabData:
+        new_tab: G2PRegisterUITab = G2PRegisterUITab(
+            register_id=register_id,
+            tab_label=tab_label,
+            tab_order=tab_order
+        )
+        session.add(new_tab)
+        await session.commit()
+        await session.refresh(new_tab)
+
+        tab_data: RegisterUITabData = RegisterUITabData(
+            tab_id=new_tab.tab_id,
+            register_id=new_tab.register_id,
+            tab_label=new_tab.tab_label,
+            tab_order=new_tab.tab_order
+        )
+        return tab_data
+
+    async def delete_register_tab(self, tab_id: str) -> RegisterUITabData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            register_tab_data: RegisterUITabData = await self._delete_register_tab(tab_id, session)
+            return register_tab_data
+
+    async def _delete_register_tab(self, tab_id: str, session) -> RegisterUITabData:
+        tab: G2PRegisterUITab | None = await session.get(G2PRegisterUITab, tab_id)
+        if not tab:
+            raise ValueError(f"Tab with tab_id '{tab_id}' not found.")
+
+        tab_data: RegisterUITabData = RegisterUITabData(
+            tab_id=tab.tab_id,
+            register_id=tab.register_id,
+            tab_label=tab.tab_label,
+            tab_order=tab.tab_order
+        )
+
+        await session.delete(tab)
+        await session.commit()
+
+        return tab_data
+
+    async def add_register_section(
+        self,
+        section_register_id: str,
+        register_id: str,
+        tab_id: str,
+        section_mnemonic: str,
+        section_description: str = None,
+        documents_required: bool = False,
+        no_of_verifications_required: int = 0,
+        auto_approval: bool = False,
+        is_list: bool = False,
+        section_ui_schema: dict = None
+    ) -> RegisterSectionData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            await self._validate_register_tab(register_id, tab_id, session)
+            section_data: RegisterSectionData = await self._create_register_section(
+                section_register_id, register_id, tab_id, section_mnemonic, section_description,
+                documents_required, no_of_verifications_required, auto_approval,
+                is_list, section_ui_schema, session
+            )
+            return section_data
+
+    async def _validate_register_tab(self, register_id: str, tab_id: str, session) -> G2PRegisterUITab:
+        tab: G2PRegisterUITab | None = await session.get(G2PRegisterUITab, tab_id)
+        if not tab:
+            raise ValueError(f"Tab with tab_id '{tab_id}' not found.")
+        if tab.register_id != register_id:
+            raise ValueError(f"Tab '{tab_id}' does not belong to register '{register_id}'.")
+        return tab
+
+    async def _create_register_section(
+        self,
+        section_register_id: str,
+        register_id: str,
+        tab_id: str,
+        section_mnemonic: str,
+        section_description: str,
+        documents_required: bool,
+        no_of_verifications_required: int,
+        auto_approval: bool,
+        is_list: bool,
+        section_ui_schema: dict,
+        session
+    ) -> RegisterSectionData:
+        new_section: G2PRegisterSection = G2PRegisterSection(
+            section_register_id=section_register_id,
+            register_id=register_id,
+            tab_id=tab_id,
+            section_mnemonic=section_mnemonic,
+            section_description=section_description,
+            documents_required=documents_required,
+            no_of_verifications_required=no_of_verifications_required,
+            auto_approval=auto_approval,
+            is_list=is_list,
+            section_ui_schema=section_ui_schema
+        )
+        session.add(new_section)
+        await session.commit()
+        await session.refresh(new_section)
+
+        section_data: RegisterSectionData = RegisterSectionData(
+            section_register_id=new_section.section_register_id,
+            register_id=new_section.register_id,
+            section_id=new_section.section_id,
+            tab_id=new_section.tab_id,
+            section_mnemonic=new_section.section_mnemonic,
+            section_description=new_section.section_description,
+            documents_required=new_section.documents_required,
+            no_of_verifications_required=new_section.no_of_verifications_required,
+            auto_approval=new_section.auto_approval,
+            is_list=new_section.is_list,
+            section_ui_schema=new_section.section_ui_schema
+        )
+        return section_data
+
+    async def delete_register_section(self, register_id: str, section_id: str) -> RegisterSectionData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            section_data: RegisterSectionData = await self._delete_register_section(register_id, section_id, session)
+            return section_data
+
+    async def _delete_register_section(self, register_id: str, section_id: str, session) -> RegisterSectionData:
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+        if not section:
+            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
+
+        section_data: RegisterSectionData = RegisterSectionData(
+            register_id=section.register_id,
+            section_id=section.section_id,
+            tab_id=section.tab_id,
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            is_list=section.is_list,
+            section_ui_schema=section.section_ui_schema
+        )
+
+        await session.delete(section)
+        await session.commit()
+
+        return section_data
+
+    async def update_register_section(
+        self,
+        register_id: str,
+        section_id: str,
+        tab_id: str = None,
+        section_mnemonic: str = None,
+        section_description: str = None,
+        documents_required: bool = None,
+        no_of_verifications_required: int = None,
+        auto_approval: bool = None,
+        is_list: bool = None
+    ) -> RegisterSectionData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            section_data: RegisterSectionData = await self._update_register_section(
+                register_id, section_id, tab_id, section_mnemonic, section_description,
+                documents_required, no_of_verifications_required, auto_approval, is_list, session
+            )
+            return section_data
+
+    async def _update_register_section(
+        self,
+        register_id: str,
+        section_id: str,
+        tab_id: str,
+        section_mnemonic: str,
+        section_description: str,
+        documents_required: bool,
+        no_of_verifications_required: int,
+        auto_approval: bool,
+        is_list: bool,
+        session
+    ) -> RegisterSectionData:
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+        if not section:
+            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
+
+        if tab_id is not None:
+            await self._validate_register_tab(register_id, tab_id, session)
+            section.tab_id = tab_id
+        if section_mnemonic is not None:
+            section.section_mnemonic = section_mnemonic
+        if section_description is not None:
+            section.section_description = section_description
+        if documents_required is not None:
+            section.documents_required = documents_required
+        if no_of_verifications_required is not None:
+            section.no_of_verifications_required = no_of_verifications_required
+        if auto_approval is not None:
+            section.auto_approval = auto_approval
+        if is_list is not None:
+            section.is_list = is_list
+
+        await session.commit()
+        await session.refresh(section)
+
+        section_data: RegisterSectionData = RegisterSectionData(
+            register_id=section.register_id,
+            section_id=section.section_id,
+            tab_id=section.tab_id,
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            is_list=section.is_list,
+            section_ui_schema=section.section_ui_schema
+        )
+        return section_data
+
+    async def update_register_section_ui_schema(
+        self,
+        register_id: str,
+        section_id: str,
+        section_ui_schema: dict = None
+    ) -> RegisterSectionData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            section_data: RegisterSectionData = await self._update_register_section_ui_schema(
+                register_id, section_id, section_ui_schema, session
+            )
+            return section_data
+
+    async def _update_register_section_ui_schema(
+        self,
+        register_id: str,
+        section_id: str,
+        section_ui_schema: dict,
+        session
+    ) -> RegisterSectionData:
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+        if not section:
+            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
+
+        section.section_ui_schema = section_ui_schema
+
+        await session.commit()
+        await session.refresh(section)
+
+        section_data: RegisterSectionData = RegisterSectionData(
+            register_id=section.register_id,
+            section_id=section.section_id,
+            tab_id=section.tab_id,
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            is_list=section.is_list,
+            section_ui_schema=section.section_ui_schema
+        )
+        return section_data
+
     async def search_in_a_register(self, register_id: str, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[SearchResultData], int]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -90,13 +373,13 @@ class G2PRegisterService(BaseService):
             search_results_list, total_items = await self._search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
             return search_results_list, total_items
 
-    async def get_change_logs(self, register_id: str, internal_record_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogData], int]:
-        """Get all change logs for a specific internal record with pagination"""
+    async def get_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogData], int]:
+        """Get all change logs for a specific internal record and tab with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
-            await self.validate_register_definition(register_id, session)
-            change_logs_list, total_items = await self._fetch_change_logs(register_id, internal_record_id, current_page, page_size, sort_by, filter_by, session)
+            await self.validate_register_definition(subject_register_id, session)
+            change_logs_list, total_items = await self._fetch_change_logs(subject_register_id, subject_record_id, tab_id, current_page, page_size, sort_by, filter_by, session)
             return change_logs_list, total_items
 
     async def get_change_log(self, change_log_id: str) -> ChangeLogData:
@@ -221,7 +504,7 @@ class G2PRegisterService(BaseService):
         register_definition: G2PRegisterDefinition = (
             await session.execute(
                 select(G2PRegisterDefinition).where(
-                    G2PRegisterDefinition.register_id == change_log.register_id
+                    G2PRegisterDefinition.register_id == change_log.section_register_id
                 )
             )
         ).scalar()
@@ -247,30 +530,48 @@ class G2PRegisterService(BaseService):
             )
         )
         payload = payload_result.scalar()
-        change_payload = payload.change_payload if payload else {}
+        if payload.change_payload:
+            self._create_history_record(
+                change_payload=payload.change_payload,
+                change_log=change_log,
+                history_schema_class=history_schema_class,
+                history_class=history_class,
+                session=session
+            )
+        else:
+            for change_payload in payload.change_payload_array:
+                self._create_history_record(
+                    change_payload=change_payload,
+                    change_log=change_log,
+                    history_schema_class=history_schema_class,
+                    history_class=history_class,
+                    session=session
+                )
 
+    def _create_history_record(self, change_payload: dict, change_log: G2PRegisterChangeLog, history_schema_class, history_class, session) -> None:
+        """Helper method to create and add a history record to the session"""
         # Serialize change log payload to history schema
         history_schema_instance = history_schema_class(**(change_payload or {}))
 
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_log.internal_record_id
+        history_dict["internal_record_id"] = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
         history_dict["change_log_id"] = change_log.change_log_id
         history_dict["created_at"] = datetime.now()
         history_dict["created_by"] = "system"  # TODO: Replace with actual user info
         history_dict["approved_at"] = datetime.now()
         history_dict["approved_by"] = "system"  # TODO: Replace with actual user info
         history_instance = history_class(**history_dict)
-
         session.add(history_instance)
+
 
     async def insert_into_register(self, change_log: G2PRegisterChangeLog, session) -> None:
         # Resolve register model class dynamically based on register mnemonic
         register_definition: G2PRegisterDefinition = (
             await session.execute(
                 select(G2PRegisterDefinition).where(
-                    G2PRegisterDefinition.register_id == change_log.register_id
+                    G2PRegisterDefinition.register_id == change_log.section_register_id
                 )
             )
         ).scalar()
@@ -278,14 +579,6 @@ class G2PRegisterService(BaseService):
         register_class_prefix = "G2PRegister"
         implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
         register_class = getattr(module, implementation_class_name)
-
-        existing = (
-            await session.execute(
-                select(register_class).where(
-                    register_class.internal_record_id == change_log.internal_record_id
-                )
-            )
-        ).scalar()
 
         schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
         schema_class_prefix = "G2PRegisterSchema"
@@ -299,10 +592,37 @@ class G2PRegisterService(BaseService):
             )
         )
         payload = payload_result.scalar()
-        change_payload = payload.change_payload if payload else {}
 
+        if payload.change_payload:
+            await self._create_or_update_register_record(
+                change_payload=payload.change_payload,
+                schema_class=schema_class,
+                register_class=register_class,
+                session=session
+            )
+        else:
+            for change_payload in payload.change_payload_array:
+                await self._create_or_update_register_record(
+                    change_payload=change_payload,
+                    schema_class=schema_class,
+                    register_class=register_class,
+                    session=session
+                )
+
+    async def _create_or_update_register_record(self, change_payload: dict, schema_class, register_class, session) -> None:
+        """Helper method to create or update a register record"""
         # Serialize change log payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
+        internal_record_id = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
+
+        existing = (
+            await session.execute(
+                select(register_class).where(
+                    register_class.internal_record_id == internal_record_id
+                )
+            )
+        ).scalar()
+
         if existing:
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change log payload
@@ -310,19 +630,19 @@ class G2PRegisterService(BaseService):
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
-            new_instance = existing
         else:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["internal_record_id"] = change_log.internal_record_id
-            schema_dict["functional_record_id"] = change_log.internal_record_id  # Use internal_record_id as functional_record_id
+            schema_dict["internal_record_id"] = internal_record_id
+            schema_dict["functional_record_id"] = internal_record_id  # Use internal_record_id as functional_record_id
             schema_dict["created_by"] = "system"  # TODO: Replace with actual user info
             schema_dict["created_at"] = datetime.now()
             schema_dict["last_approved_at"] = datetime.now()
             schema_dict["last_approved_by"] = "system"
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
-        
+                
+            
 
     async def validate_register_definition(self, register_id: str, session) -> G2PRegisterDefinition:
         g2p_register_definition: G2PRegisterDefinition = (
@@ -337,7 +657,7 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
             )
-            
+
         return g2p_register_definition
 
     async def validate_section(self, section_id: str, session) -> G2PRegisterSection:
@@ -351,7 +671,7 @@ class G2PRegisterService(BaseService):
         ).scalar()
         if not g2p_register_section:
             raise ValueError(f"Section with ID {section_id} does not exist.")
-            
+
         return g2p_register_section
 
 
@@ -379,29 +699,31 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_log(self, change_log_payload: ChangeLogPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeLog:
+    async def construct_change_log(self, change_log_request_payload: ChangeLogRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeLog:
         change_log_id = str(uuid.uuid4())
-        if g2p_register_section.is_new_section:
-            change_log_payload.internal_record_id = str(uuid.uuid4())
+        internal_record_id = change_log_request_payload.internal_record_id or str(uuid.uuid4())
 
         # Create the payload object
         change_log_payload_obj = G2PRegisterChangeLogPayload(
             change_log_id=change_log_id,
-            change_payload=change_log_payload.change_payload,
+            change_payload=change_log_request_payload.change_payload.model_dump() if change_log_request_payload.change_payload else None,
+            change_payload_array=[item.model_dump() for item in change_log_request_payload.change_payload_array] if change_log_request_payload.change_payload_array else None,
         )
 
         # Create the change log object
         g2p_register_change_log = G2PRegisterChangeLog(
             change_log_id=change_log_id,
-            register_id=change_log_payload.register_id,
-            internal_record_id=change_log_payload.internal_record_id,
-            section_id=change_log_payload.section_id,
+            register_id=change_log_request_payload.register_id,
+            tab_id=change_log_request_payload.tab_id,
+            internal_record_id=internal_record_id,
+            section_id=change_log_request_payload.section_id,
+            section_register_id=change_log_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
             no_of_verifications_required=g2p_register_section.no_of_verifications_required,
             no_of_verifications_done=0,
-            approval_status=change_log_payload.approval_status.value,
+            approval_status=ApprovalStatusEnum.PENDING.value,
         )
 
         # Add both objects to session so they're persisted together
@@ -496,11 +818,11 @@ class G2PRegisterService(BaseService):
 
         return all_registers_list
 
-    async def _fetch_child_registers(self, parent_register_id: str, session) -> list[ChildRegisterData]:
+    async def _fetch_child_registers(self, master_register_id: str, session) -> list[ChildRegisterData]:
         child_register_definitions: list[G2PRegisterDefinition] = (
             await session.execute(
                 select(G2PRegisterDefinition).where(
-                    G2PRegisterDefinition.master_register_id == parent_register_id
+                    G2PRegisterDefinition.master_register_id == master_register_id
                 )
             )
         ).scalars().all()
@@ -517,6 +839,52 @@ class G2PRegisterService(BaseService):
             child_registers_list.append(child_register_data)
 
         return child_registers_list
+
+    async def _fetch_master_register(self, register_definition: G2PRegisterDefinition, session) -> RegisterData | None:
+        master_register_id: str | None = register_definition.master_register_id
+        if not master_register_id:
+            return None
+
+        master_register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == master_register_id
+                )
+            )
+        ).scalars().first()
+
+        if not master_register_definition:
+            return None
+
+        master_register_data: RegisterData = RegisterData(
+            register_id=master_register_definition.register_id,
+            register_mnemonic=master_register_definition.register_mnemonic,
+            register_subject=master_register_definition.register_subject,
+            register_description=master_register_definition.register_description,
+            master_register_id=master_register_definition.master_register_id
+        )
+        return master_register_data
+
+    async def _fetch_register_tabs(self, register_id: str, session) -> list[RegisterUITabData]:
+        register_tabs: list[G2PRegisterUITab] = (
+            await session.execute(
+                select(G2PRegisterUITab).where(
+                    G2PRegisterUITab.register_id == register_id
+                ).order_by(G2PRegisterUITab.tab_order)
+            )
+        ).scalars().all()
+
+        register_tabs_list: list[RegisterUITabData] = []
+        for tab in register_tabs:
+            tab_data: RegisterUITabData = RegisterUITabData(
+                tab_id=tab.tab_id,
+                register_id=tab.register_id,
+                tab_label=tab.tab_label,
+                tab_order=tab.tab_order
+            )
+            register_tabs_list.append(tab_data)
+
+        return register_tabs_list
 
     async def _search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[SearchResultData], int]:
         g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
@@ -681,6 +1049,7 @@ class G2PRegisterService(BaseService):
             change_log_search_result: ChangeLogSearchResultData = ChangeLogSearchResultData(
                 change_log_id=change_log.change_log_id,
                 register_id=change_log.register_id,
+                tab_id=change_log.tab_id,
                 internal_record_id=change_log.internal_record_id,
                 section_id=change_log.section_id,
                 source_partner_id=change_log.source_partner_id,
@@ -772,15 +1141,15 @@ class G2PRegisterService(BaseService):
                 last_approved_at=last_approved_at
             )
 
-    async def get_number_of_pending_change_logs(self, register_id: str, internal_record_id: str) -> NumberOfPendingChangeLogsData:
-        """Get the number of pending change logs for a given register and internal_record_id"""
+    async def get_number_of_pending_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeLogsData:
+        """Get the number of pending change logs for a given register, internal_record_id and tab_id"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
             register_definition: G2PRegisterDefinition = (
                 await session.execute(
                     select(G2PRegisterDefinition).where(
-                        G2PRegisterDefinition.register_id == register_id
+                        G2PRegisterDefinition.register_id == subject_register_id
                     )
                 )
             ).scalar()
@@ -790,37 +1159,144 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Count pending change logs for the given internal_record_id
+            # Count pending change logs for the given internal_record_id and tab_id
             count_result = await session.execute(
                 select(func.count()).select_from(G2PRegisterChangeLog).where(
-                    (G2PRegisterChangeLog.register_id == register_id) &
-                    (G2PRegisterChangeLog.internal_record_id == internal_record_id) &
+                    (G2PRegisterChangeLog.register_id == subject_register_id) &
+                    (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
+                    (G2PRegisterChangeLog.tab_id == tab_id) &
                     (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value)
                 )
             )
             number_of_pending_change_logs = count_result.scalar_one()
 
             return NumberOfPendingChangeLogsData(
-                register_id=register_id,
-                internal_record_id=internal_record_id,
+                subject_register_id=subject_register_id,
+                subject_record_id=subject_record_id,
+                tab_id=tab_id,
                 number_of_pending_change_logs=number_of_pending_change_logs
             )
 
-    async def _fetch_change_logs(self, register_id: str, internal_record_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogData], int]:
-        """Helper method to fetch all change logs for a specific internal record with pagination"""
+    async def get_number_of_cross_register_changes(self, subject_register_id: str, subject_record_id: str) -> NumberOfCrossRegisterChangesData:
+        """Get the number of cross-register pending change logs by searching subject_record_id in search_text of G2PRegisterChangeLogPayload"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == subject_register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Count pending change logs where search_text contains subject_record_id
+            # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload and search in search_text
+            count_result = await session.execute(
+                select(func.count()).select_from(G2PRegisterChangeLog).join(
+                    G2PRegisterChangeLogPayload,
+                    G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+                ).where(
+                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value) &
+                    (G2PRegisterChangeLogPayload.search_text.ilike(f"%{subject_record_id}%"))
+                )
+            )
+            number_of_cross_register_changes = count_result.scalar_one()
+
+            return NumberOfCrossRegisterChangesData(
+                subject_register_id=subject_register_id,
+                subject_record_id=subject_record_id,
+                number_of_cross_register_changes=number_of_cross_register_changes
+            )
+
+    async def get_cross_register_changes(self, subject_register_id: str, subject_record_id: str) -> list[CrossRegisterChangeLogData]:
+        """Get the list of cross-register pending change logs by searching subject_record_id in search_text of G2PRegisterChangeLogPayload"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == subject_register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Fetch pending change logs where search_text contains subject_record_id
+            # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload, G2PRegisterDefinition, and G2PRegisterUITab
+            result = await session.execute(
+                select(
+                    G2PRegisterChangeLog,
+                    G2PRegisterDefinition.register_mnemonic,
+                    G2PRegisterUITab.tab_label
+                ).join(
+                    G2PRegisterChangeLogPayload,
+                    G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+                ).join(
+                    G2PRegisterDefinition,
+                    G2PRegisterChangeLog.register_id == G2PRegisterDefinition.register_id
+                ).join(
+                    G2PRegisterUITab,
+                    G2PRegisterChangeLog.tab_id == G2PRegisterUITab.tab_id
+                ).where(
+                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value) &
+                    (G2PRegisterChangeLogPayload.search_text.ilike(f"%{subject_record_id}%"))
+                ).order_by(G2PRegisterChangeLog.created_at.desc())
+            )
+            rows = result.all()
+
+            cross_register_changes: list[CrossRegisterChangeLogData] = []
+            for row in rows:
+                change_log = row[0]
+                register_mnemonic = row[1]
+                tab_label = row[2]
+                cross_register_changes.append(CrossRegisterChangeLogData(
+                    change_log_id=change_log.change_log_id,
+                    register_id=change_log.register_id,
+                    register_mnemonic=register_mnemonic,
+                    tab_id=change_log.tab_id,
+                    tab_label=tab_label,
+                    internal_record_id=change_log.internal_record_id,
+                    section_id=change_log.section_id,
+                    source_partner_id=change_log.source_partner_id,
+                    created_by=change_log.created_by,
+                    created_at=change_log.created_at.isoformat() if change_log.created_at else None,
+                    no_of_verifications_required=change_log.no_of_verifications_required,
+                    no_of_verifications_done=change_log.no_of_verifications_done,
+                    approval_status=change_log.approval_status,
+                    approved_by=change_log.approved_by,
+                    approved_at=change_log.approved_at.isoformat() if change_log.approved_at else None
+                ))
+
+            return cross_register_changes
+
+    async def _fetch_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogData], int]:
+        """Helper method to fetch all change logs for a specific internal record and tab with pagination"""
         # Build base query
         base_query = select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
             G2PRegisterChangeLogPayload,
             G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
         ).where(
-            (G2PRegisterChangeLog.register_id == register_id) &
-            (G2PRegisterChangeLog.internal_record_id == internal_record_id)
+            (G2PRegisterChangeLog.register_id == subject_register_id) &
+            (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeLog.tab_id == tab_id)
         ).order_by(G2PRegisterChangeLog.created_at.desc())
 
         # Get total count
         count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeLog).where(
-            (G2PRegisterChangeLog.register_id == register_id) &
-            (G2PRegisterChangeLog.internal_record_id == internal_record_id)
+            (G2PRegisterChangeLog.register_id == subject_register_id) &
+            (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeLog.tab_id == tab_id)
         ))
         total_items = count_result.scalar() or 0
 
@@ -846,6 +1322,7 @@ class G2PRegisterService(BaseService):
             change_log_data: ChangeLogData = ChangeLogData(
                 change_log_id=change_log.change_log_id,
                 register_id=change_log.register_id,
+                tab_id=change_log.tab_id,
                 internal_record_id=change_log.internal_record_id,
                 section_id=change_log.section_id,
                 source_partner_id=change_log.source_partner_id,
@@ -894,6 +1371,7 @@ class G2PRegisterService(BaseService):
         change_log_data: ChangeLogData = ChangeLogData(
             change_log_id=change_log.change_log_id,
             register_id=change_log.register_id,
+            tab_id=change_log.tab_id,
             internal_record_id=change_log.internal_record_id,
             section_id=change_log.section_id,
             source_partner_id=change_log.source_partner_id,
@@ -1251,6 +1729,13 @@ class G2PRegisterService(BaseService):
             section_data = RegisterSectionData(
                 register_id=section.register_id,
                 section_id=section.section_id,
+                tab_id=section.tab_id,
+                section_mnemonic=section.section_mnemonic,
+                section_description=section.section_description,
+                documents_required=section.documents_required,
+                no_of_verifications_required=section.no_of_verifications_required,
+                auto_approval=section.auto_approval,
+                is_list=section.is_list,
                 section_ui_schema=section.section_ui_schema
             )
             sections_list.append(section_data)
@@ -1276,6 +1761,13 @@ class G2PRegisterService(BaseService):
         return RegisterSectionData(
             register_id=section.register_id,
             section_id=section.section_id,
+            tab_id=section.tab_id,
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            is_list=section.is_list,
             section_ui_schema=section.section_ui_schema
         )
 
