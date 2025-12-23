@@ -224,11 +224,15 @@ class ChangePayload(BaseChangePayload):
 class ChangeLogRequestPayload(RegisterPayload):
     """Request payload for creating/updating change logs - sent from Partners"""
     register_id: Optional[str] = None
+    register_mnemonic: Optional[str] = None
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
     change_payload: Optional[ChangePayload] = None
     change_payload_array: Optional[List[ChangePayload]] = None
+    # For approve/reject operations
+    change_log_id: Optional[str] = None
+    rejection_reason: Optional[str] = None
 
 
 class ChangeLogResponsePayload(RegisterPayload):
