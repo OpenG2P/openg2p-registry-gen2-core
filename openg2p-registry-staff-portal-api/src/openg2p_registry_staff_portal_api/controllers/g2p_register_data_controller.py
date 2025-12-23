@@ -6,14 +6,15 @@ from openg2p_registry_core.schemas import (
     GetNumberOfVersionsRequest,
     GetSubjectRecordRequest,
     GetDeduplicationRegisterResultsRequest,
-    GetDeduplicationChangelogResultsRequest,
+    GetDeduplicationChangerequestResultsRequest,
     NumberOfVersionsResponse, NumberOfVersionsData,
-    RecordDataResponse, RecordData,
+    RecordDataResponse, RecordData, RegisterTabRecordData,
     DeduplicationRegisterResultsDataResponse,
-    DeduplicationChangelogResultsDataResponse,
+    DeduplicationChangerequestResultsDataResponse,
     GetRegisterSectionRequest,
     RegisterSectionData, RegisterSectionDataResponse,
-    GetSectionRecordsRequest, SectionRecordsDataResponse
+    GetSectionRecordsRequest, SectionRecordsDataResponse,
+    GetRegisterTabRecordsRequest, RegisterTabRecordsDataResponse
 )
 
 from ..helpers import RequestResponseHelper
@@ -54,9 +55,9 @@ class G2PRegisterDataController(BaseController):
         )
 
         self.router.add_api_route(
-            "/get_deduplication_changelog_results",
-            self.get_deduplication_changelog_results,
-            responses={200: {"model": DeduplicationChangelogResultsDataResponse}},
+            "/get_deduplication_changerequest_results",
+            self.get_deduplication_changerequest_results,
+            responses={200: {"model": DeduplicationChangerequestResultsDataResponse}},
             methods=["POST"],
         )
 
@@ -71,6 +72,13 @@ class G2PRegisterDataController(BaseController):
             "/get_section_records",
             self.get_section_records,
             responses={200: {"model": SectionRecordsDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_tab_records",
+            self.get_register_tab_records,
+            responses={200: {"model": RegisterTabRecordsDataResponse}},
             methods=["POST"],
         )
 
@@ -100,7 +108,7 @@ class G2PRegisterDataController(BaseController):
 
     async def get_deduplication_register_results(self, get_deduplication_register_results_request: GetDeduplicationRegisterResultsRequest) -> DeduplicationRegisterResultsDataResponse:
         """
-        Get deduplication results for a change log against register records.
+        Get deduplication results for a change request against register records.
         """
         try:
             dedup_results_list, total_items, number_of_pages = await self.g2p_register_data_controller_service.get_deduplication_register_results(get_deduplication_register_results_request)
@@ -114,20 +122,20 @@ class G2PRegisterDataController(BaseController):
             error_response: DeduplicationRegisterResultsDataResponse = self.helper.construct_error_response(error_exception, get_deduplication_register_results_request)
             return error_response
 
-    async def get_deduplication_changelog_results(self, get_deduplication_changelog_results_request: GetDeduplicationChangelogResultsRequest) -> DeduplicationChangelogResultsDataResponse:
+    async def get_deduplication_changerequest_results(self, get_deduplication_changerequest_results_request: GetDeduplicationChangerequestResultsRequest) -> DeduplicationChangerequestResultsDataResponse:
         """
-        Get deduplication results for a change log against other change logs.
+        Get deduplication results for a change request against other change requests.
         """
         try:
-            dedup_results_list, total_items, number_of_pages = await self.g2p_register_data_controller_service.get_deduplication_changelog_results(get_deduplication_changelog_results_request)
-            dedup_results_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_deduplication_changelog_results_success_response(
-                dedup_results_list=dedup_results_list, g2p_request=get_deduplication_changelog_results_request,
+            dedup_results_list, total_items, number_of_pages = await self.g2p_register_data_controller_service.get_deduplication_changerequest_results(get_deduplication_changerequest_results_request)
+            dedup_results_response: DeduplicationChangerequestResultsDataResponse = self.helper.construct_deduplication_changerequest_results_success_response(
+                dedup_results_list=dedup_results_list, g2p_request=get_deduplication_changerequest_results_request,
                 number_of_items=total_items, number_of_pages=number_of_pages
             )
             return dedup_results_response
         except Exception as error_exception:
-            _logger.error(f"Error in get_deduplication_changelog_results: {str(error_exception)}")
-            error_response: DeduplicationChangelogResultsDataResponse = self.helper.construct_error_response(error_exception, get_deduplication_changelog_results_request)
+            _logger.error(f"Error in get_deduplication_changerequest_results: {str(error_exception)}")
+            error_response: DeduplicationChangerequestResultsDataResponse = self.helper.construct_error_response(error_exception, get_deduplication_changerequest_results_request)
             return error_response
 
     async def get_schema_definition_for_register_section(self, get_register_section_request: GetRegisterSectionRequest) -> RegisterSectionDataResponse:
@@ -166,5 +174,28 @@ class G2PRegisterDataController(BaseController):
             _logger.error(f"Error in get_section_records: {str(error_exception)}")
             error_response: SectionRecordsDataResponse = self.helper.construct_error_response(
                 error_exception, get_section_records_request
+            )
+            return error_response
+
+    async def get_register_tab_records(
+        self,
+        get_register_tab_records_request: GetRegisterTabRecordsRequest
+    ) -> RegisterTabRecordsDataResponse:
+        """
+        Get all records for a tab, grouped by unique section_register_id.
+        Multiple sections with the same section_register_id are deduplicated.
+        """
+        try:
+            tab_records: list[RegisterTabRecordData] = await self.g2p_register_data_controller_service.get_register_tab_records(
+                get_register_tab_records_request
+            )
+            tab_records_response: RegisterTabRecordsDataResponse = self.helper.construct_register_tab_records_success_response(
+                tab_records=tab_records, g2p_request=get_register_tab_records_request
+            )
+            return tab_records_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_tab_records: {str(error_exception)}")
+            error_response: RegisterTabRecordsDataResponse = self.helper.construct_error_response(
+                error_exception, get_register_tab_records_request
             )
             return error_response

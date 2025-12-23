@@ -5,21 +5,22 @@ from openg2p_fastapi_common.schemas import (
     G2PResponseBody,
 )
 from .payload import (
-    ChangeLogResponsePayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
-    RegisterUITabData, SearchResultData, ChangeLogSearchResultData, IngestDataPayload,
-    NumberOfVersionsData, NumberOfPendingChangeLogsData, NumberOfCrossRegisterChangesData,
-    CrossRegisterChangeLogData, CrossRegisterChangesData,
-    ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData,
+    ChangeRequestResponsePayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
+    RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, IngestDataPayload,
+    NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
+    CrossRegisterChangeRequestData, CrossRegisterChangesData,
+    ChangeRequestData, ChangeRequestsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
-    DeduplicationChangelogResultsData, RegisterSchemaData, RegisterSectionData
+    DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
+    RegisterTabRecordData
 )
 
 
-class ChangeLogResponseBody(G2PResponseBody):
-    response_payload: Optional[ChangeLogResponsePayload] = None
+class ChangeRequestResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeRequestResponsePayload] = None
 
-class ChangeLogResponse(G2PResponse):
-    response_body: Optional[ChangeLogResponseBody] = None
+class ChangeRequestResponse(G2PResponse):
+    response_body: Optional[ChangeRequestResponseBody] = None
 
 # Register Summary Data
 class RegisterSummaryDataResponseBody(G2PResponseBody):
@@ -29,12 +30,12 @@ class RegisterSummaryDataResponse(G2PResponse):
     response_body: Optional[RegisterSummaryDataResponseBody] = None
 
 
-# ChangeLog Summary Data
-class ChangeLogSummaryDataResponseBody(G2PResponseBody):
-    response_payload: Optional[ChangeLogSummaryData] = None
+# ChangeRequest Summary Data
+class ChangeRequestSummaryDataResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeRequestSummaryData] = None
 
-class ChangeLogSummaryDataResponse(G2PResponse):
-    response_body: Optional[ChangeLogSummaryDataResponseBody] = None
+class ChangeRequestSummaryDataResponse(G2PResponse):
+    response_body: Optional[ChangeRequestSummaryDataResponseBody] = None
 
 
 class AllRegistersResponseBody(G2PResponseBody):
@@ -58,11 +59,11 @@ class SearchResultsResponse(G2PResponse):
     response_body: Optional[SearchResultsResponseBody] = None
 
 
-class ChangeLogSearchResultsResponseBody(G2PResponseBody):
-    response_payload: Optional[List[ChangeLogSearchResultData]] = None
+class ChangeRequestSearchResultsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[ChangeRequestSearchResultData]] = None
 
-class ChangeLogSearchResultsResponse(G2PResponse):
-    response_body: Optional[ChangeLogSearchResultsResponseBody] = None
+class ChangeRequestSearchResultsResponse(G2PResponse):
+    response_body: Optional[ChangeRequestSearchResultsResponseBody] = None
 
 class IngestDataResponseBody(G2PResponseBody):
     response_payload: Optional[IngestDataPayload] = None
@@ -78,11 +79,11 @@ class NumberOfVersionsResponse(G2PResponse):
     response_body: Optional[NumberOfVersionsResponseBody] = None
 
 
-class NumberOfPendingChangeLogsResponseBody(G2PResponseBody):
-    response_payload: Optional[NumberOfPendingChangeLogsData] = None
+class NumberOfPendingChangeRequestsResponseBody(G2PResponseBody):
+    response_payload: Optional[NumberOfPendingChangeRequestsData] = None
 
-class NumberOfPendingChangeLogsResponse(G2PResponse):
-    response_body: Optional[NumberOfPendingChangeLogsResponseBody] = None
+class NumberOfPendingChangeRequestsResponse(G2PResponse):
+    response_body: Optional[NumberOfPendingChangeRequestsResponseBody] = None
 
 
 class NumberOfCrossRegisterChangesResponseBody(G2PResponseBody):
@@ -101,18 +102,18 @@ class CrossRegisterChangesDataResponse(G2PResponse):
     response_body: Optional[CrossRegisterChangesDataResponseBody] = None
 
 
-class ChangeLogDataResponseBody(G2PResponseBody):
-    response_payload: Optional[ChangeLogData] = None
+class ChangeRequestDataResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeRequestData] = None
 
-class ChangeLogDataResponse(G2PResponse):
-    response_body: Optional[ChangeLogDataResponseBody] = None
+class ChangeRequestDataResponse(G2PResponse):
+    response_body: Optional[ChangeRequestDataResponseBody] = None
 
 
-class ChangeLogsDataResponseBody(G2PResponseBody):
-    response_payload: Optional[ChangeLogsData] = None
+class ChangeRequestsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeRequestsData] = None
 
-class ChangeLogsDataResponse(G2PResponse):
-    response_body: Optional[ChangeLogsDataResponseBody] = None
+class ChangeRequestsDataResponse(G2PResponse):
+    response_body: Optional[ChangeRequestsDataResponseBody] = None
 
 
 class RecordDataResponseBody(G2PResponseBody):
@@ -143,11 +144,11 @@ class DeduplicationRegisterResultsDataResponse(G2PResponse):
     response_body: Optional[DeduplicationRegisterResultsDataResponseBody] = None
 
 
-class DeduplicationChangelogResultsDataResponseBody(G2PResponseBody):
-    response_payload: Optional[DeduplicationChangelogResultsData] = None
+class DeduplicationChangerequestResultsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[DeduplicationChangerequestResultsData] = None
 
-class DeduplicationChangelogResultsDataResponse(G2PResponse):
-    response_body: Optional[DeduplicationChangelogResultsDataResponseBody] = None
+class DeduplicationChangerequestResultsDataResponse(G2PResponse):
+    response_body: Optional[DeduplicationChangerequestResultsDataResponseBody] = None
 
 
 class RegisterSchemaDataResponseBody(G2PResponseBody):
@@ -204,3 +205,11 @@ class SectionRecordsDataResponseBody(G2PResponseBody):
 
 class SectionRecordsDataResponse(G2PResponse):
     response_body: Optional[SectionRecordsDataResponseBody] = None
+
+
+class RegisterTabRecordsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterTabRecordData]] = None
+
+
+class RegisterTabRecordsDataResponse(G2PResponse):
+    response_body: Optional[RegisterTabRecordsDataResponseBody] = None

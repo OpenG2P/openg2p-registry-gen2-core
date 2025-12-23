@@ -3,25 +3,25 @@ from typing import List
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.schemas import G2PRequest, G2PResponse, G2PResponseHeader, G2PResponseStatus, G2PResponseBody, G2PPaginationResponse
 from openg2p_registry_core.schemas import (
-    ChangeLogResponsePayload, ChangeLogResponse, ChangeLogResponseBody,
+    ChangeRequestResponsePayload, ChangeRequestResponse, ChangeRequestResponseBody,
     RegisterSummaryData, RegisterSummaryDataResponse, RegisterSummaryDataResponseBody,
-    ChangeLogSummaryData, ChangeLogSummaryDataResponse, ChangeLogSummaryDataResponseBody,
+    ChangeRequestSummaryData, ChangeRequestSummaryDataResponse, ChangeRequestSummaryDataResponseBody,
     RegisterData, AllRegistersResponse, AllRegistersResponseBody,
     RegisterDataResponse, RegisterDataResponseBody,
     ChildRegisterData, ChildRegistersResponse, ChildRegistersResponseBody,
     SearchResultData, SearchResultsResponse, SearchResultsResponseBody,
-    ChangeLogSearchResultData, ChangeLogSearchResultsResponse, ChangeLogSearchResultsResponseBody,
+    ChangeRequestSearchResultData, ChangeRequestSearchResultsResponse, ChangeRequestSearchResultsResponseBody,
     NumberOfVersionsData, NumberOfVersionsResponse, NumberOfVersionsResponseBody,
-    NumberOfPendingChangeLogsData, NumberOfPendingChangeLogsResponse, NumberOfPendingChangeLogsResponseBody,
+    NumberOfPendingChangeRequestsData, NumberOfPendingChangeRequestsResponse, NumberOfPendingChangeRequestsResponseBody,
     NumberOfCrossRegisterChangesData, NumberOfCrossRegisterChangesResponse, NumberOfCrossRegisterChangesResponseBody,
-    CrossRegisterChangeLogData, CrossRegisterChangesData, CrossRegisterChangesDataResponse, CrossRegisterChangesDataResponseBody,
-    ChangeLogData, ChangeLogDataResponse, ChangeLogDataResponseBody,
-    ChangeLogsData, ChangeLogsDataResponse, ChangeLogsDataResponseBody,
+    CrossRegisterChangeRequestData, CrossRegisterChangesData, CrossRegisterChangesDataResponse, CrossRegisterChangesDataResponseBody,
+    ChangeRequestData, ChangeRequestDataResponse, ChangeRequestDataResponseBody,
+    ChangeRequestsData, ChangeRequestsDataResponse, ChangeRequestsDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
     VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody,
     VerificationData, VerificationDataResponse, VerificationDataResponseBody,
     DeduplicationRegisterResultsData, DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
-    DeduplicationChangelogResultsData, DeduplicationChangelogResultsDataResponse, DeduplicationChangelogResultsDataResponseBody,
+    DeduplicationChangerequestResultsData, DeduplicationChangerequestResultsDataResponse, DeduplicationChangerequestResultsDataResponseBody,
     IncomingPartnerData, IncomingPartnerResponseBody,
     IncomingModelKeyPathData, IncomingModelKeyPathResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
@@ -32,12 +32,13 @@ from openg2p_registry_core.schemas import (
     RegisterUITabData, RegisterTabsDataResponse, RegisterTabsDataResponseBody,
     RegisterTabDataResponse, RegisterTabDataResponseBody,
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
+    RegisterTabRecordData, RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
 
 class RequestResponseHelper(BaseService):
-    def construct_change_log_success_response(self, change_log_response_payload: ChangeLogResponsePayload, g2p_request: G2PRequest) -> ChangeLogResponse:
+    def construct_change_request_success_response(self, change_request_response_payload: ChangeRequestResponsePayload, g2p_request: G2PRequest) -> ChangeRequestResponse:
 
         g2p_response_header = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id,
@@ -47,15 +48,15 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        response_body: ChangeLogResponseBody = ChangeLogResponseBody(
-            response_payload=change_log_response_payload
+        response_body: ChangeRequestResponseBody = ChangeRequestResponseBody(
+            response_payload=change_request_response_payload
         )
 
-        change_log_response: ChangeLogResponse = ChangeLogResponse(
+        change_request_response: ChangeRequestResponse = ChangeRequestResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return change_log_response
+        return change_request_response
     
     def construct_error_response(self, error: Exception, g2p_request: G2PRequest = None) -> G2PResponse:
         """
@@ -111,7 +112,7 @@ class RequestResponseHelper(BaseService):
         )
         return register_summary_data_response
 
-    def construct_changelog_summary_data_success_response(self, changelog_summary_data: ChangeLogSummaryData, g2p_request: G2PRequest = None) -> ChangeLogSummaryDataResponse:
+    def construct_changerequest_summary_data_success_response(self, changerequest_summary_data: ChangeRequestSummaryData, g2p_request: G2PRequest = None) -> ChangeRequestSummaryDataResponse:
         request_id = g2p_request.request_header.request_id if g2p_request else ""
 
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -122,15 +123,15 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        response_body: ChangeLogSummaryDataResponseBody = ChangeLogSummaryDataResponseBody(
-            response_payload=changelog_summary_data
+        response_body: ChangeRequestSummaryDataResponseBody = ChangeRequestSummaryDataResponseBody(
+            response_payload=changerequest_summary_data
         )
 
-        changelog_summary_data_response: ChangeLogSummaryDataResponse = ChangeLogSummaryDataResponse(
+        changerequest_summary_data_response: ChangeRequestSummaryDataResponse = ChangeRequestSummaryDataResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return changelog_summary_data_response
+        return changerequest_summary_data_response
 
     def construct_all_registers_success_response(self, all_registers_list: List[RegisterData], g2p_request: G2PRequest = None) -> AllRegistersResponse:
         request_id = g2p_request.request_header.request_id if g2p_request else ""
@@ -203,7 +204,7 @@ class RequestResponseHelper(BaseService):
         )
         return search_results_response
 
-    def construct_change_log_search_results_success_response(self, search_results_list: List[ChangeLogSearchResultData], g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeLogSearchResultsResponse:
+    def construct_change_request_search_results_success_response(self, search_results_list: List[ChangeRequestSearchResultData], g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeRequestSearchResultsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -219,16 +220,16 @@ class RequestResponseHelper(BaseService):
                 number_of_pages=number_of_pages
             )
 
-        response_body: ChangeLogSearchResultsResponseBody = ChangeLogSearchResultsResponseBody(
+        response_body: ChangeRequestSearchResultsResponseBody = ChangeRequestSearchResultsResponseBody(
             response_payload=search_results_list,
             pagination_response=pagination_response
         )
 
-        change_log_search_results_response: ChangeLogSearchResultsResponse = ChangeLogSearchResultsResponse(
+        change_request_search_results_response: ChangeRequestSearchResultsResponse = ChangeRequestSearchResultsResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return change_log_search_results_response
+        return change_request_search_results_response
 
     def construct_number_of_versions_success_response(self, number_of_versions_data: NumberOfVersionsData, g2p_request: G2PRequest = None) -> NumberOfVersionsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -249,7 +250,7 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_versions_response
 
-    def construct_number_of_pending_change_logs_success_response(self, number_of_pending_change_logs_data: NumberOfPendingChangeLogsData, g2p_request: G2PRequest = None) -> NumberOfPendingChangeLogsResponse:
+    def construct_number_of_pending_change_requests_success_response(self, number_of_pending_change_requests_data: NumberOfPendingChangeRequestsData, g2p_request: G2PRequest = None) -> NumberOfPendingChangeRequestsResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -258,15 +259,15 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        response_body: NumberOfPendingChangeLogsResponseBody = NumberOfPendingChangeLogsResponseBody(
-            response_payload=number_of_pending_change_logs_data
+        response_body: NumberOfPendingChangeRequestsResponseBody = NumberOfPendingChangeRequestsResponseBody(
+            response_payload=number_of_pending_change_requests_data
         )
 
-        number_of_pending_change_logs_response: NumberOfPendingChangeLogsResponse = NumberOfPendingChangeLogsResponse(
+        number_of_pending_change_requests_response: NumberOfPendingChangeRequestsResponse = NumberOfPendingChangeRequestsResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return number_of_pending_change_logs_response
+        return number_of_pending_change_requests_response
 
     def construct_number_of_cross_register_changes_success_response(self, number_of_cross_register_changes_data: NumberOfCrossRegisterChangesData, g2p_request: G2PRequest = None) -> NumberOfCrossRegisterChangesResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -287,7 +288,7 @@ class RequestResponseHelper(BaseService):
         )
         return number_of_cross_register_changes_response
 
-    def construct_cross_register_changes_success_response(self, cross_register_changes: List[CrossRegisterChangeLogData], g2p_request: G2PRequest = None) -> CrossRegisterChangesDataResponse:
+    def construct_cross_register_changes_success_response(self, cross_register_changes: List[CrossRegisterChangeRequestData], g2p_request: G2PRequest = None) -> CrossRegisterChangesDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -306,7 +307,7 @@ class RequestResponseHelper(BaseService):
         )
         return cross_register_changes_response
 
-    def construct_change_logs_success_response(self, change_logs_list: List[ChangeLogData] = None, change_logs_data: ChangeLogsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeLogsDataResponse:
+    def construct_change_requests_success_response(self, change_requests_list: List[ChangeRequestData] = None, change_requests_data: ChangeRequestsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeRequestsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -315,11 +316,11 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        # Support both old (change_logs_data) and new (change_logs_list) parameters
-        if change_logs_list is not None:
-            payload = ChangeLogsData(change_logs=change_logs_list)
+        # Support both old (change_requests_data) and new (change_requests_list) parameters
+        if change_requests_list is not None:
+            payload = ChangeRequestsData(change_requests=change_requests_list)
         else:
-            payload = change_logs_data
+            payload = change_requests_data
 
         pagination_response = None
         if number_of_items is not None and number_of_pages is not None:
@@ -328,18 +329,18 @@ class RequestResponseHelper(BaseService):
                 number_of_pages=number_of_pages
             )
 
-        response_body: ChangeLogsDataResponseBody = ChangeLogsDataResponseBody(
+        response_body: ChangeRequestsDataResponseBody = ChangeRequestsDataResponseBody(
             response_payload=payload,
             pagination_response=pagination_response
         )
 
-        change_logs_response: ChangeLogsDataResponse = ChangeLogsDataResponse(
+        change_requests_response: ChangeRequestsDataResponse = ChangeRequestsDataResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return change_logs_response
+        return change_requests_response
 
-    def construct_change_log_data_success_response(self, change_log_data: ChangeLogData, g2p_request: G2PRequest = None) -> ChangeLogDataResponse:
+    def construct_change_request_data_success_response(self, change_request_data: ChangeRequestData, g2p_request: G2PRequest = None) -> ChangeRequestDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -348,15 +349,15 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        response_body: ChangeLogDataResponseBody = ChangeLogDataResponseBody(
-            response_payload=change_log_data
+        response_body: ChangeRequestDataResponseBody = ChangeRequestDataResponseBody(
+            response_payload=change_request_data
         )
 
-        change_log_response: ChangeLogDataResponse = ChangeLogDataResponse(
+        change_request_response: ChangeRequestDataResponse = ChangeRequestDataResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
-        return change_log_response
+        return change_request_response
 
     def construct_record_success_response(self, record_data: RecordData, g2p_request: G2PRequest = None) -> RecordDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
@@ -496,7 +497,7 @@ class RequestResponseHelper(BaseService):
         )
         return dedup_results_response
 
-    def construct_deduplication_changelog_results_success_response(self, dedup_results_list: List = None, dedup_results_data: DeduplicationChangelogResultsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> DeduplicationChangelogResultsDataResponse:
+    def construct_deduplication_changerequest_results_success_response(self, dedup_results_list: List = None, dedup_results_data: DeduplicationChangerequestResultsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> DeduplicationChangerequestResultsDataResponse:
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -507,7 +508,7 @@ class RequestResponseHelper(BaseService):
 
         # Support both old (dedup_results_data) and new (dedup_results_list) parameters
         if dedup_results_list is not None:
-            payload = DeduplicationChangelogResultsData(results=dedup_results_list)
+            payload = DeduplicationChangerequestResultsData(results=dedup_results_list)
         else:
             payload = dedup_results_data
 
@@ -518,12 +519,12 @@ class RequestResponseHelper(BaseService):
                 number_of_pages=number_of_pages
             )
 
-        response_body: DeduplicationChangelogResultsDataResponseBody = DeduplicationChangelogResultsDataResponseBody(
+        response_body: DeduplicationChangerequestResultsDataResponseBody = DeduplicationChangerequestResultsDataResponseBody(
             response_payload=payload,
             pagination_response=pagination_response
         )
 
-        dedup_results_response: DeduplicationChangelogResultsDataResponse = DeduplicationChangelogResultsDataResponse(
+        dedup_results_response: DeduplicationChangerequestResultsDataResponse = DeduplicationChangerequestResultsDataResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
@@ -700,3 +701,27 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return section_records_response
+
+    def construct_register_tab_records_success_response(
+        self,
+        tab_records: List[RegisterTabRecordData],
+        g2p_request: G2PRequest = None
+    ) -> RegisterTabRecordsDataResponse:
+        """Construct success response for get_register_tab_records endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterTabRecordsDataResponseBody = RegisterTabRecordsDataResponseBody(
+            response_payload=tab_records
+        )
+
+        tab_records_response: RegisterTabRecordsDataResponse = RegisterTabRecordsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return tab_records_response

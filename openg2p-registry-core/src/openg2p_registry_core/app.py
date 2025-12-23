@@ -19,7 +19,7 @@ from .services import (
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
-    G2PRegisterChangelogControllerService,
+    G2PRegisterChangerequestControllerService,
     G2PRegisterMetadataControllerService,
     G2PRegisterSummaryControllerService,
     G2PIngestControllerService,
@@ -31,9 +31,9 @@ from .models import (
     G2PRegisterDefinition,
     G2PRegisterSection,
     G2PRegisterVerification,
-    G2PRegisterChangeLog,
-    G2PRegisterChangeLogPayload,
-    G2PRegisterChangeLogDocuments,
+    G2PRegisterChangeRequest,
+    G2PRegisterChangeRequestPayload,
+    G2PRegisterChangeRequestDocuments,
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingRawData,
@@ -81,7 +81,7 @@ class Initializer(BaseInitializer):
         # Controller Services
         G2PIngestControllerService()
         G2PRegisterDataControllerService()
-        G2PRegisterChangelogControllerService()
+        G2PRegisterChangerequestControllerService()
         G2PRegisterMetadataControllerService()
         G2PRegisterSummaryControllerService()
         G2PIngestionConfigurationControllerService()
@@ -98,9 +98,9 @@ class Initializer(BaseInitializer):
             await G2PRegisterDefinition.create_migrate()
             await G2PRegisterSection.create_migrate()
             await G2PRegisterVerification.create_migrate()
-            await G2PRegisterChangeLog.create_migrate()
-            await G2PRegisterChangeLogPayload.create_migrate()
-            await G2PRegisterChangeLogDocuments.create_migrate()
+            await G2PRegisterChangeRequest.create_migrate()
+            await G2PRegisterChangeRequestPayload.create_migrate()
+            await G2PRegisterChangeRequestDocuments.create_migrate()
 
             # Incoming Models
             await IncomingPartner.create_migrate()

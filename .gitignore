@@ -206,3 +206,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+G2P_Register_Controller_Postman_Collection.json
+G2P_Register_Controller.postman_collection.json
+register_seeder.py
+test_changelog_api.py

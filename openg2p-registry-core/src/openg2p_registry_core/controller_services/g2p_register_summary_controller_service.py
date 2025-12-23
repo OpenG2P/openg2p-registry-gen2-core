@@ -3,10 +3,10 @@ from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PRegisterService
 from ..schemas import (
-    RegisterSummaryData, ChangeLogSummaryData,
-    GetRegisterSummaryDataRequest, GetChangeLogSummaryDataRequest,
-    SearchRegisterRequest, SearchChangeLogRequest,
-    SearchResultData, ChangeLogSearchResultData
+    RegisterSummaryData, ChangeRequestSummaryData,
+    GetRegisterSummaryDataRequest, GetChangeRequestSummaryDataRequest,
+    SearchRegisterRequest, SearchChangeRequestRequest,
+    SearchResultData, ChangeRequestSearchResultData
 )
 
 _logger = logging.getLogger('g2p-register-summary-controller-service')
@@ -20,11 +20,11 @@ class G2PRegisterSummaryControllerService(BaseService):
         register_summary_data_list: list[RegisterSummaryData] = await g2p_register_service.get_register_summary_data()
         return register_summary_data_list
 
-    async def get_changelog_summary_data(self, get_changelog_summary_data_request: GetChangeLogSummaryDataRequest) -> ChangeLogSummaryData:
-        _logger.info("Fetching changelog summary data through controller service")
+    async def get_changerequest_summary_data(self, get_changerequest_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryData:
+        _logger.info("Fetching changerequest summary data through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        changelog_summary_data: ChangeLogSummaryData = await g2p_register_service.get_changelog_summary_data()
-        return changelog_summary_data
+        changerequest_summary_data: ChangeRequestSummaryData = await g2p_register_service.get_changerequest_summary_data()
+        return changerequest_summary_data
 
     async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> tuple[list[SearchResultData], int, int]:
         payload = search_register_request.request_body.request_payload
@@ -42,11 +42,11 @@ class G2PRegisterSummaryControllerService(BaseService):
 
         return search_results_list, total_items, number_of_pages
 
-    async def search_in_change_log(self, search_change_log_request: SearchChangeLogRequest) -> tuple[list[ChangeLogSearchResultData], int, int]:
-        pagination = search_change_log_request.request_body.pagination_request
-        _logger.info(f"Searching in change logs with search_text: {pagination.search_text} through controller service")
+    async def search_in_change_request(self, search_change_request_request: SearchChangeRequestRequest) -> tuple[list[ChangeRequestSearchResultData], int, int]:
+        pagination = search_change_request_request.request_body.pagination_request
+        _logger.info(f"Searching in change requests with search_text: {pagination.search_text} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        search_results_list, total_items = await g2p_register_service.search_in_change_log(
+        search_results_list, total_items = await g2p_register_service.search_in_change_request(
             pagination.search_text, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0

@@ -8,8 +8,8 @@ from openg2p_fastapi_common.context import dbengine
 from sqlalchemy import select, inspect as sa_inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..models import G2PRegisterDefinition
-from ..schemas import RecordData
+from ..models import G2PRegisterDefinition, G2PRegisterSection
+from ..schemas import RecordData, RegisterTabRecordData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-hierarchical-service')
@@ -232,15 +232,16 @@ class G2PRegisterHierarchicalService(BaseService):
     def _convert_record_to_record_data(self, record) -> RecordData:
         """
         Convert an ORM record object to RecordData schema.
-        
+        Extra fields from the implementation table are flattened at root level.
+
         Args:
             record: SQLAlchemy ORM record
-            
+
         Returns:
-            RecordData object
+            RecordData object with flattened extra fields
         """
         mapper = sa_inspect(record.__class__)
-        additional_fields: dict = {}
+        extra_fields: dict = {}
 
         base_fields: set = {
             'internal_record_id', 'functional_record_id', 'link_record_id',
@@ -255,7 +256,7 @@ class G2PRegisterHierarchicalService(BaseService):
                 value = value.isoformat()
 
             if column_name not in base_fields:
-                additional_fields[column_name] = value
+                extra_fields[column_name] = value
 
         record_data: RecordData = RecordData(
             internal_record_id=record.internal_record_id,
@@ -265,7 +266,7 @@ class G2PRegisterHierarchicalService(BaseService):
             created_at=str(record.created_at.isoformat()) if record.created_at and hasattr(record.created_at, 'isoformat') else None,
             last_approved_at=str(record.last_approved_at.isoformat()) if record.last_approved_at and hasattr(record.last_approved_at, 'isoformat') else None,
             last_approved_by=record.last_approved_by,
-            additional_fields=additional_fields if additional_fields else None
+            **extra_fields
         )
 
         return record_data
@@ -396,3 +397,57 @@ class G2PRegisterHierarchicalService(BaseService):
 
         return []
 
+    async def get_register_tab_records(
+        self,
+        subject_register_id: str,
+        subject_record_id: str,
+        tab_id: str
+    ) -> list[RegisterTabRecordData]:
+        """
+        Get all records for a tab, grouped by unique section_register_id.
+        Multiple sections with the same section_register_id are deduplicated.
+
+        Args:
+            subject_register_id: The register we're starting from
+            subject_record_id: The specific record (internal_record_id)
+            tab_id: The tab to fetch records for
+
+        Returns:
+            List of RegisterTabRecordData, one per unique section_register_id
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate subject register exists
+            await self._validate_register_definition(subject_register_id, session)
+
+            # Fetch all sections for this tab
+            result = await session.execute(
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.register_id == subject_register_id,
+                    G2PRegisterSection.tab_id == tab_id
+                )
+            )
+            sections = result.scalars().all()
+
+            if not sections:
+                return []
+
+            # Extract unique section_register_ids to avoid duplicate fetches
+            unique_section_register_ids: set[str] = set()
+            for section in sections:
+                unique_section_register_ids.add(section.section_register_id)
+
+            # Fetch records for each unique section_register_id
+            tab_records: list[RegisterTabRecordData] = []
+            for section_register_id in unique_section_register_ids:
+                records: list[RecordData] = await self.get_section_records(
+                    subject_register_id=subject_register_id,
+                    subject_record_id=subject_record_id,
+                    section_register_id=section_register_id
+                )
+                tab_records.append(RegisterTabRecordData(
+                    section_register_id=section_register_id,
+                    records=records
+                ))
+
+            return tab_records
