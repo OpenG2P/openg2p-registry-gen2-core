@@ -22,6 +22,7 @@ from .request import (
     IngestDataRequest,
     GetRegisterSchemaRequest, GetRegisterSchemaRequestBody, GetRegisterSchemaRequestPayload,
     GetRegisterSectionsRequest, GetRegisterSectionsRequestBody, GetRegisterSectionsRequestPayload,
+    GetRegisterTabSectionsRequest, GetRegisterTabSectionsRequestBody, GetRegisterTabSectionsRequestPayload,
     GetRegisterTabsRequest, GetRegisterTabsRequestBody, GetRegisterTabsRequestPayload,
     AddRegisterTabRequest, AddRegisterTabRequestBody, AddRegisterTabRequestPayload,
     DeleteRegisterTabRequest, DeleteRegisterTabRequestBody, DeleteRegisterTabRequestPayload,

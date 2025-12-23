@@ -5,7 +5,7 @@ from ..services import G2PRegisterService
 from ..schemas import (
     RegisterData, ChildRegisterData, RegisterUITabData,
     GetAllRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
-    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabsRequest,
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
     AddRegisterTabRequest, DeleteRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
@@ -59,6 +59,18 @@ class G2PRegisterMetadataControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
         return register_sections_list
+
+    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> list[RegisterSectionData]:
+        """
+        Get register sections for a given register_id and tab_id.
+        """
+        payload = get_register_tab_sections_request.request_body.request_payload
+        register_id: str = payload.register_id
+        tab_id: str = payload.tab_id
+        _logger.info(f"Getting register sections for register_id: {register_id}, tab_id: {tab_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_tab_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_tab_sections(register_id, tab_id)
+        return register_tab_sections_list
 
     async def get_register_tabs(self, get_register_tabs_request: GetRegisterTabsRequest) -> list[RegisterUITabData]:
         """

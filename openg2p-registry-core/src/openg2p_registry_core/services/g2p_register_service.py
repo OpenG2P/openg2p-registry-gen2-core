@@ -1688,6 +1688,21 @@ class G2PRegisterService(BaseService):
             register_sections_list: list[RegisterSectionData] = await self._fetch_register_sections(register_id, session)
             return register_sections_list
 
+    async def get_register_tab_sections(self, register_id: str, tab_id: str) -> list[RegisterSectionData]:
+        """
+        Get register sections for a given register_id and tab_id.
+        Returns a list of section UI schema configurations from g2p_register_sections table
+        filtered by both register_id and tab_id.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch register sections filtered by tab_id
+            register_tab_sections_list: list[RegisterSectionData] = await self._fetch_register_tab_sections(register_id, tab_id, session)
+            return register_tab_sections_list
+
     async def get_register_section(self, register_id: str, section_id: str) -> RegisterSectionData:
         """
         Get a single register section by register_id and section_id.
@@ -1729,6 +1744,35 @@ class G2PRegisterService(BaseService):
         """Fetch register sections from g2p_register_sections table."""
         result = await session.execute(
             select(G2PRegisterSection).where(G2PRegisterSection.register_id == register_id)
+        )
+        sections = result.scalars().all()
+
+        sections_list: list[RegisterSectionData] = []
+        for section in sections:
+            section_data = RegisterSectionData(
+                section_register_id=section.section_register_id,
+                register_id=section.register_id,
+                section_id=section.section_id,
+                tab_id=section.tab_id,
+                section_mnemonic=section.section_mnemonic,
+                section_description=section.section_description,
+                documents_required=section.documents_required,
+                no_of_verifications_required=section.no_of_verifications_required,
+                auto_approval=section.auto_approval,
+                is_list=section.is_list,
+                section_ui_schema=section.section_ui_schema
+            )
+            sections_list.append(section_data)
+
+        return sections_list
+
+    async def _fetch_register_tab_sections(self, register_id: str, tab_id: str, session) -> list[RegisterSectionData]:
+        """Fetch register sections from g2p_register_sections table filtered by tab_id."""
+        result = await session.execute(
+            select(G2PRegisterSection).where(
+                G2PRegisterSection.register_id == register_id,
+                G2PRegisterSection.tab_id == tab_id
+            )
         )
         sections = result.scalars().all()
 

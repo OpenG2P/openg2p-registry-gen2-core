@@ -273,6 +273,19 @@ class GetRegisterSectionsRequest(G2PRequest):
     request_body: GetRegisterSectionsRequestBody
 
 
+class GetRegisterTabSectionsRequestPayload(BaseModel):
+    register_id: str
+    tab_id: str
+
+
+class GetRegisterTabSectionsRequestBody(G2PRequestBody):
+    request_payload: GetRegisterTabSectionsRequestPayload
+
+
+class GetRegisterTabSectionsRequest(G2PRequest):
+    request_body: GetRegisterTabSectionsRequestBody
+
+
 class GetRegisterTabsRequestPayload(BaseModel):
     register_id: str
 

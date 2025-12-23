@@ -7,7 +7,7 @@ from openg2p_registry_core.schemas import (
     ChildRegistersResponse, ChildRegisterData,
     GetChildRegistersRequest, GetMasterRegisterRequest,
     GetAllRegistersRequest,
-    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabsRequest,
+    GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
     AddRegisterTabRequest, DeleteRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
@@ -83,6 +83,13 @@ class G2PRegisterMetadataController(BaseController):
         self.router.add_api_route(
             "/get_register_sections",
             self.get_register_sections,
+            responses={200: {"model": RegisterSectionsDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_tab_sections",
+            self.get_register_tab_sections,
             responses={200: {"model": RegisterSectionsDataResponse}},
             methods=["POST"],
         )
@@ -201,6 +208,21 @@ class G2PRegisterMetadataController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_register_sections: {str(error_exception)}")
             error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_sections_request)
+            return error_response
+
+    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> RegisterSectionsDataResponse:
+        """
+        Get all sections for a given register_id and tab_id.
+        """
+        try:
+            register_tab_sections_list: list[RegisterSectionData] = await self.g2p_register_metadata_controller_service.get_register_tab_sections(get_register_tab_sections_request)
+            register_tab_sections_response: RegisterSectionsDataResponse = self.helper.construct_register_sections_success_response(
+                register_sections_list=register_tab_sections_list, g2p_request=get_register_tab_sections_request
+            )
+            return register_tab_sections_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_tab_sections: {str(error_exception)}")
+            error_response: RegisterSectionsDataResponse = self.helper.construct_error_response(error_exception, get_register_tab_sections_request)
             return error_response
 
     async def add_register_section(self, add_register_section_request: AddRegisterSectionRequest) -> RegisterSectionDataResponse:
