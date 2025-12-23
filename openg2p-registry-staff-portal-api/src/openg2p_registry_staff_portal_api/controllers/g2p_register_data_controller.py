@@ -8,12 +8,13 @@ from openg2p_registry_core.schemas import (
     GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangelogResultsRequest,
     NumberOfVersionsResponse, NumberOfVersionsData,
-    RecordDataResponse, RecordData,
+    RecordDataResponse, RecordData, RegisterTabRecordData,
     DeduplicationRegisterResultsDataResponse,
     DeduplicationChangelogResultsDataResponse,
     GetRegisterSectionRequest,
     RegisterSectionData, RegisterSectionDataResponse,
-    GetSectionRecordsRequest, SectionRecordsDataResponse
+    GetSectionRecordsRequest, SectionRecordsDataResponse,
+    GetRegisterTabRecordsRequest, RegisterTabRecordsDataResponse
 )
 
 from ..helpers import RequestResponseHelper
@@ -71,6 +72,13 @@ class G2PRegisterDataController(BaseController):
             "/get_section_records",
             self.get_section_records,
             responses={200: {"model": SectionRecordsDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_tab_records",
+            self.get_register_tab_records,
+            responses={200: {"model": RegisterTabRecordsDataResponse}},
             methods=["POST"],
         )
 
@@ -166,5 +174,28 @@ class G2PRegisterDataController(BaseController):
             _logger.error(f"Error in get_section_records: {str(error_exception)}")
             error_response: SectionRecordsDataResponse = self.helper.construct_error_response(
                 error_exception, get_section_records_request
+            )
+            return error_response
+
+    async def get_register_tab_records(
+        self,
+        get_register_tab_records_request: GetRegisterTabRecordsRequest
+    ) -> RegisterTabRecordsDataResponse:
+        """
+        Get all records for a tab, grouped by unique section_register_id.
+        Multiple sections with the same section_register_id are deduplicated.
+        """
+        try:
+            tab_records: list[RegisterTabRecordData] = await self.g2p_register_data_controller_service.get_register_tab_records(
+                get_register_tab_records_request
+            )
+            tab_records_response: RegisterTabRecordsDataResponse = self.helper.construct_register_tab_records_success_response(
+                tab_records=tab_records, g2p_request=get_register_tab_records_request
+            )
+            return tab_records_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_tab_records: {str(error_exception)}")
+            error_response: RegisterTabRecordsDataResponse = self.helper.construct_error_response(
+                error_exception, get_register_tab_records_request
             )
             return error_response

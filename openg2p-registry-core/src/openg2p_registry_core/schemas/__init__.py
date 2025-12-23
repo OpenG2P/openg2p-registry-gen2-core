@@ -33,7 +33,8 @@ from .request import (
     UpdateRegisterSectionUISchemaRequest, UpdateRegisterSectionUISchemaRequestBody, UpdateRegisterSectionUISchemaRequestPayload,
     CreateRegisterRequest, CreateRegisterRequestBody, CreateRegisterRequestPayload,
     UpdateRegisterSchemaRequest, UpdateRegisterSchemaRequestBody, UpdateRegisterSchemaRequestPayload,
-    GetSectionRecordsRequest, GetSectionRecordsRequestBody, GetSectionRecordsRequestPayload
+    GetSectionRecordsRequest, GetSectionRecordsRequestBody, GetSectionRecordsRequestPayload,
+    GetRegisterTabRecordsRequest, GetRegisterTabRecordsRequestBody, GetRegisterTabRecordsRequestPayload
 )
 from .response import (
     ChangeLogResponse, ChangeLogResponseBody,
@@ -61,7 +62,8 @@ from .response import (
     RegisterSectionDataResponse, RegisterSectionDataResponseBody,
     RegisterTabsDataResponse, RegisterTabsDataResponseBody,
     RegisterTabDataResponse, RegisterTabDataResponseBody,
-    SectionRecordsDataResponse, SectionRecordsDataResponseBody
+    SectionRecordsDataResponse, SectionRecordsDataResponseBody,
+    RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody
 )
 from .payload import (
     ChangeLogRequestPayload, ChangeLogResponsePayload,
@@ -72,7 +74,8 @@ from .payload import (
     ChangeLogsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangelogResultsData, DeduplicationRegisterResultData,
-    DeduplicationChangelogResultData, RegisterSchemaData, RegisterSectionData
+    DeduplicationChangelogResultData, RegisterSchemaData, RegisterSectionData,
+    RegisterTabRecordData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

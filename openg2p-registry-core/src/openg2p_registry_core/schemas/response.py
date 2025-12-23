@@ -11,7 +11,8 @@ from .payload import (
     CrossRegisterChangeLogData, CrossRegisterChangesData,
     ChangeLogData, ChangeLogsData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
-    DeduplicationChangelogResultsData, RegisterSchemaData, RegisterSectionData
+    DeduplicationChangelogResultsData, RegisterSchemaData, RegisterSectionData,
+    RegisterTabRecordData
 )
 
 
@@ -204,3 +205,11 @@ class SectionRecordsDataResponseBody(G2PResponseBody):
 
 class SectionRecordsDataResponse(G2PResponse):
     response_body: Optional[SectionRecordsDataResponseBody] = None
+
+
+class RegisterTabRecordsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterTabRecordData]] = None
+
+
+class RegisterTabRecordsDataResponse(G2PResponse):
+    response_body: Optional[RegisterTabRecordsDataResponseBody] = None

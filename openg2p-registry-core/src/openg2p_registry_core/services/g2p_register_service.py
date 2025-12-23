@@ -1432,9 +1432,9 @@ class G2PRegisterService(BaseService):
 
             # Convert ORM object to RecordData while still in session context
             mapper = inspect(record.__class__)
-            additional_fields: dict = {}
+            extra_fields: dict = {}
 
-            # Base fields
+            # Base fields to exclude from extra fields
             base_fields: set = {
                 'internal_record_id', 'functional_record_id', 'link_record_id',
                 'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
@@ -1448,11 +1448,11 @@ class G2PRegisterService(BaseService):
                 if value is not None and hasattr(value, 'isoformat'):
                     value = value.isoformat()
 
-                # Add to additional_fields if not a base field
+                # Add to extra_fields if not a base field
                 if column_name not in base_fields:
-                    additional_fields[column_name] = value
+                    extra_fields[column_name] = value
 
-            # Create RecordData object
+            # Create RecordData object with flattened extra fields
             record_data: RecordData = RecordData(
                 internal_record_id=record.internal_record_id,
                 functional_record_id=record.functional_record_id,
@@ -1461,7 +1461,7 @@ class G2PRegisterService(BaseService):
                 created_at=str(record.created_at.isoformat()) if record.created_at and hasattr(record.created_at, 'isoformat') else None,
                 last_approved_at=str(record.last_approved_at.isoformat()) if record.last_approved_at and hasattr(record.last_approved_at, 'isoformat') else None,
                 last_approved_by=record.last_approved_by,
-                additional_fields=additional_fields if additional_fields else None
+                **extra_fields
             )
 
             return record_data

@@ -448,3 +448,17 @@ class GetSectionRecordsRequestBody(G2PRequestBody):
 
 class GetSectionRecordsRequest(G2PRequest):
     request_body: GetSectionRecordsRequestBody
+
+
+class GetRegisterTabRecordsRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+    tab_id: str
+
+
+class GetRegisterTabRecordsRequestBody(G2PRequestBody):
+    request_payload: GetRegisterTabRecordsRequestPayload
+
+
+class GetRegisterTabRecordsRequest(G2PRequest):
+    request_body: GetRegisterTabRecordsRequestBody

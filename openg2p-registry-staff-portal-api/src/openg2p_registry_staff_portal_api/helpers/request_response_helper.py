@@ -32,6 +32,7 @@ from openg2p_registry_core.schemas import (
     RegisterUITabData, RegisterTabsDataResponse, RegisterTabsDataResponseBody,
     RegisterTabDataResponse, RegisterTabDataResponseBody,
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
+    RegisterTabRecordData, RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -700,3 +701,27 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return section_records_response
+
+    def construct_register_tab_records_success_response(
+        self,
+        tab_records: List[RegisterTabRecordData],
+        g2p_request: G2PRequest = None
+    ) -> RegisterTabRecordsDataResponse:
+        """Construct success response for get_register_tab_records endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=g2p_request.request_header.request_id if g2p_request else "",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegisterTabRecordsDataResponseBody = RegisterTabRecordsDataResponseBody(
+            response_payload=tab_records
+        )
+
+        tab_records_response: RegisterTabRecordsDataResponse = RegisterTabRecordsDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return tab_records_response

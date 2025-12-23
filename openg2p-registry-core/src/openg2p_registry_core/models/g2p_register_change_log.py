@@ -58,7 +58,7 @@ class G2PRegisterChangeLog(BaseORMModel):
 class G2PRegisterChangeLogPayload(BaseORMModel):
     __tablename__ = "g2p_register_change_log_payloads"
 
-    change_log_id: Mapped[str] = mapped_column(String, ForeignKey("g2p_register_change_logs.change_log_id"), primary_key=True)
+    change_log_id: Mapped[str] = mapped_column(String, primary_key=True)
     change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
     change_payload_array: Mapped[JSON] = mapped_column(JSON, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)

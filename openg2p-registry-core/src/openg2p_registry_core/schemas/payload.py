@@ -1,6 +1,6 @@
 from typing import Optional, List, Any, Literal, Union
 from datetime import datetime
-from pydantic import BaseModel, model_validator, Field
+from pydantic import BaseModel, ConfigDict, model_validator, Field
 from enum import Enum
 
 from ..models import ApprovalStatusEnum
@@ -180,6 +180,12 @@ class SearchResultData(BaseModel):
 
 
 class RecordData(BaseModel):
+    """
+    Record data with flattened additional fields.
+    Extra fields from the register implementation table are included at root level.
+    """
+    model_config = ConfigDict(extra="allow", from_attributes=True)
+
     internal_record_id: str
     functional_record_id: str
     link_record_id: Optional[str] = None
@@ -187,10 +193,6 @@ class RecordData(BaseModel):
     created_at: Optional[str] = None
     last_approved_at: Optional[str] = None
     last_approved_by: Optional[str] = None
-    additional_fields: Optional[dict] = None
-
-    class Config:
-        from_attributes: bool = True
 
 
 class ChangeLogSearchResultData(BaseModel):
@@ -430,3 +432,12 @@ class RegisterSectionData(BaseModel):
 
     class Config:
         from_attributes: bool = True
+
+
+class RegisterTabRecordData(BaseModel):
+    """
+    Records for a single section_register_id within a tab.
+    Multiple sections with the same section_register_id are deduplicated.
+    """
+    section_register_id: str
+    records: List[RecordData]

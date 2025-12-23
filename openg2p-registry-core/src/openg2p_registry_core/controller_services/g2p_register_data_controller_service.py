@@ -3,13 +3,13 @@ from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PRegisterService, G2PRegisterHierarchicalService
 from ..schemas import (
-    NumberOfVersionsData, RecordData,
+    NumberOfVersionsData, RecordData, RegisterTabRecordData,
     DeduplicationRegisterResultData, DeduplicationChangelogResultData,
     GetNumberOfVersionsRequest, GetSubjectRecordRequest,
     GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangelogResultsRequest,
     GetRegisterSectionRequest, RegisterSectionData,
-    GetSectionRecordsRequest
+    GetSectionRecordsRequest, GetRegisterTabRecordsRequest
 )
 
 _logger = logging.getLogger('g2p-register-data-controller-service')
@@ -99,3 +99,25 @@ class G2PRegisterDataControllerService(BaseService):
         )
         return section_records
 
+    async def get_register_tab_records(
+        self,
+        get_register_tab_records_request: GetRegisterTabRecordsRequest
+    ) -> list[RegisterTabRecordData]:
+        """
+        Get all records for a tab, grouped by unique section_register_id.
+        Multiple sections with the same section_register_id are deduplicated.
+        """
+        payload = get_register_tab_records_request.request_body.request_payload
+        subject_register_id: str = payload.subject_register_id
+        subject_record_id: str = payload.subject_record_id
+        tab_id: str = payload.tab_id
+        _logger.info(
+            f"Getting register tab records for subject_register_id: {subject_register_id}, "
+            f"subject_record_id: {subject_record_id}, tab_id: {tab_id} "
+            f"through controller service"
+        )
+        g2p_register_hierarchical_service = G2PRegisterHierarchicalService.get_component()
+        tab_records: list[RegisterTabRecordData] = await g2p_register_hierarchical_service.get_register_tab_records(
+            subject_register_id, subject_record_id, tab_id
+        )
+        return tab_records
