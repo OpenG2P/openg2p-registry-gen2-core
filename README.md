@@ -37,4 +37,4 @@ Registry - Gen 2
     - Receive ingest_id
     - Pickup Template from IncomingTemplate for the data_model, for register and operation
     - Process the template to get OpenG2P format/schema
-    - Call Changelog Controller Service to persist data into OpenG2P
+    - Call Changerequest Controller Service to persist data into OpenG2P

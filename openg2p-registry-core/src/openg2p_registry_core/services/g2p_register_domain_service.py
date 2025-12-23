@@ -10,23 +10,23 @@ from difflib import SequenceMatcher
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeLogRequestPayload
+from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from openg2p_registry_core.schemas.deduplication import DeduplicationFieldConfig
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
-    G2PRegisterChangeLog,
+    G2PRegisterChangeRequest,
     G2PRegisterDefinition,
     G2PRegisterSection,
     G2PRegisterVerification,
     G2PRegisterSchema,
     DeduplicationRegisterResult,
-    DeduplicationChangelogResult,
+    DeduplicationChangerequestResult,
     DeduplicationStatusEnum
 )
-from ..schemas import ChangeLogRequest
+from ..schemas import ChangeRequestRequest
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-domain-service')
@@ -41,18 +41,18 @@ class G2PRegisterDomainService(BaseService):
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
 
-    async def validate_domain_attributes(self, change_log_request_payload: ChangeLogRequestPayload):
+    async def validate_domain_attributes(self, change_request_request_payload: ChangeRequestRequestPayload):
         pass
 
     def compute_deduplication_score_for_register(
         self,
-        change_log_id: str,
+        change_request_id: str,
         register_id: str,
         incoming_data: dict,
         session: Session
     ) -> List[Dict]:
         """
-        Compute deduplication scores for a change log against register records.
+        Compute deduplication scores for a change request against register records.
         Returns list of matching records with scores.
         """
         try:
@@ -117,17 +117,17 @@ class G2PRegisterDomainService(BaseService):
             _logger.error(f"Error computing deduplication score for register: {str(e)}")
             raise
 
-    def compute_deduplication_score_for_changelog(
+    def compute_deduplication_score_for_changerequest(
         self,
-        change_log_id: str,
+        change_request_id: str,
         register_id: str,
         incoming_data: dict,
-        other_changelogs: List,
+        other_changerequests: List,
         session: Session
     ) -> List[Dict]:
         """
-        Compute deduplication scores for a change log against other pending changelogs.
-        Returns list of matching changelog records with scores.
+        Compute deduplication scores for a change request against other pending changerequests.
+        Returns list of matching changerequest records with scores.
         """
         try:
             # Get register definition with dedup config
@@ -157,9 +157,9 @@ class G2PRegisterDomainService(BaseService):
             ) or []
 
             results = []
-            for other_changelog in other_changelogs:
+            for other_changerequest in other_changerequests:
                 # Create a simple object from the other payload for field matching
-                other_obj = type('obj', (object,), other_changelog.get('change_payload', {}))()
+                other_obj = type('obj', (object,), other_changerequest.get('change_payload', {}))()
 
                 score = self._compute_score(
                     incoming_data,
@@ -174,7 +174,7 @@ class G2PRegisterDomainService(BaseService):
                         deduplicate_schema
                     )
                     results.append({
-                        "candidate_id": other_changelog.get('change_log_id'),
+                        "candidate_id": other_changerequest.get('change_request_id'),
                         "score": score,
                         "field_matches": field_matches
                     })
@@ -182,7 +182,7 @@ class G2PRegisterDomainService(BaseService):
             return results
 
         except Exception as e:
-            _logger.error(f"Error computing deduplication score for changelog: {str(e)}")
+            _logger.error(f"Error computing deduplication score for changerequest: {str(e)}")
             raise
 
     def _compute_score(

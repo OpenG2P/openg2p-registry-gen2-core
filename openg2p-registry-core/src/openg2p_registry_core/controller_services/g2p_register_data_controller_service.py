@@ -4,10 +4,10 @@ from openg2p_fastapi_common.service import BaseService
 from ..services import G2PRegisterService, G2PRegisterHierarchicalService
 from ..schemas import (
     NumberOfVersionsData, RecordData, RegisterTabRecordData,
-    DeduplicationRegisterResultData, DeduplicationChangelogResultData,
+    DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     GetNumberOfVersionsRequest, GetSubjectRecordRequest,
     GetDeduplicationRegisterResultsRequest,
-    GetDeduplicationChangelogResultsRequest,
+    GetDeduplicationChangerequestResultsRequest,
     GetRegisterSectionRequest, RegisterSectionData,
     GetSectionRecordsRequest, GetRegisterTabRecordsRequest
 )
@@ -35,30 +35,30 @@ class G2PRegisterDataControllerService(BaseService):
 
     async def get_deduplication_register_results(self, get_deduplication_register_results_request: GetDeduplicationRegisterResultsRequest) -> tuple[list[DeduplicationRegisterResultData], int, int]:
         """
-        Get deduplication results for a change log against register records.
+        Get deduplication results for a change request against register records.
         """
         payload = get_deduplication_register_results_request.request_body.request_payload
         pagination = get_deduplication_register_results_request.request_body.pagination_request
-        change_log_id = payload.change_log_id
-        _logger.info(f"Getting deduplication register results for change_log_id: {change_log_id} through controller service")
+        change_request_id = payload.change_request_id
+        _logger.info(f"Getting deduplication register results for change_request_id: {change_request_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         dedup_results_list, total_items = await g2p_register_service.get_deduplication_register_results(
-            change_log_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
+            change_request_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages
 
-    async def get_deduplication_changelog_results(self, get_deduplication_changelog_results_request: GetDeduplicationChangelogResultsRequest) -> tuple[list[DeduplicationChangelogResultData], int, int]:
+    async def get_deduplication_changerequest_results(self, get_deduplication_changerequest_results_request: GetDeduplicationChangerequestResultsRequest) -> tuple[list[DeduplicationChangerequestResultData], int, int]:
         """
-        Get deduplication results for a change log against other change logs.
+        Get deduplication results for a change request against other change requests.
         """
-        payload = get_deduplication_changelog_results_request.request_body.request_payload
-        pagination = get_deduplication_changelog_results_request.request_body.pagination_request
-        change_log_id = payload.change_log_id
-        _logger.info(f"Getting deduplication changelog results for change_log_id: {change_log_id} through controller service")
+        payload = get_deduplication_changerequest_results_request.request_body.request_payload
+        pagination = get_deduplication_changerequest_results_request.request_body.pagination_request
+        change_request_id = payload.change_request_id
+        _logger.info(f"Getting deduplication changerequest results for change_request_id: {change_request_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        dedup_results_list, total_items = await g2p_register_service.get_deduplication_changelog_results(
-            change_log_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
+        dedup_results_list, total_items = await g2p_register_service.get_deduplication_changerequest_results(
+            change_request_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages

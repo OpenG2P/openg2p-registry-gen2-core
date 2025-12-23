@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from openg2p_registry_core.models import G2PRegisterChangeLog, DeduplicationStatusEnum
+from openg2p_registry_core.models import G2PRegisterChangeRequest, DeduplicationStatusEnum
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
@@ -25,12 +25,12 @@ def deduplication_register_beat_producer():
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
     with session_maker() as session:
-        # Fetch change logs with pending register deduplication status
-        pending_changelogs: List[G2PRegisterChangeLog] = (
+        # Fetch change requests with pending register deduplication status
+        pending_changerequests: List[G2PRegisterChangeRequest] = (
             session.execute(
-                select(G2PRegisterChangeLog)
+                select(G2PRegisterChangeRequest)
                 .filter(
-                    G2PRegisterChangeLog.deduplication_register_status
+                    G2PRegisterChangeRequest.deduplication_register_status
                     == DeduplicationStatusEnum.PENDING.value
                 )
                 .limit(_config.no_of_tasks_to_process)
@@ -38,27 +38,27 @@ def deduplication_register_beat_producer():
             .scalars()
             .all()
         )
-        _logger.info(f"Found {len(pending_changelogs)} PENDING deduplication_register requests")
+        _logger.info(f"Found {len(pending_changerequests)} PENDING deduplication_register requests")
 
-        for change_log in pending_changelogs:
-            _logger.info(f"Queueing change_log {change_log.change_log_id} for register deduplication")
+        for change_request in pending_changerequests:
+            _logger.info(f"Queueing change_request {change_request.change_request_id} for register deduplication")
 
             # Update status to INPROGRESS
-            change_log.deduplication_register_status = DeduplicationStatusEnum.INPROGRESS.value
-            session.add(change_log)
+            change_request.deduplication_register_status = DeduplicationStatusEnum.INPROGRESS.value
+            session.add(change_request)
 
             _logger.info(
-                f"Updating status for {Workers.DEDUPLICATION_REGISTER_WORKER} to INPROGRESS for change_log: {change_log.change_log_id}"
+                f"Updating status for {Workers.DEDUPLICATION_REGISTER_WORKER} to INPROGRESS for change_request: {change_request.change_request_id}"
             )
 
             # Send task to celery worker
             celery_app.send_task(
                 Workers.DEDUPLICATION_REGISTER_WORKER,
-                args=(change_log.change_log_id,),
+                args=(change_request.change_request_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.DEDUPLICATION_REGISTER_WORKER} for change_log: {change_log.change_log_id}"
+                f"Sent task to {Workers.DEDUPLICATION_REGISTER_WORKER} for change_request: {change_request.change_request_id}"
             )
         session.commit()
 

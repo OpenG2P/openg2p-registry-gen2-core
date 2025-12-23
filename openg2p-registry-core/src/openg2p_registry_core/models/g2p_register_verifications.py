@@ -12,7 +12,7 @@ class G2PRegisterVerification(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    change_log_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     verified_by: Mapped[str] = mapped_column(String, nullable=False)
     verified_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     verification_observations: Mapped[Text] = mapped_column(Text, nullable=True)

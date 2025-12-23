@@ -7,4 +7,4 @@ class Workers:
     OUTGEST_DATA_PUBLISH_WORKER = "outgest_data_publish_worker"
     OUTGEST_TOPIC_REGISTER_WORKER = "outgest_topic_register_worker"
     DEDUPLICATION_REGISTER_WORKER = "deduplication_register_worker"
-    DEDUPLICATION_CHANGELOG_WORKER = "deduplication_changelog_worker"
+    DEDUPLICATION_CHANGELOG_WORKER = "deduplication_changerequest_worker"

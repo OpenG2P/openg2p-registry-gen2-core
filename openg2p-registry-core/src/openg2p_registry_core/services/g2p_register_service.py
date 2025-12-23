@@ -7,26 +7,26 @@ from datetime import datetime
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeLogRequestPayload
+from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
-    G2PRegisterChangeLog, G2PRegisterChangeLogPayload, G2PRegisterDefinition,
+    G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload, G2PRegisterDefinition,
     G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
-    DeduplicationRegisterResult, DeduplicationChangelogResult, G2PRegisterSchema,
+    DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab
 )
 from ..schemas import (
-    ChangeLogRequestPayload, RegisterSummaryData, ChangeLogSummaryData, RegisterData, ChildRegisterData,
-    RegisterUITabData, SearchResultData, ChangeLogSearchResultData, NumberOfVersionsData,
-    NumberOfPendingChangeLogsData, NumberOfCrossRegisterChangesData,
-    CrossRegisterChangeLogData, CrossRegisterChangesData,
-    ChangeLogData, ChangeLogsData, RecordData,
+    ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
+    RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
+    NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
+    CrossRegisterChangeRequestData, CrossRegisterChangesData,
+    ChangeRequestData, ChangeRequestsData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
-    DeduplicationRegisterResultsData, DeduplicationChangelogResultsData,
-    DeduplicationRegisterResultData, DeduplicationChangelogResultData,
+    DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
+    DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, DisplayField
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -37,28 +37,28 @@ _engine = dbengine.get()
 
 class G2PRegisterService(BaseService):
 
-    async def create_change_log(self, change_log_request_payload: ChangeLogRequestPayload, source_partner_id: str = None):
+    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
-            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_log_request_payload.register_id, session)
-            g2p_register_section: G2PRegisterSection = await self.validate_section(change_log_request_payload.section_id, session)
+            g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(change_request_request_payload.register_id, session)
+            g2p_register_section: G2PRegisterSection = await self.validate_section(change_request_request_payload.section_id, session)
 
             # Extract internal_record_id from change_payload if present
             # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
-            # We don't validate internal_record_id existence here - it will be created when the change log is approved
+            # We don't validate internal_record_id existence here - it will be created when the change request is approved
 
-            g2p_register_change_log: G2PRegisterChangeLog = await self.construct_change_log(change_log_request_payload, g2p_register_section, source_partner_id)
+            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id)
 
-            session.add(g2p_register_change_log)
+            session.add(g2p_register_change_request)
             # Add the payload object if it exists
-            if hasattr(g2p_register_change_log, '_payload_to_add'):
-                session.add(g2p_register_change_log._payload_to_add)
+            if hasattr(g2p_register_change_request, '_payload_to_add'):
+                session.add(g2p_register_change_request._payload_to_add)
             await session.commit()
             # Refresh to get any DB defaults
-            await session.refresh(g2p_register_change_log)
+            await session.refresh(g2p_register_change_request)
 
-            return g2p_register_change_log
+            return g2p_register_change_request
 
     async def get_register_summary_data(self) -> list[RegisterSummaryData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -66,11 +66,11 @@ class G2PRegisterService(BaseService):
             register_summary_data_list: list[RegisterSummaryData] = await self._fetch_register_summary_data(session)
             return register_summary_data_list
 
-    async def get_changelog_summary_data(self) -> ChangeLogSummaryData:
+    async def get_changerequest_summary_data(self) -> ChangeRequestSummaryData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            changelog_summary_data: ChangeLogSummaryData = await self._fetch_changelog_summary_data(session)
-            return changelog_summary_data
+            changerequest_summary_data: ChangeRequestSummaryData = await self._fetch_changerequest_summary_data(session)
+            return changerequest_summary_data
 
     async def get_all_registers(self) -> list[RegisterData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -375,65 +375,65 @@ class G2PRegisterService(BaseService):
             search_results_list, total_items = await self._search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
             return search_results_list, total_items
 
-    async def get_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogData], int]:
-        """Get all change logs for a specific internal record and tab with pagination"""
+    async def get_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestData], int]:
+        """Get all change requests for a specific internal record and tab with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
             await self.validate_register_definition(subject_register_id, session)
-            change_logs_list, total_items = await self._fetch_change_logs(subject_register_id, subject_record_id, tab_id, current_page, page_size, sort_by, filter_by, session)
-            return change_logs_list, total_items
+            change_requests_list, total_items = await self._fetch_change_requests(subject_register_id, subject_record_id, tab_id, current_page, page_size, sort_by, filter_by, session)
+            return change_requests_list, total_items
 
-    async def get_change_log(self, change_log_id: str) -> ChangeLogData:
-        """Get a single change log by ID"""
+    async def get_change_request(self, change_request_id: str) -> ChangeRequestData:
+        """Get a single change request by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_log_data: ChangeLogData = await self._fetch_change_log(change_log_id, session)
-            return change_log_data
+            change_request_data: ChangeRequestData = await self._fetch_change_request(change_request_id, session)
+            return change_request_data
 
-    async def approve_change_log(self, change_log_id: str):
+    async def approve_change_request(self, change_request_id: str):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate change log exists and is pending approval
-            change_log = await self.validate_change_log_exists(change_log_id, session)
-            _logger.info(f"Validated change log for approval: {change_log}")
-            await self.validate_change_log_section(change_log, session)
+            # Validate change request exists and is pending approval
+            change_request = await self.validate_change_request_exists(change_request_id, session)
+            _logger.info(f"Validated change request for approval: {change_request}")
+            await self.validate_change_request_section(change_request, session)
             # Validate whether verifications are done
-            await self.validate_change_log_verifications(change_log, session)
-            # Ensure there are no earlier change logs for the internal_record_id pending approval
-            await self.validate_change_log_sequence(change_log, session)
+            await self.validate_change_request_verifications(change_request, session)
+            # Ensure there are no earlier change requests for the internal_record_id pending approval
+            await self.validate_change_request_sequence(change_request, session)
             # In case of approval, insert data into register_history 
-            await self.insert_into_register_history(change_log, session)
+            await self.insert_into_register_history(change_request, session)
             # Upsert data into register
-            await self.insert_into_register(change_log, session)
-            # Mark change log as approved
-            change_log.approval_status = ApprovalStatusEnum.APPROVED.value
-            change_log.approved_by = "system"
-            change_log.approved_at = func.now()
+            await self.insert_into_register(change_request, session)
+            # Mark change request as approved
+            change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+            change_request.approved_by = "system"
+            change_request.approved_at = func.now()
             await session.commit()
-            await session.refresh(change_log)
-            return change_log
+            await session.refresh(change_request)
+            return change_request
     
-    async def reject_change_log(self, change_log_id: str, reason: str):
+    async def reject_change_request(self, change_request_id: str, reason: str):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate change log exists and is pending approval
-            change_log = await self.validate_change_log_exists(change_log_id, session)
-            _logger.info(f"Validated change log for rejection: {change_log}")
-            # Mark change log as rejected
-            change_log.approval_status = ApprovalStatusEnum.REJECTED.value
-            change_log.approved_by = "system" # TODO: Replace with actual user info
-            change_log.approved_at = func.now()
-            change_log.rejection_reason = reason
+            # Validate change request exists and is pending approval
+            change_request = await self.validate_change_request_exists(change_request_id, session)
+            _logger.info(f"Validated change request for rejection: {change_request}")
+            # Mark change request as rejected
+            change_request.approval_status = ApprovalStatusEnum.REJECTED.value
+            change_request.approved_by = "system" # TODO: Replace with actual user info
+            change_request.approved_at = func.now()
+            change_request.rejection_reason = reason
             await session.commit()
-            await session.refresh(change_log)
-            return change_log
+            await session.refresh(change_request)
+            return change_request
 
-    async def validate_change_log_section(self, g2p_register_change_log: G2PRegisterChangeLog, session) -> None:
+    async def validate_change_request_section(self, g2p_register_change_request: G2PRegisterChangeRequest, session) -> None:
         g2p_register_section: G2PRegisterSection = (
             await session.execute(
                 select(G2PRegisterSection).where(
-                    G2PRegisterSection.section_id == g2p_register_change_log.section_id
+                    G2PRegisterSection.section_id == g2p_register_change_request.section_id
                 )
             )
         ).scalar()
@@ -442,71 +442,71 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0]
             )
-        # Note: internal_record_id is already set during change log creation in construct_change_log
+        # Note: internal_record_id is already set during change request creation in construct_change_request
         # Do not generate a new one here during approval
         
 
 
         
-    async def validate_change_log_exists(self, change_log_id: str, session) -> G2PRegisterChangeLog:
-        _logger.info(f"Validating change log exists for ID: {change_log_id}")
-        change_log: G2PRegisterChangeLog = (
+    async def validate_change_request_exists(self, change_request_id: str, session) -> G2PRegisterChangeRequest:
+        _logger.info(f"Validating change request exists for ID: {change_request_id}")
+        change_request: G2PRegisterChangeRequest = (
             await session.execute(
-                select(G2PRegisterChangeLog).where(
-                    G2PRegisterChangeLog.change_log_id == change_log_id
+                select(G2PRegisterChangeRequest).where(
+                    G2PRegisterChangeRequest.change_request_id == change_request_id
                 )
             )
         ).scalar()
-        if not change_log:
+        if not change_request:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
             )
-        if change_log.approval_status != ApprovalStatusEnum.PENDING.value:
+        if change_request.approval_status != ApprovalStatusEnum.PENDING.value:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_IN_PENDING_STATE.value[1],
                 message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_IN_PENDING_STATE.value[0]
             )
-        return change_log
+        return change_request
 
-    async def validate_change_log_verifications(self, change_log: G2PRegisterChangeLog, session) -> None:
+    async def validate_change_request_verifications(self, change_request: G2PRegisterChangeRequest, session) -> None:
         # Count only approved verifications
         approved_verifications_count = (
             await session.execute(
                 select(func.count()).select_from(G2PRegisterVerification).where(
-                    G2PRegisterVerification.change_log_id == change_log.change_log_id,
+                    G2PRegisterVerification.change_request_id == change_request.change_request_id,
                     G2PRegisterVerification.is_approved == True
                 )
             )
         ).scalar_one()
-        if approved_verifications_count < (change_log.no_of_verifications_required or 0):
+        if approved_verifications_count < (change_request.no_of_verifications_required or 0):
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[1],
                 message=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[0]
             )
 
-    async def validate_change_log_sequence(self, change_log: G2PRegisterChangeLog, session) -> None:
+    async def validate_change_request_sequence(self, change_request: G2PRegisterChangeRequest, session) -> None:
         earlier_pending = (
             await session.execute(
-                select(G2PRegisterChangeLog).where(
-                    G2PRegisterChangeLog.internal_record_id == change_log.internal_record_id,
-                    G2PRegisterChangeLog.approval_status == "PENDING",
-                    G2PRegisterChangeLog.created_at < change_log.created_at,
+                select(G2PRegisterChangeRequest).where(
+                    G2PRegisterChangeRequest.internal_record_id == change_request.internal_record_id,
+                    G2PRegisterChangeRequest.approval_status == "PENDING",
+                    G2PRegisterChangeRequest.created_at < change_request.created_at,
                 )
             )
         ).scalars().first()
         if earlier_pending:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                message="There are earlier pending change logs for this record"
+                message="There are earlier pending change requests for this record"
             )
 
-    async def insert_into_register_history(self, change_log: G2PRegisterChangeLog, session) -> None:
+    async def insert_into_register_history(self, change_request: G2PRegisterChangeRequest, session) -> None:
         # Resolve history model class dynamically based on register mnemonic
         register_definition: G2PRegisterDefinition = (
             await session.execute(
                 select(G2PRegisterDefinition).where(
-                    G2PRegisterDefinition.register_id == change_log.section_register_id
+                    G2PRegisterDefinition.register_id == change_request.section_register_id
                 )
             )
         ).scalar()
@@ -527,15 +527,15 @@ class G2PRegisterService(BaseService):
 
         # Fetch the payload from the database
         payload_result = await session.execute(
-            select(G2PRegisterChangeLogPayload).where(
-                G2PRegisterChangeLogPayload.change_log_id == change_log.change_log_id
+            select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
             )
         )
         payload = payload_result.scalar()
         if payload.change_payload:
             self._create_history_record(
                 change_payload=payload.change_payload,
-                change_log=change_log,
+                change_request=change_request,
                 history_schema_class=history_schema_class,
                 history_class=history_class,
                 session=session
@@ -544,22 +544,22 @@ class G2PRegisterService(BaseService):
             for change_payload in payload.change_payload_array:
                 self._create_history_record(
                     change_payload=change_payload,
-                    change_log=change_log,
+                    change_request=change_request,
                     history_schema_class=history_schema_class,
                     history_class=history_class,
                     session=session
                 )
 
-    def _create_history_record(self, change_payload: dict, change_log: G2PRegisterChangeLog, history_schema_class, history_class, session) -> None:
+    def _create_history_record(self, change_payload: dict, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""
-        # Serialize change log payload to history schema
+        # Serialize change request payload to history schema
         history_schema_instance = history_schema_class(**(change_payload or {}))
 
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
         history_dict["internal_record_id"] = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
-        history_dict["change_log_id"] = change_log.change_log_id
+        history_dict["change_request_id"] = change_request.change_request_id
         history_dict["created_at"] = datetime.now()
         history_dict["created_by"] = "system"  # TODO: Replace with actual user info
         history_dict["approved_at"] = datetime.now()
@@ -568,12 +568,12 @@ class G2PRegisterService(BaseService):
         session.add(history_instance)
 
 
-    async def insert_into_register(self, change_log: G2PRegisterChangeLog, session) -> None:
+    async def insert_into_register(self, change_request: G2PRegisterChangeRequest, session) -> None:
         # Resolve register model class dynamically based on register mnemonic
         register_definition: G2PRegisterDefinition = (
             await session.execute(
                 select(G2PRegisterDefinition).where(
-                    G2PRegisterDefinition.register_id == change_log.section_register_id
+                    G2PRegisterDefinition.register_id == change_request.section_register_id
                 )
             )
         ).scalar()
@@ -589,8 +589,8 @@ class G2PRegisterService(BaseService):
 
         # Fetch the payload from the database
         payload_result = await session.execute(
-            select(G2PRegisterChangeLogPayload).where(
-                G2PRegisterChangeLogPayload.change_log_id == change_log.change_log_id
+            select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
             )
         )
         payload = payload_result.scalar()
@@ -613,7 +613,7 @@ class G2PRegisterService(BaseService):
 
     async def _create_or_update_register_record(self, change_payload: dict, schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
-        # Serialize change log payload to register schema for validation
+        # Serialize change request payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
         internal_record_id = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
 
@@ -627,7 +627,7 @@ class G2PRegisterService(BaseService):
 
         if existing:
             for key, value in register_schema_instance.dict().items():
-                # Only update values in change log payload
+                # Only update values in change request payload
                 if key in change_payload:
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
@@ -701,31 +701,31 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_log(self, change_log_request_payload: ChangeLogRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeLog:
-        change_log_id = str(uuid.uuid4())
+    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeRequest:
+        change_request_id = str(uuid.uuid4())
         # Extract internal_record_id from change_payload if present, otherwise generate new UUID
         internal_record_id: str = None
-        if change_log_request_payload.change_payload:
-            internal_record_id = change_log_request_payload.change_payload.internal_record_id
-        elif change_log_request_payload.change_payload_array and len(change_log_request_payload.change_payload_array) > 0:
-            internal_record_id = change_log_request_payload.change_payload_array[0].internal_record_id
+        if change_request_request_payload.change_payload:
+            internal_record_id = change_request_request_payload.change_payload.internal_record_id
+        elif change_request_request_payload.change_payload_array and len(change_request_request_payload.change_payload_array) > 0:
+            internal_record_id = change_request_request_payload.change_payload_array[0].internal_record_id
         internal_record_id = internal_record_id or str(uuid.uuid4())
 
         # Create the payload object
-        change_log_payload_obj = G2PRegisterChangeLogPayload(
-            change_log_id=change_log_id,
-            change_payload=change_log_request_payload.change_payload.model_dump() if change_log_request_payload.change_payload else None,
-            change_payload_array=[item.model_dump() for item in change_log_request_payload.change_payload_array] if change_log_request_payload.change_payload_array else None,
+        change_request_payload_obj = G2PRegisterChangeRequestPayload(
+            change_request_id=change_request_id,
+            change_payload=change_request_request_payload.change_payload.model_dump() if change_request_request_payload.change_payload else None,
+            change_payload_array=[item.model_dump() for item in change_request_request_payload.change_payload_array] if change_request_request_payload.change_payload_array else None,
         )
 
-        # Create the change log object
-        g2p_register_change_log = G2PRegisterChangeLog(
-            change_log_id=change_log_id,
-            register_id=change_log_request_payload.register_id,
-            tab_id=change_log_request_payload.tab_id,
+        # Create the change request object
+        g2p_register_change_request = G2PRegisterChangeRequest(
+            change_request_id=change_request_id,
+            register_id=change_request_request_payload.register_id,
+            tab_id=change_request_request_payload.tab_id,
             internal_record_id=internal_record_id,
-            section_id=change_log_request_payload.section_id,
-            section_register_id=change_log_request_payload.section_register_id,
+            section_id=change_request_request_payload.section_id,
+            section_register_id=change_request_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
@@ -735,9 +735,9 @@ class G2PRegisterService(BaseService):
         )
 
         # Add both objects to session so they're persisted together
-        # The payload will be added when the change log is added
-        g2p_register_change_log._payload_to_add = change_log_payload_obj
-        return g2p_register_change_log
+        # The payload will be added when the change request is added
+        g2p_register_change_request._payload_to_add = change_request_payload_obj
+        return g2p_register_change_request
 
     async def _fetch_register_summary_data(self, session) -> list[RegisterSummaryData]:
         register_definitions: list[G2PRegisterDefinition] = (
@@ -759,32 +759,32 @@ class G2PRegisterService(BaseService):
 
         return register_summary_data_list
 
-    async def _fetch_changelog_summary_data(self, session) -> ChangeLogSummaryData:
-        total_count: int = await self._count_all_changelogs(None, session)
-        approved_count: int = await self._count_all_changelogs(ApprovalStatusEnum.APPROVED.value, session)
-        pending_count: int = await self._count_all_changelogs(ApprovalStatusEnum.PENDING.value, session)
+    async def _fetch_changerequest_summary_data(self, session) -> ChangeRequestSummaryData:
+        total_count: int = await self._count_all_changerequests(None, session)
+        approved_count: int = await self._count_all_changerequests(ApprovalStatusEnum.APPROVED.value, session)
+        pending_count: int = await self._count_all_changerequests(ApprovalStatusEnum.PENDING.value, session)
 
-        changelog_summary_data: ChangeLogSummaryData = ChangeLogSummaryData(
+        changerequest_summary_data: ChangeRequestSummaryData = ChangeRequestSummaryData(
             total_count=total_count,
             approved_count=approved_count,
             pending_count=pending_count
         )
 
-        return changelog_summary_data
+        return changerequest_summary_data
 
-    async def _count_all_changelogs(self, approval_status: str | None, session) -> int:
-        query = select(func.count()).select_from(G2PRegisterChangeLog)
+    async def _count_all_changerequests(self, approval_status: str | None, session) -> int:
+        query = select(func.count()).select_from(G2PRegisterChangeRequest)
         if approval_status is not None:
-            query = query.where(G2PRegisterChangeLog.approval_status == approval_status)
+            query = query.where(G2PRegisterChangeRequest.approval_status == approval_status)
         result = await session.execute(query)
         return result.scalar_one()
 
-    async def _count_changelogs_for_register(self, register_id: str, approval_status: str | None, session) -> int:
-        query = select(func.count()).select_from(G2PRegisterChangeLog).where(
-            G2PRegisterChangeLog.register_id == register_id
+    async def _count_changerequests_for_register(self, register_id: str, approval_status: str | None, session) -> int:
+        query = select(func.count()).select_from(G2PRegisterChangeRequest).where(
+            G2PRegisterChangeRequest.register_id == register_id
         )
         if approval_status is not None:
-            query = query.where(G2PRegisterChangeLog.approval_status == approval_status)
+            query = query.where(G2PRegisterChangeRequest.approval_status == approval_status)
 
         count: int = (await session.execute(query)).scalar_one()
         return count
@@ -1007,31 +1007,31 @@ class G2PRegisterService(BaseService):
 
         return search_results_list, total_items
 
-    async def search_in_change_log(self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeLogSearchResultData], int]:
-        """Search in change logs using search_text field with pagination"""
+    async def search_in_change_request(self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestSearchResultData], int]:
+        """Search in change requests using search_text field with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            search_results, total_items = await self._search_in_change_log(search_text, current_page, page_size, sort_by, filter_by, session)
+            search_results, total_items = await self._search_in_change_request(search_text, current_page, page_size, sort_by, filter_by, session)
             return search_results, total_items
 
-    async def _search_in_change_log(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogSearchResultData], int]:
-        """Helper method to search in change logs with pagination"""
+    async def _search_in_change_request(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeRequestSearchResultData], int]:
+        """Helper method to search in change requests with pagination"""
         search_query = f"%{search_text}%"
 
         # Build base query
-        base_query = select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
-            G2PRegisterChangeLogPayload,
-            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        base_query = select(G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload).join(
+            G2PRegisterChangeRequestPayload,
+            G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
         ).where(
-            G2PRegisterChangeLogPayload.search_text.ilike(search_query)
+            G2PRegisterChangeRequestPayload.search_text.ilike(search_query)
         )
 
         # Get total count
-        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeLog).join(
-            G2PRegisterChangeLogPayload,
-            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).join(
+            G2PRegisterChangeRequestPayload,
+            G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
         ).where(
-            G2PRegisterChangeLogPayload.search_text.ilike(search_query)
+            G2PRegisterChangeRequestPayload.search_text.ilike(search_query)
         ))
         total_items = count_result.scalar() or 0
 
@@ -1042,35 +1042,35 @@ class G2PRegisterService(BaseService):
         result = await session.execute(query)
         search_results = result.all()
 
-        search_results_list: list[ChangeLogSearchResultData] = []
+        search_results_list: list[ChangeRequestSearchResultData] = []
 
-        # Convert ORM objects to ChangeLogSearchResultData while still in session context
-        for change_log, payload in search_results:
+        # Convert ORM objects to ChangeRequestSearchResultData while still in session context
+        for change_request, payload in search_results:
             # Convert datetime objects to strings
-            created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
-            approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+            created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
+            approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
 
             # Get change_payload from the payload object
             change_payload = payload.change_payload if payload else None
 
-            # Create ChangeLogSearchResultData object
-            change_log_search_result: ChangeLogSearchResultData = ChangeLogSearchResultData(
-                change_log_id=change_log.change_log_id,
-                register_id=change_log.register_id,
-                tab_id=change_log.tab_id,
-                internal_record_id=change_log.internal_record_id,
-                section_id=change_log.section_id,
-                source_partner_id=change_log.source_partner_id,
-                created_by=change_log.created_by,
+            # Create ChangeRequestSearchResultData object
+            change_request_search_result: ChangeRequestSearchResultData = ChangeRequestSearchResultData(
+                change_request_id=change_request.change_request_id,
+                register_id=change_request.register_id,
+                tab_id=change_request.tab_id,
+                internal_record_id=change_request.internal_record_id,
+                section_id=change_request.section_id,
+                source_partner_id=change_request.source_partner_id,
+                created_by=change_request.created_by,
                 created_at=created_at_str,
-                no_of_verifications_required=change_log.no_of_verifications_required,
-                no_of_verifications_done=change_log.no_of_verifications_done,
-                approval_status=change_log.approval_status,
-                approved_by=change_log.approved_by,
+                no_of_verifications_required=change_request.no_of_verifications_required,
+                no_of_verifications_done=change_request.no_of_verifications_done,
+                approval_status=change_request.approval_status,
+                approved_by=change_request.approved_by,
                 approved_at=approved_at_str,
                 change_payload=change_payload
             )
-            search_results_list.append(change_log_search_result)
+            search_results_list.append(change_request_search_result)
 
         return search_results_list, total_items
 
@@ -1149,8 +1149,8 @@ class G2PRegisterService(BaseService):
                 last_approved_at=last_approved_at
             )
 
-    async def get_number_of_pending_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeLogsData:
-        """Get the number of pending change logs for a given register, internal_record_id and tab_id"""
+    async def get_number_of_pending_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeRequestsData:
+        """Get the number of pending change requests for a given register, internal_record_id and tab_id"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
@@ -1167,26 +1167,26 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Count pending change logs for the given internal_record_id and tab_id
+            # Count pending change requests for the given internal_record_id and tab_id
             count_result = await session.execute(
-                select(func.count()).select_from(G2PRegisterChangeLog).where(
-                    (G2PRegisterChangeLog.register_id == subject_register_id) &
-                    (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
-                    (G2PRegisterChangeLog.tab_id == tab_id) &
-                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value)
+                select(func.count()).select_from(G2PRegisterChangeRequest).where(
+                    (G2PRegisterChangeRequest.register_id == subject_register_id) &
+                    (G2PRegisterChangeRequest.internal_record_id == subject_record_id) &
+                    (G2PRegisterChangeRequest.tab_id == tab_id) &
+                    (G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value)
                 )
             )
-            number_of_pending_change_logs = count_result.scalar_one()
+            number_of_pending_change_requests = count_result.scalar_one()
 
-            return NumberOfPendingChangeLogsData(
+            return NumberOfPendingChangeRequestsData(
                 subject_register_id=subject_register_id,
                 subject_record_id=subject_record_id,
                 tab_id=tab_id,
-                number_of_pending_change_logs=number_of_pending_change_logs
+                number_of_pending_change_requests=number_of_pending_change_requests
             )
 
     async def get_number_of_cross_register_changes(self, subject_register_id: str, subject_record_id: str) -> NumberOfCrossRegisterChangesData:
-        """Get the number of cross-register pending change logs by searching subject_record_id in search_text of G2PRegisterChangeLogPayload"""
+        """Get the number of cross-register pending change requests by searching subject_record_id in search_text of G2PRegisterChangeRequestPayload"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
@@ -1203,15 +1203,15 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Count pending change logs where search_text contains subject_record_id
-            # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload and search in search_text
+            # Count pending change requests where search_text contains subject_record_id
+            # Join G2PRegisterChangeRequest with G2PRegisterChangeRequestPayload and search in search_text
             count_result = await session.execute(
-                select(func.count()).select_from(G2PRegisterChangeLog).join(
-                    G2PRegisterChangeLogPayload,
-                    G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+                select(func.count()).select_from(G2PRegisterChangeRequest).join(
+                    G2PRegisterChangeRequestPayload,
+                    G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
                 ).where(
-                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value) &
-                    (G2PRegisterChangeLogPayload.search_text.ilike(f"%{subject_record_id}%"))
+                    (G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value) &
+                    (G2PRegisterChangeRequestPayload.search_text.ilike(f"%{subject_record_id}%"))
                 )
             )
             number_of_cross_register_changes = count_result.scalar_one()
@@ -1222,8 +1222,8 @@ class G2PRegisterService(BaseService):
                 number_of_cross_register_changes=number_of_cross_register_changes
             )
 
-    async def get_cross_register_changes(self, subject_register_id: str, subject_record_id: str) -> list[CrossRegisterChangeLogData]:
-        """Get the list of cross-register pending change logs by searching subject_record_id in search_text of G2PRegisterChangeLogPayload"""
+    async def get_cross_register_changes(self, subject_register_id: str, subject_record_id: str) -> list[CrossRegisterChangeRequestData]:
+        """Get the list of cross-register pending change requests by searching subject_record_id in search_text of G2PRegisterChangeRequestPayload"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
@@ -1240,71 +1240,71 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Fetch pending change logs where search_text contains subject_record_id
-            # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload, G2PRegisterDefinition, and G2PRegisterUITab
+            # Fetch pending change requests where search_text contains subject_record_id
+            # Join G2PRegisterChangeRequest with G2PRegisterChangeRequestPayload, G2PRegisterDefinition, and G2PRegisterUITab
             result = await session.execute(
                 select(
-                    G2PRegisterChangeLog,
+                    G2PRegisterChangeRequest,
                     G2PRegisterDefinition.register_mnemonic,
                     G2PRegisterUITab.tab_label
                 ).join(
-                    G2PRegisterChangeLogPayload,
-                    G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+                    G2PRegisterChangeRequestPayload,
+                    G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
                 ).join(
                     G2PRegisterDefinition,
-                    G2PRegisterChangeLog.register_id == G2PRegisterDefinition.register_id
+                    G2PRegisterChangeRequest.register_id == G2PRegisterDefinition.register_id
                 ).join(
                     G2PRegisterUITab,
-                    G2PRegisterChangeLog.tab_id == G2PRegisterUITab.tab_id
+                    G2PRegisterChangeRequest.tab_id == G2PRegisterUITab.tab_id
                 ).where(
-                    (G2PRegisterChangeLog.approval_status == ApprovalStatusEnum.PENDING.value) &
-                    (G2PRegisterChangeLogPayload.search_text.ilike(f"%{subject_record_id}%"))
-                ).order_by(G2PRegisterChangeLog.created_at.desc())
+                    (G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value) &
+                    (G2PRegisterChangeRequestPayload.search_text.ilike(f"%{subject_record_id}%"))
+                ).order_by(G2PRegisterChangeRequest.created_at.desc())
             )
             rows = result.all()
 
-            cross_register_changes: list[CrossRegisterChangeLogData] = []
+            cross_register_changes: list[CrossRegisterChangeRequestData] = []
             for row in rows:
-                change_log = row[0]
+                change_request = row[0]
                 register_mnemonic = row[1]
                 tab_label = row[2]
-                cross_register_changes.append(CrossRegisterChangeLogData(
-                    change_log_id=change_log.change_log_id,
-                    register_id=change_log.register_id,
+                cross_register_changes.append(CrossRegisterChangeRequestData(
+                    change_request_id=change_request.change_request_id,
+                    register_id=change_request.register_id,
                     register_mnemonic=register_mnemonic,
-                    tab_id=change_log.tab_id,
+                    tab_id=change_request.tab_id,
                     tab_label=tab_label,
-                    internal_record_id=change_log.internal_record_id,
-                    section_id=change_log.section_id,
-                    source_partner_id=change_log.source_partner_id,
-                    created_by=change_log.created_by,
-                    created_at=change_log.created_at.isoformat() if change_log.created_at else None,
-                    no_of_verifications_required=change_log.no_of_verifications_required,
-                    no_of_verifications_done=change_log.no_of_verifications_done,
-                    approval_status=change_log.approval_status,
-                    approved_by=change_log.approved_by,
-                    approved_at=change_log.approved_at.isoformat() if change_log.approved_at else None
+                    internal_record_id=change_request.internal_record_id,
+                    section_id=change_request.section_id,
+                    source_partner_id=change_request.source_partner_id,
+                    created_by=change_request.created_by,
+                    created_at=change_request.created_at.isoformat() if change_request.created_at else None,
+                    no_of_verifications_required=change_request.no_of_verifications_required,
+                    no_of_verifications_done=change_request.no_of_verifications_done,
+                    approval_status=change_request.approval_status,
+                    approved_by=change_request.approved_by,
+                    approved_at=change_request.approved_at.isoformat() if change_request.approved_at else None
                 ))
 
             return cross_register_changes
 
-    async def _fetch_change_logs(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeLogData], int]:
-        """Helper method to fetch all change logs for a specific internal record and tab with pagination"""
+    async def _fetch_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeRequestData], int]:
+        """Helper method to fetch all change requests for a specific internal record and tab with pagination"""
         # Build base query
-        base_query = select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
-            G2PRegisterChangeLogPayload,
-            G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+        base_query = select(G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload).join(
+            G2PRegisterChangeRequestPayload,
+            G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
         ).where(
-            (G2PRegisterChangeLog.register_id == subject_register_id) &
-            (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
-            (G2PRegisterChangeLog.tab_id == tab_id)
-        ).order_by(G2PRegisterChangeLog.created_at.desc())
+            (G2PRegisterChangeRequest.register_id == subject_register_id) &
+            (G2PRegisterChangeRequest.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeRequest.tab_id == tab_id)
+        ).order_by(G2PRegisterChangeRequest.created_at.desc())
 
         # Get total count
-        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeLog).where(
-            (G2PRegisterChangeLog.register_id == subject_register_id) &
-            (G2PRegisterChangeLog.internal_record_id == subject_record_id) &
-            (G2PRegisterChangeLog.tab_id == tab_id)
+        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).where(
+            (G2PRegisterChangeRequest.register_id == subject_register_id) &
+            (G2PRegisterChangeRequest.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeRequest.tab_id == tab_id)
         ))
         total_items = count_result.scalar() or 0
 
@@ -1313,87 +1313,87 @@ class G2PRegisterService(BaseService):
         query = base_query.offset(offset).limit(page_size)
 
         result = await session.execute(query)
-        change_logs = result.all()
+        change_requests = result.all()
 
-        change_logs_list: list[ChangeLogData] = []
+        change_requests_list: list[ChangeRequestData] = []
 
-        # Convert ORM objects to ChangeLogData while still in session context
-        for change_log, payload in change_logs:
+        # Convert ORM objects to ChangeRequestData while still in session context
+        for change_request, payload in change_requests:
             # Convert datetime objects to strings
-            created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
-            approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+            created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
+            approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
 
             # Get change_payload from the payload object
             change_payload = payload.change_payload if payload else None
 
-            # Create ChangeLogData object
-            change_log_data: ChangeLogData = ChangeLogData(
-                change_log_id=change_log.change_log_id,
-                register_id=change_log.register_id,
-                tab_id=change_log.tab_id,
-                internal_record_id=change_log.internal_record_id,
-                section_id=change_log.section_id,
-                source_partner_id=change_log.source_partner_id,
-                created_by=change_log.created_by,
+            # Create ChangeRequestData object
+            change_request_data: ChangeRequestData = ChangeRequestData(
+                change_request_id=change_request.change_request_id,
+                register_id=change_request.register_id,
+                tab_id=change_request.tab_id,
+                internal_record_id=change_request.internal_record_id,
+                section_id=change_request.section_id,
+                source_partner_id=change_request.source_partner_id,
+                created_by=change_request.created_by,
                 created_at=created_at_str,
-                no_of_verifications_required=change_log.no_of_verifications_required,
-                no_of_verifications_done=change_log.no_of_verifications_done,
-                approval_status=change_log.approval_status,
-                approved_by=change_log.approved_by,
+                no_of_verifications_required=change_request.no_of_verifications_required,
+                no_of_verifications_done=change_request.no_of_verifications_done,
+                approval_status=change_request.approval_status,
+                approved_by=change_request.approved_by,
                 approved_at=approved_at_str,
                 change_payload=change_payload
             )
-            change_logs_list.append(change_log_data)
+            change_requests_list.append(change_request_data)
 
-        return change_logs_list, total_items
+        return change_requests_list, total_items
 
-    async def _fetch_change_log(self, change_log_id: str, session) -> ChangeLogData:
-        """Helper method to fetch a single change log by ID"""
-        # Join G2PRegisterChangeLog with G2PRegisterChangeLogPayload
+    async def _fetch_change_request(self, change_request_id: str, session) -> ChangeRequestData:
+        """Helper method to fetch a single change request by ID"""
+        # Join G2PRegisterChangeRequest with G2PRegisterChangeRequestPayload
         result = await session.execute(
-            select(G2PRegisterChangeLog, G2PRegisterChangeLogPayload).join(
-                G2PRegisterChangeLogPayload,
-                G2PRegisterChangeLog.change_log_id == G2PRegisterChangeLogPayload.change_log_id
+            select(G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload).join(
+                G2PRegisterChangeRequestPayload,
+                G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
             ).where(
-                G2PRegisterChangeLog.change_log_id == change_log_id
+                G2PRegisterChangeRequest.change_request_id == change_request_id
             )
         )
-        change_log_row = result.first()
+        change_request_row = result.first()
 
-        if not change_log_row:
+        if not change_request_row:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
             )
 
-        change_log, payload = change_log_row
+        change_request, payload = change_request_row
 
         # Convert datetime objects to strings
-        created_at_str = str(change_log.created_at.isoformat()) if change_log.created_at and hasattr(change_log.created_at, 'isoformat') else None
-        approved_at_str = str(change_log.approved_at.isoformat()) if change_log.approved_at and hasattr(change_log.approved_at, 'isoformat') else None
+        created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
+        approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
 
         # Get change_payload from the payload object
         change_payload = payload.change_payload if payload else None
 
-        # Create ChangeLogData object
-        change_log_data: ChangeLogData = ChangeLogData(
-            change_log_id=change_log.change_log_id,
-            register_id=change_log.register_id,
-            tab_id=change_log.tab_id,
-            internal_record_id=change_log.internal_record_id,
-            section_id=change_log.section_id,
-            source_partner_id=change_log.source_partner_id,
-            created_by=change_log.created_by,
+        # Create ChangeRequestData object
+        change_request_data: ChangeRequestData = ChangeRequestData(
+            change_request_id=change_request.change_request_id,
+            register_id=change_request.register_id,
+            tab_id=change_request.tab_id,
+            internal_record_id=change_request.internal_record_id,
+            section_id=change_request.section_id,
+            source_partner_id=change_request.source_partner_id,
+            created_by=change_request.created_by,
             created_at=created_at_str,
-            no_of_verifications_required=change_log.no_of_verifications_required,
-            no_of_verifications_done=change_log.no_of_verifications_done,
-            approval_status=change_log.approval_status,
-            approved_by=change_log.approved_by,
+            no_of_verifications_required=change_request.no_of_verifications_required,
+            no_of_verifications_done=change_request.no_of_verifications_done,
+            approval_status=change_request.approval_status,
+            approved_by=change_request.approved_by,
             approved_at=approved_at_str,
             change_payload=change_payload
         )
 
-        return change_log_data
+        return change_request_data
 
     async def get_record(self, register_id: str, internal_record_id: str) -> RecordData:
         """Get a single register record by internal_record_id"""
@@ -1466,19 +1466,19 @@ class G2PRegisterService(BaseService):
 
             return record_data
 
-    async def get_verifications_for_change_log(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[VerificationData], int]:
-        """Get all verifications for a specific change log with pagination"""
+    async def get_verifications_for_change_request(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[VerificationData], int]:
+        """Get all verifications for a specific change request with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate change log exists (without checking approval status)
-            change_log: G2PRegisterChangeLog = (
+            # Validate change request exists (without checking approval status)
+            change_request: G2PRegisterChangeRequest = (
                 await session.execute(
-                    select(G2PRegisterChangeLog).where(
-                        G2PRegisterChangeLog.change_log_id == change_log_id
+                    select(G2PRegisterChangeRequest).where(
+                        G2PRegisterChangeRequest.change_request_id == change_request_id
                     )
                 )
             ).scalar()
-            if not change_log:
+            if not change_request:
                 raise G2PRegistryException(
                     code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
                     message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
@@ -1486,7 +1486,7 @@ class G2PRegisterService(BaseService):
 
             # Get total count
             count_result = await session.execute(select(func.count()).select_from(G2PRegisterVerification).where(
-                G2PRegisterVerification.change_log_id == change_log_id
+                G2PRegisterVerification.change_request_id == change_request_id
             ))
             total_items = count_result.scalar() or 0
 
@@ -1495,7 +1495,7 @@ class G2PRegisterService(BaseService):
             verifications = (
                 await session.execute(
                     select(G2PRegisterVerification).where(
-                        G2PRegisterVerification.change_log_id == change_log_id
+                        G2PRegisterVerification.change_request_id == change_request_id
                     ).order_by(G2PRegisterVerification.verified_at.desc()).offset(offset).limit(page_size)
                 )
             ).scalars().all()
@@ -1511,7 +1511,7 @@ class G2PRegisterService(BaseService):
                     register_id=verification.register_id,
                     internal_record_id=verification.internal_record_id,
                     section_id=verification.section_id,
-                    change_log_id=verification.change_log_id,
+                    change_request_id=verification.change_request_id,
                     verified_by=verification.verified_by,
                     verified_at=verified_at_str,
                     verification_observations=verification.verification_observations,
@@ -1521,33 +1521,33 @@ class G2PRegisterService(BaseService):
 
             return verifications_list, total_items
 
-    async def add_verification_for_change_log(
+    async def add_verification_for_change_request(
         self,
         payload: AddVerificationPayload
     ) -> VerificationData:
         """
-        Add a new verification for a change log.
+        Add a new verification for a change request.
 
         Args:
-            payload: AddVerificationPayload containing change_log_id, verification_observations, is_approved
+            payload: AddVerificationPayload containing change_request_id, verification_observations, is_approved
 
         Returns:
             VerificationData: The created verification
 
         Raises:
-            G2PRegistryException: If change log not found or other validation errors
+            G2PRegistryException: If change request not found or other validation errors
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate change log exists
-            change_log_result = await session.execute(
-                select(G2PRegisterChangeLog).where(
-                    G2PRegisterChangeLog.change_log_id == payload.change_log_id
+            # Validate change request exists
+            change_request_result = await session.execute(
+                select(G2PRegisterChangeRequest).where(
+                    G2PRegisterChangeRequest.change_request_id == payload.change_request_id
                 )
             )
-            change_log = change_log_result.scalar_one_or_none()
+            change_request = change_request_result.scalar_one_or_none()
 
-            if not change_log:
+            if not change_request:
                 raise G2PRegistryException(
                     code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
                     message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
@@ -1557,10 +1557,10 @@ class G2PRegisterService(BaseService):
             verification_id = str(uuid.uuid4())
             verification = G2PRegisterVerification(
                 verification_id=verification_id,
-                register_id=change_log.register_id,
-                internal_record_id=change_log.internal_record_id,
-                section_id=change_log.section_id,
-                change_log_id=payload.change_log_id,
+                register_id=change_request.register_id,
+                internal_record_id=change_request.internal_record_id,
+                section_id=change_request.section_id,
+                change_request_id=payload.change_request_id,
                 verified_by="system",  # Will be set by controller with actual user
                 verified_at=datetime.utcnow(),
                 verification_observations=payload.verification_observations,
@@ -1577,7 +1577,7 @@ class G2PRegisterService(BaseService):
                 register_id=verification.register_id,
                 internal_record_id=verification.internal_record_id,
                 section_id=verification.section_id,
-                change_log_id=verification.change_log_id,
+                change_request_id=verification.change_request_id,
                 verified_by=verification.verified_by,
                 verified_at=verification.verified_at.isoformat() if verification.verified_at else None,
                 verification_observations=verification.verification_observations,
@@ -1586,15 +1586,15 @@ class G2PRegisterService(BaseService):
 
             return verification_data
 
-    async def get_deduplication_register_results(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationRegisterResultData], int]:
+    async def get_deduplication_register_results(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationRegisterResultData], int]:
         """
-        Get deduplication results for a change log against register records with pagination.
+        Get deduplication results for a change request against register records with pagination.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Get total count
             count_result = await session.execute(select(func.count()).select_from(DeduplicationRegisterResult).where(
-                DeduplicationRegisterResult.change_log_id == change_log_id
+                DeduplicationRegisterResult.change_request_id == change_request_id
             ))
             total_items = count_result.scalar() or 0
 
@@ -1603,7 +1603,7 @@ class G2PRegisterService(BaseService):
             results = (
                 await session.execute(
                     select(DeduplicationRegisterResult).where(
-                        DeduplicationRegisterResult.change_log_id == change_log_id
+                        DeduplicationRegisterResult.change_request_id == change_request_id
                     ).offset(offset).limit(page_size)
                 )
             ).scalars().all()
@@ -1613,7 +1613,7 @@ class G2PRegisterService(BaseService):
             for result in results:
                 dedup_result_data = DeduplicationRegisterResultData(
                     dedup_result_id=result.dedup_result_id,
-                    change_log_id=result.change_log_id,
+                    change_request_id=result.change_request_id,
                     internal_record_id=result.internal_record_id,
                     match_score=result.match_score,
                     field_matches=result.field_matches,
@@ -1623,15 +1623,15 @@ class G2PRegisterService(BaseService):
 
             return dedup_result_data_list, total_items
 
-    async def get_deduplication_changelog_results(self, change_log_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationChangelogResultData], int]:
+    async def get_deduplication_changerequest_results(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationChangerequestResultData], int]:
         """
-        Get deduplication results for a change log against other change logs with pagination.
+        Get deduplication results for a change request against other change requests with pagination.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Get total count
-            count_result = await session.execute(select(func.count()).select_from(DeduplicationChangelogResult).where(
-                DeduplicationChangelogResult.change_log_id == change_log_id
+            count_result = await session.execute(select(func.count()).select_from(DeduplicationChangerequestResult).where(
+                DeduplicationChangerequestResult.change_request_id == change_request_id
             ))
             total_items = count_result.scalar() or 0
 
@@ -1639,8 +1639,8 @@ class G2PRegisterService(BaseService):
             offset = (current_page - 1) * page_size
             results = (
                 await session.execute(
-                    select(DeduplicationChangelogResult).where(
-                        DeduplicationChangelogResult.change_log_id == change_log_id
+                    select(DeduplicationChangerequestResult).where(
+                        DeduplicationChangerequestResult.change_request_id == change_request_id
                     ).offset(offset).limit(page_size)
                 )
             ).scalars().all()
@@ -1648,10 +1648,10 @@ class G2PRegisterService(BaseService):
             # Convert to schema objects
             dedup_result_data_list = []
             for result in results:
-                dedup_result_data = DeduplicationChangelogResultData(
+                dedup_result_data = DeduplicationChangerequestResultData(
                     dedup_result_id=result.dedup_result_id,
-                    change_log_id=result.change_log_id,
-                    candidate_change_log_id=result.candidate_change_log_id,
+                    change_request_id=result.change_request_id,
+                    candidate_change_request_id=result.candidate_change_request_id,
                     match_score=result.match_score,
                     field_matches=result.field_matches,
                     created_at=result.created_at.isoformat() if result.created_at else None

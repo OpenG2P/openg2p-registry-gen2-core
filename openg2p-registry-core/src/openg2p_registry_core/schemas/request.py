@@ -5,13 +5,13 @@ from openg2p_fastapi_common.schemas import (
     G2PRequest,
     G2PRequestBody
 )
-from .payload import ChangeLogRequestPayload, AddVerificationPayload
+from .payload import ChangeRequestRequestPayload, AddVerificationPayload
 
-class ChangeLogRequestBody(G2PRequestBody):
-    request_payload: ChangeLogRequestPayload
+class ChangeRequestRequestBody(G2PRequestBody):
+    request_payload: ChangeRequestRequestPayload
 
-class ChangeLogRequest(G2PRequest):
-    request_body: ChangeLogRequestBody
+class ChangeRequestRequest(G2PRequest):
+    request_body: ChangeRequestRequestBody
 
 
 class EmptyRequestPayload(BaseModel):
@@ -34,11 +34,11 @@ class GetRegisterSummaryDataRequest(G2PRequest):
     request_body: GetRegisterSummaryDataRequestBody
 
 
-class GetChangeLogSummaryDataRequestBody(G2PRequestBody):
+class GetChangeRequestSummaryDataRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
 
-class GetChangeLogSummaryDataRequest(G2PRequest):
-    request_body: GetChangeLogSummaryDataRequestBody
+class GetChangeRequestSummaryDataRequest(G2PRequest):
+    request_body: GetChangeRequestSummaryDataRequestBody
 
 
 class GetAllRegistersRequestBody(G2PRequestBody):
@@ -72,16 +72,16 @@ class SearchRegisterRequest(G2PRequest):
     request_body: SearchRegisterRequestBody
 
 
-class SearchChangeLogRequestPayload(BaseModel):
+class SearchChangeRequestRequestPayload(BaseModel):
     pass
 
 
-class SearchChangeLogRequestBody(G2PRequestBody):
-    request_payload: SearchChangeLogRequestPayload
+class SearchChangeRequestRequestBody(G2PRequestBody):
+    request_payload: SearchChangeRequestRequestPayload
 
 
-class SearchChangeLogRequest(G2PRequest):
-    request_body: SearchChangeLogRequestBody
+class SearchChangeRequestRequest(G2PRequest):
+    request_body: SearchChangeRequestRequestBody
 
 
 class GetChildRegistersRequestPayload(BaseModel):
@@ -121,18 +121,18 @@ class GetNumberOfVersionsRequest(G2PRequest):
     request_body: GetNumberOfVersionsRequestBody
 
 
-class GetNumberOfPendingChangeLogsRequestPayload(BaseModel):
+class GetNumberOfPendingChangeRequestsRequestPayload(BaseModel):
     subject_register_id: str
     subject_record_id: str
     tab_id: str
 
 
-class GetNumberOfPendingChangeLogsRequestBody(G2PRequestBody):
-    request_payload: GetNumberOfPendingChangeLogsRequestPayload
+class GetNumberOfPendingChangeRequestsRequestBody(G2PRequestBody):
+    request_payload: GetNumberOfPendingChangeRequestsRequestPayload
 
 
-class GetNumberOfPendingChangeLogsRequest(G2PRequest):
-    request_body: GetNumberOfPendingChangeLogsRequestBody
+class GetNumberOfPendingChangeRequestsRequest(G2PRequest):
+    request_body: GetNumberOfPendingChangeRequestsRequestBody
 
 
 class GetNumberOfCrossRegisterChangesRequestPayload(BaseModel):
@@ -161,30 +161,30 @@ class GetCrossRegisterChangesRequest(G2PRequest):
     request_body: GetCrossRegisterChangesRequestBody
 
 
-class GetChangeLogsRequestPayload(BaseModel):
+class GetChangeRequestsRequestPayload(BaseModel):
     subject_register_id: str
     subject_record_id: str
     tab_id: str
 
 
-class GetChangeLogsRequestBody(G2PRequestBody):
-    request_payload: GetChangeLogsRequestPayload
+class GetChangeRequestsRequestBody(G2PRequestBody):
+    request_payload: GetChangeRequestsRequestPayload
 
 
-class GetChangeLogsRequest(G2PRequest):
-    request_body: GetChangeLogsRequestBody
+class GetChangeRequestsRequest(G2PRequest):
+    request_body: GetChangeRequestsRequestBody
 
 
-class GetChangeLogRequestPayload(BaseModel):
-    change_log_id: str
+class GetChangeRequestRequestPayload(BaseModel):
+    change_request_id: str
 
 
-class GetChangeLogRequestBody(G2PRequestBody):
-    request_payload: GetChangeLogRequestPayload
+class GetChangeRequestRequestBody(G2PRequestBody):
+    request_payload: GetChangeRequestRequestPayload
 
 
-class GetChangeLogRequest(G2PRequest):
-    request_body: GetChangeLogRequestBody
+class GetChangeRequestRequest(G2PRequest):
+    request_body: GetChangeRequestRequestBody
 
 
 class GetSubjectRecordRequestPayload(BaseModel):
@@ -201,7 +201,7 @@ class GetSubjectRecordRequest(G2PRequest):
 
 
 class GetVerificationsRequestPayload(BaseModel):
-    change_log_id: str
+    change_request_id: str
 
 
 class GetVerificationsRequestBody(G2PRequestBody):
@@ -213,7 +213,7 @@ class GetVerificationsRequest(G2PRequest):
 
 
 class GetDeduplicationRegisterResultsRequestPayload(BaseModel):
-    change_log_id: str
+    change_request_id: str
 
 
 class GetDeduplicationRegisterResultsRequestBody(G2PRequestBody):
@@ -224,16 +224,16 @@ class GetDeduplicationRegisterResultsRequest(G2PRequest):
     request_body: GetDeduplicationRegisterResultsRequestBody
 
 
-class GetDeduplicationChangelogResultsRequestPayload(BaseModel):
-    change_log_id: str
+class GetDeduplicationChangerequestResultsRequestPayload(BaseModel):
+    change_request_id: str
 
 
-class GetDeduplicationChangelogResultsRequestBody(G2PRequestBody):
-    request_payload: GetDeduplicationChangelogResultsRequestPayload
+class GetDeduplicationChangerequestResultsRequestBody(G2PRequestBody):
+    request_payload: GetDeduplicationChangerequestResultsRequestPayload
 
 
-class GetDeduplicationChangelogResultsRequest(G2PRequest):
-    request_body: GetDeduplicationChangelogResultsRequestBody
+class GetDeduplicationChangerequestResultsRequest(G2PRequest):
+    request_body: GetDeduplicationChangerequestResultsRequestBody
 
 
 class AddVerificationRequestBody(G2PRequestBody):

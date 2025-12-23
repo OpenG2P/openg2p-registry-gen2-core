@@ -129,7 +129,7 @@ class RegisterSummaryData(BaseModel):
     total_record_count: int
 
 
-class ChangeLogSummaryData(BaseModel):
+class ChangeRequestSummaryData(BaseModel):
     total_count: int
     approved_count: int
     pending_count: int
@@ -195,8 +195,8 @@ class RecordData(BaseModel):
     last_approved_by: Optional[str] = None
 
 
-class ChangeLogSearchResultData(BaseModel):
-    change_log_id: str
+class ChangeRequestSearchResultData(BaseModel):
+    change_request_id: str
     register_id: str
     tab_id: str
     internal_record_id: str
@@ -223,8 +223,8 @@ class ChangePayload(BaseChangePayload):
         extra = "allow"  # Allow extra fields to be preserved and accessible
 
 
-class ChangeLogRequestPayload(RegisterPayload):
-    """Request payload for creating/updating change logs - sent from Partners"""
+class ChangeRequestRequestPayload(RegisterPayload):
+    """Request payload for creating/updating change requests - sent from Partners"""
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
     tab_id: Optional[str] = None
@@ -233,12 +233,12 @@ class ChangeLogRequestPayload(RegisterPayload):
     change_payload: Optional[ChangePayload] = None
     change_payload_array: Optional[List[ChangePayload]] = None
     # For approve/reject operations
-    change_log_id: Optional[str] = None
+    change_request_id: Optional[str] = None
     rejection_reason: Optional[str] = None
 
 
-class ChangeLogResponsePayload(RegisterPayload):
-    """Response payload for change logs - returned to clients"""
+class ChangeRequestResponsePayload(RegisterPayload):
+    """Response payload for change requests - returned to clients"""
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
@@ -247,7 +247,7 @@ class ChangeLogResponsePayload(RegisterPayload):
     no_of_verifications_required: Optional[int] = 0
     no_of_verifications_done: Optional[int] = 0
     approval_status: ApprovalStatusEnum = ApprovalStatusEnum.PENDING
-    change_log_id: Optional[str] = None
+    change_request_id: Optional[str] = None
     internal_record_id: Optional[str] = None
 
     created_by: Optional[str] = None
@@ -266,11 +266,11 @@ class NumberOfVersionsData(BaseModel):
     last_approved_at: Optional[datetime] = None
 
 
-class NumberOfPendingChangeLogsData(BaseModel):
+class NumberOfPendingChangeRequestsData(BaseModel):
     subject_register_id: str
     subject_record_id: str
     tab_id: str
-    number_of_pending_change_logs: int
+    number_of_pending_change_requests: int
 
 
 class NumberOfCrossRegisterChangesData(BaseModel):
@@ -279,8 +279,8 @@ class NumberOfCrossRegisterChangesData(BaseModel):
     number_of_cross_register_changes: int
 
 
-class CrossRegisterChangeLogData(BaseModel):
-    change_log_id: str
+class CrossRegisterChangeRequestData(BaseModel):
+    change_request_id: str
     register_id: str
     register_mnemonic: str
     tab_id: str
@@ -301,11 +301,11 @@ class CrossRegisterChangeLogData(BaseModel):
 
 
 class CrossRegisterChangesData(BaseModel):
-    cross_register_changes: list["CrossRegisterChangeLogData"]
+    cross_register_changes: list["CrossRegisterChangeRequestData"]
 
 
-class ChangeLogData(BaseModel):
-    change_log_id: str
+class ChangeRequestData(BaseModel):
+    change_request_id: str
     register_id: str
     tab_id: str
     internal_record_id: str
@@ -324,8 +324,8 @@ class ChangeLogData(BaseModel):
         from_attributes: bool = True
 
 
-class ChangeLogsData(BaseModel):
-    change_logs: List[ChangeLogData]
+class ChangeRequestsData(BaseModel):
+    change_requests: List[ChangeRequestData]
 
     class Config:
         from_attributes: bool = True
@@ -336,7 +336,7 @@ class VerificationData(BaseModel):
     register_id: str
     internal_record_id: str
     section_id: str
-    change_log_id: str
+    change_request_id: str
     verified_by: str
     verified_at: Optional[str] = None
     verification_observations: Optional[str] = None
@@ -354,15 +354,15 @@ class VerificationsData(BaseModel):
 
 
 class AddVerificationPayload(BaseModel):
-    change_log_id: str
+    change_request_id: str
     verification_observations: Optional[str] = None
     is_approved: bool
 
 
 class DeduplicationRegisterResultData(BaseModel):
-    """Deduplication result for a change log against a register record."""
+    """Deduplication result for a change request against a register record."""
     dedup_result_id: str
-    change_log_id: str
+    change_request_id: str
     internal_record_id: str
     match_score: float
     field_matches: dict
@@ -372,11 +372,11 @@ class DeduplicationRegisterResultData(BaseModel):
         from_attributes: bool = True
 
 
-class DeduplicationChangelogResultData(BaseModel):
-    """Deduplication result for a change log against another change log."""
+class DeduplicationChangerequestResultData(BaseModel):
+    """Deduplication result for a change request against another change request."""
     dedup_result_id: str
-    change_log_id: str
-    candidate_change_log_id: str
+    change_request_id: str
+    candidate_change_request_id: str
     match_score: float
     field_matches: dict
     created_at: Optional[str] = None
@@ -386,16 +386,16 @@ class DeduplicationChangelogResultData(BaseModel):
 
 
 class DeduplicationRegisterResultsData(BaseModel):
-    """List of deduplication results for a change log against register records."""
+    """List of deduplication results for a change request against register records."""
     results: List[DeduplicationRegisterResultData]
 
     class Config:
         from_attributes: bool = True
 
 
-class DeduplicationChangelogResultsData(BaseModel):
-    """List of deduplication results for a change log against other change logs."""
-    results: List[DeduplicationChangelogResultData]
+class DeduplicationChangerequestResultsData(BaseModel):
+    """List of deduplication results for a change request against other change requests."""
+    results: List[DeduplicationChangerequestResultData]
 
     class Config:
         from_attributes: bool = True

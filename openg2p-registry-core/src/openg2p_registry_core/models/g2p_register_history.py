@@ -11,7 +11,7 @@ class G2PRegisterHistory(BaseORMModel):
 
     history_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    change_log_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     approved_by: Mapped[str] = mapped_column(String, nullable=False)

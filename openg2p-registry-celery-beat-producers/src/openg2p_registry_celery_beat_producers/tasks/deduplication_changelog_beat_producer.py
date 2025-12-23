@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from openg2p_registry_core.models import G2PRegisterChangeLog, DeduplicationStatusEnum
+from openg2p_registry_core.models import G2PRegisterChangeRequest, DeduplicationStatusEnum
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
@@ -15,22 +15,22 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 _engine = Engine.get_engine()
 
 
-@celery_app.task(name="deduplication_changelog_beat_producer")
-def deduplication_changelog_beat_producer():
+@celery_app.task(name="deduplication_changerequest_beat_producer")
+def deduplication_changerequest_beat_producer():
     """
-    Beat producer that finds pending deduplication work for changelog records
+    Beat producer that finds pending deduplication work for changerequest records
     and queues them to the deduplication worker.
     """
-    _logger.info("Checking for pending deduplication_changelog requests")
+    _logger.info("Checking for pending deduplication_changerequest requests")
     session_maker = sessionmaker(bind=_engine, expire_on_commit=False)
     
     with session_maker() as session:
-        # Fetch change logs with pending changelog deduplication status
-        pending_changelogs: List[G2PRegisterChangeLog] = (
+        # Fetch change requests with pending changerequest deduplication status
+        pending_changerequests: List[G2PRegisterChangeRequest] = (
             session.execute(
-                select(G2PRegisterChangeLog)
+                select(G2PRegisterChangeRequest)
                 .filter(
-                    G2PRegisterChangeLog.deduplication_changelog_status
+                    G2PRegisterChangeRequest.deduplication_changerequest_status
                     == DeduplicationStatusEnum.PENDING.value
                 )
                 .limit(_config.no_of_tasks_to_process)
@@ -38,29 +38,29 @@ def deduplication_changelog_beat_producer():
             .scalars()
             .all()
         )
-        _logger.info(f"Found {len(pending_changelogs)} PENDING deduplication_changelog requests")
+        _logger.info(f"Found {len(pending_changerequests)} PENDING deduplication_changerequest requests")
 
-        for change_log in pending_changelogs:
-            _logger.info(f"Queueing change_log {change_log.change_log_id} for changelog deduplication")
+        for change_request in pending_changerequests:
+            _logger.info(f"Queueing change_request {change_request.change_request_id} for changerequest deduplication")
 
             # Update status to INPROGRESS
-            change_log.deduplication_changelog_status = DeduplicationStatusEnum.INPROGRESS.value
-            session.add(change_log)
+            change_request.deduplication_changerequest_status = DeduplicationStatusEnum.INPROGRESS.value
+            session.add(change_request)
 
             _logger.info(
-                f"Updating status for {Workers.DEDUPLICATION_CHANGELOG_WORKER} to INPROGRESS for change_log: {change_log.change_log_id}"
+                f"Updating status for {Workers.DEDUPLICATION_CHANGELOG_WORKER} to INPROGRESS for change_request: {change_request.change_request_id}"
             )
 
             # Send task to celery worker
             celery_app.send_task(
                 Workers.DEDUPLICATION_CHANGELOG_WORKER,
-                args=(change_log.change_log_id,),
+                args=(change_request.change_request_id,),
                 queue=_config.worker_queue,
             )
             _logger.info(
-                f"Sent task to {Workers.DEDUPLICATION_CHANGELOG_WORKER} for change_log: {change_log.change_log_id}"
+                f"Sent task to {Workers.DEDUPLICATION_CHANGELOG_WORKER} for change_request: {change_request.change_request_id}"
             )
         session.commit()
 
-    _logger.info("Completed processing pending deduplication_changelog requests")
+    _logger.info("Completed processing pending deduplication_changerequest requests")
 

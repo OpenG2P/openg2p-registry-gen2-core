@@ -20,10 +20,10 @@ class DeduplicationStatusEnum(enum.Enum):
     FAILED = "FAILED"
 
 
-class G2PRegisterChangeLog(BaseORMModel):
-    __tablename__ = "g2p_register_change_logs"
+class G2PRegisterChangeRequest(BaseORMModel):
+    __tablename__ = "g2p_register_change_requests"
 
-    change_log_id: Mapped[str] = mapped_column(String, primary_key=True)
+    change_request_id: Mapped[str] = mapped_column(String, primary_key=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -46,25 +46,25 @@ class G2PRegisterChangeLog(BaseORMModel):
         index=True
     )
     deduplication_register_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
-    deduplication_changelog_status: Mapped[str] = mapped_column(
+    deduplication_changerequest_status: Mapped[str] = mapped_column(
         String,
         nullable=False,
         default=DeduplicationStatusEnum.PENDING.value,
         index=True
     )
-    deduplication_changelog_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
+    deduplication_changerequest_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
 
 
-class G2PRegisterChangeLogPayload(BaseORMModel):
-    __tablename__ = "g2p_register_change_log_payloads"
+class G2PRegisterChangeRequestPayload(BaseORMModel):
+    __tablename__ = "g2p_register_change_request_payloads"
 
-    change_log_id: Mapped[str] = mapped_column(String, primary_key=True)
+    change_request_id: Mapped[str] = mapped_column(String, primary_key=True)
     change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
     change_payload_array: Mapped[JSON] = mapped_column(JSON, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
-        Index('ix_g2p_register_change_log_payloads_search_text_gin', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
+        Index('ix_g2p_register_change_request_payloads_search_text_gin', 'search_text', postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}),
     )
 
     @validates('change_payload')
@@ -79,10 +79,10 @@ class G2PRegisterChangeLogPayload(BaseORMModel):
         return value
 
 
-class G2PRegisterChangeLogDocuments(BaseORMModel):
-    __tablename__ = "g2p_register_change_log_documents"
+class G2PRegisterChangeRequestDocuments(BaseORMModel):
+    __tablename__ = "g2p_register_change_request_documents"
 
     document_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    change_log_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     document_store_id: Mapped[str] = mapped_column(String, nullable=False)
 
