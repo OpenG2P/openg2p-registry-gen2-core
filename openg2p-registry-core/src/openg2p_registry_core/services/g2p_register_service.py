@@ -23,7 +23,7 @@ from ..schemas import (
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
-    ChangeRequestData, ChangeRequestsData, RecordData,
+    ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
@@ -391,6 +391,15 @@ class G2PRegisterService(BaseService):
             change_request_data: ChangeRequestData = await self._fetch_change_request(change_request_id, session)
             return change_request_data
 
+    async def get_change_requests_flattened(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestFlattenedData], int]:
+        """Get all change requests for a specific internal record and tab with flattened change_payload fields"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(subject_register_id, session)
+            change_requests_list, total_items = await self._fetch_change_requests_flattened(subject_register_id, subject_record_id, tab_id, current_page, page_size, sort_by, filter_by, session)
+            return change_requests_list, total_items
+
     async def approve_change_request(self, change_request_id: str):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -459,13 +468,13 @@ class G2PRegisterService(BaseService):
         ).scalar()
         if not change_request:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
-                message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
             )
         if change_request.approval_status != ApprovalStatusEnum.PENDING.value:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_IN_PENDING_STATE.value[1],
-                message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_IN_PENDING_STATE.value[0]
+                code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_IN_PENDING_STATE.value[1],
+                message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_IN_PENDING_STATE.value[0]
             )
         return change_request
 
@@ -1362,8 +1371,8 @@ class G2PRegisterService(BaseService):
 
         if not change_request_row:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
-                message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
             )
 
         change_request, payload = change_request_row
@@ -1394,6 +1403,74 @@ class G2PRegisterService(BaseService):
         )
 
         return change_request_data
+
+    async def _fetch_change_requests_flattened(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeRequestFlattenedData], int]:
+        """Helper method to fetch all change requests with flattened change_payload fields"""
+        # Build base query
+        base_query = select(G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload).join(
+            G2PRegisterChangeRequestPayload,
+            G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id
+        ).where(
+            (G2PRegisterChangeRequest.register_id == subject_register_id) &
+            (G2PRegisterChangeRequest.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeRequest.tab_id == tab_id)
+        ).order_by(G2PRegisterChangeRequest.created_at.desc())
+
+        # Get total count
+        count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).where(
+            (G2PRegisterChangeRequest.register_id == subject_register_id) &
+            (G2PRegisterChangeRequest.internal_record_id == subject_record_id) &
+            (G2PRegisterChangeRequest.tab_id == tab_id)
+        ))
+        total_items = count_result.scalar() or 0
+
+        # Apply pagination
+        offset = (current_page - 1) * page_size
+        query = base_query.offset(offset).limit(page_size)
+
+        result = await session.execute(query)
+        change_requests = result.all()
+
+        change_requests_list: list[ChangeRequestFlattenedData] = []
+
+        # Convert ORM objects to ChangeRequestFlattenedData with flattened fields
+        for change_request, payload in change_requests:
+            # Convert datetime objects to strings
+            created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
+            approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
+
+            # Get change_payload from the payload object
+            change_payload = payload.change_payload if payload else {}
+
+            # Create base ChangeRequestFlattenedData object
+            change_request_data_dict = {
+                "change_request_id": change_request.change_request_id,
+                "register_id": change_request.register_id,
+                "tab_id": change_request.tab_id,
+                "internal_record_id": change_request.internal_record_id,
+                "section_id": change_request.section_id,
+                "source_partner_id": change_request.source_partner_id,
+                "created_by": change_request.created_by,
+                "created_at": created_at_str,
+                "no_of_verifications_required": change_request.no_of_verifications_required,
+                "no_of_verifications_done": change_request.no_of_verifications_done,
+                "approval_status": change_request.approval_status,
+                "approved_by": change_request.approved_by,
+                "approved_at": approved_at_str,
+            }
+
+            # Flatten change_payload fields into the main object
+            if change_payload and isinstance(change_payload, dict):
+                # Exclude internal_record_id from flattening as it's already in the main object
+                for key, value in change_payload.items():
+                    if key != "internal_record_id":
+                        change_request_data_dict[key] = value
+
+            # Create ChangeRequestFlattenedData object with flattened fields
+            change_request_data: ChangeRequestFlattenedData = ChangeRequestFlattenedData(**change_request_data_dict)
+            change_requests_list.append(change_request_data)
+
+        return change_requests_list, total_items
 
     async def get_record(self, register_id: str, internal_record_id: str) -> RecordData:
         """Get a single register record by internal_record_id"""
@@ -1480,8 +1557,8 @@ class G2PRegisterService(BaseService):
             ).scalar()
             if not change_request:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
                 )
 
             # Get total count
@@ -1549,8 +1626,8 @@ class G2PRegisterService(BaseService):
 
             if not change_request:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.CHANGE_LOG_NOT_FOUND.value[0]
+                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
                 )
 
             # Create new verification

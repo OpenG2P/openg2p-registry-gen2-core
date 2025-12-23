@@ -15,7 +15,7 @@ from openg2p_registry_core.schemas import (
     NumberOfCrossRegisterChangesResponse, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesDataResponse,
     ChangeRequestDataResponse, ChangeRequestData,
-    ChangeRequestsDataResponse,
+    ChangeRequestFlattenedDataResponse,
     VerificationsDataResponse,
     VerificationDataResponse, VerificationData,
 )
@@ -82,7 +82,7 @@ class G2PRegisterChangerequestController(BaseController):
         self.router.add_api_route(
             "/get_change_requests",
             self.get_change_requests,
-            responses={200: {"model": ChangeRequestsDataResponse}},
+            responses={200: {"model": ChangeRequestFlattenedDataResponse}},
             methods=["POST"],
         )
 
@@ -179,17 +179,17 @@ class G2PRegisterChangerequestController(BaseController):
             error_response: CrossRegisterChangesDataResponse = self.helper.construct_error_response(error_exception, get_cross_register_changes_request)
             return error_response
 
-    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> ChangeRequestsDataResponse:
+    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> ChangeRequestFlattenedDataResponse:
         try:
             change_requests_list, total_items, number_of_pages = await self.g2p_register_changerequest_controller_service.get_change_requests(get_change_requests_request)
-            change_requests_response: ChangeRequestsDataResponse = self.helper.construct_change_requests_success_response(
+            change_requests_response: ChangeRequestFlattenedDataResponse = self.helper.construct_change_requests_success_response(
                 change_requests_list=change_requests_list, g2p_request=get_change_requests_request,
                 number_of_items=total_items, number_of_pages=number_of_pages
             )
             return change_requests_response
         except Exception as error_exception:
             _logger.error(f"Error in get_change_requests: {str(error_exception)}")
-            error_response: ChangeRequestsDataResponse = self.helper.construct_error_response(error_exception, get_change_requests_request)
+            error_response: ChangeRequestFlattenedDataResponse = self.helper.construct_error_response(error_exception, get_change_requests_request)
             return error_response
 
     async def get_change_request(self, get_change_request_request: GetChangeRequestRequest) -> ChangeRequestDataResponse:

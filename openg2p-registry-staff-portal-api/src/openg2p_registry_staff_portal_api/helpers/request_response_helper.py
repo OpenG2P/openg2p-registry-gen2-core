@@ -16,7 +16,8 @@ from openg2p_registry_core.schemas import (
     NumberOfCrossRegisterChangesData, NumberOfCrossRegisterChangesResponse, NumberOfCrossRegisterChangesResponseBody,
     CrossRegisterChangeRequestData, CrossRegisterChangesData, CrossRegisterChangesDataResponse, CrossRegisterChangesDataResponseBody,
     ChangeRequestData, ChangeRequestDataResponse, ChangeRequestDataResponseBody,
-    ChangeRequestsData, ChangeRequestsDataResponse, ChangeRequestsDataResponseBody,
+    ChangeRequestsData,
+    ChangeRequestFlattenedData, ChangeRequestFlattenedDataResponse, ChangeRequestFlattenedDataResponseBody,
     RecordData, RecordDataResponse, RecordDataResponseBody,
     VerificationsData, VerificationsDataResponse, VerificationsDataResponseBody,
     VerificationData, VerificationDataResponse, VerificationDataResponseBody,
@@ -307,7 +308,8 @@ class RequestResponseHelper(BaseService):
         )
         return cross_register_changes_response
 
-    def construct_change_requests_success_response(self, change_requests_list: List[ChangeRequestData] = None, change_requests_data: ChangeRequestsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeRequestsDataResponse:
+    def construct_change_requests_success_response(self, change_requests_list: list = None, change_requests_data: ChangeRequestsData = None, g2p_request: G2PRequest = None, number_of_items: int = None, number_of_pages: int = None) -> ChangeRequestFlattenedDataResponse:
+        """Construct success response for change requests with flattened payload data."""
         g2p_response_header: G2PResponseHeader = G2PResponseHeader(
             request_id=g2p_request.request_header.request_id if g2p_request else "",
             response_status=G2PResponseStatus.SUCCESS,
@@ -316,11 +318,13 @@ class RequestResponseHelper(BaseService):
             response_timestamp=datetime.now()
         )
 
-        # Support both old (change_requests_data) and new (change_requests_list) parameters
+        # Return flattened change requests (list of dicts with change_payload fields at root level)
         if change_requests_list is not None:
-            payload = ChangeRequestsData(change_requests=change_requests_list)
+            payload = change_requests_list
+        elif change_requests_data is not None:
+            payload = change_requests_data.change_requests
         else:
-            payload = change_requests_data
+            payload = []
 
         pagination_response = None
         if number_of_items is not None and number_of_pages is not None:
@@ -329,12 +333,12 @@ class RequestResponseHelper(BaseService):
                 number_of_pages=number_of_pages
             )
 
-        response_body: ChangeRequestsDataResponseBody = ChangeRequestsDataResponseBody(
+        response_body: ChangeRequestFlattenedDataResponseBody = ChangeRequestFlattenedDataResponseBody(
             response_payload=payload,
             pagination_response=pagination_response
         )
 
-        change_requests_response: ChangeRequestsDataResponse = ChangeRequestsDataResponse(
+        change_requests_response: ChangeRequestFlattenedDataResponse = ChangeRequestFlattenedDataResponse(
             response_header=g2p_response_header,
             response_body=response_body
         )
