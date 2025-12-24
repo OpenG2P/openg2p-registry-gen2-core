@@ -251,6 +251,23 @@ class DataModelData(BaseModel):
         from_attributes: bool = True
 
 
+class ChangeResponseTemplateFilePayload(BaseModel):
+    """Payload for changing response template file of a DataModel"""
+    data_model_id: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class ChangeActiveStatusPayload(BaseModel):
+    """Payload for changing active status of a DataModel"""
+    data_model_id: str
+    is_active: bool
+
+    class Config:
+        from_attributes: bool = True
+
+
 # SubscriptionActivityLog Schemas
 class SubscriptionActivityLogPayload(BaseModel):
     is_unsubscribe: bool = False

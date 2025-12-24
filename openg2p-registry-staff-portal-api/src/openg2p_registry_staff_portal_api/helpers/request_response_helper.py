@@ -23,10 +23,11 @@ from openg2p_registry_core.schemas import (
     VerificationData, VerificationDataResponse, VerificationDataResponseBody,
     DeduplicationRegisterResultsData, DeduplicationRegisterResultsDataResponse, DeduplicationRegisterResultsDataResponseBody,
     DeduplicationChangerequestResultsData, DeduplicationChangerequestResultsDataResponse, DeduplicationChangerequestResultsDataResponseBody,
-    IncomingPartnerData, IncomingPartnerResponseBody,
-    IncomingModelKeyPathData, IncomingModelKeyPathResponseBody,
+    IncomingPartnerData, IncomingPartnerResponseBody, IncomingPartnersResponseBody,
+    IncomingModelKeyPathData, IncomingModelKeyPathResponseBody, IncomingModelKeyPathListResponseBody,
     IncomingModelSemanticPatternResponseBody, IncomingTemplateResponseBody,
-    DataModelResponseBody, OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
+    DataModelResponseBody, DataModelsResponseBody, SubscriptionActivityLogsResponseBody,
+    OutgoingTopicResponseBody, OutgoingTemplateResponseBody,
     RegisterSchemaData, RegisterSchemaDataResponse, RegisterSchemaDataResponseBody,
     RegisterSectionData, RegisterSectionsDataResponse, RegisterSectionsDataResponseBody,
     RegisterSectionDataResponse, RegisterSectionDataResponseBody,
@@ -450,14 +451,22 @@ class RequestResponseHelper(BaseService):
         response_class_name = response_class.__name__
         if response_class_name == 'IncomingPartnerResponse':
             response_body = IncomingPartnerResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingPartnersResponse':
+            response_body = IncomingPartnersResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingModelKeyPathResponse':
             response_body = IncomingModelKeyPathResponseBody(response_payload=payload_data)
+        elif response_class_name == 'IncomingModelKeyPathListResponse':
+            response_body = IncomingModelKeyPathListResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingModelSemanticPatternResponse':
             response_body = IncomingModelSemanticPatternResponseBody(response_payload=payload_data)
         elif response_class_name == 'IncomingTemplateResponse':
             response_body = IncomingTemplateResponseBody(response_payload=payload_data)
         elif response_class_name == 'DataModelResponse':
             response_body = DataModelResponseBody(response_payload=payload_data)
+        elif response_class_name == 'DataModelsResponse':
+            response_body = DataModelsResponseBody(response_payload=payload_data)
+        elif response_class_name == 'SubscriptionActivityLogsResponse':
+            response_body = SubscriptionActivityLogsResponseBody(response_payload=payload_data)
         else:
             # Fallback for other response types
             response_body = G2PResponseBody(response_payload=payload_data)

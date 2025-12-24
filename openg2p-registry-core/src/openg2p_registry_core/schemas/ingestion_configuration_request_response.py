@@ -29,6 +29,8 @@ from .ingestion_configuration import (
     DataModelPayload,
     DataModelUpdatePayload,
     DataModelData,
+    ChangeResponseTemplateFilePayload,
+    ChangeActiveStatusPayload,
     SubscriptionActivityLogPayload,
     SubscriptionActivityLogData,
 )
@@ -263,6 +265,22 @@ class DataModelsResponseBody(G2PResponseBody):
 
 class DataModelsResponse(G2PResponse):
     response_body: Optional[DataModelsResponseBody] = None
+
+
+class ChangeResponseTemplateFileRequestBody(G2PRequestBody):
+    request_payload: ChangeResponseTemplateFilePayload
+
+
+class ChangeResponseTemplateFileRequest(G2PRequest):
+    request_body: ChangeResponseTemplateFileRequestBody
+
+
+class ChangeActiveStatusRequestBody(G2PRequestBody):
+    request_payload: ChangeActiveStatusPayload
+
+
+class ChangeActiveStatusRequest(G2PRequest):
+    request_body: ChangeActiveStatusRequestBody
 
 
 # SubscriptionActivityLog Request/Response
