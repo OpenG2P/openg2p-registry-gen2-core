@@ -33,6 +33,10 @@ from .request import (
     UpdateRegisterSectionUISchemaRequest, UpdateRegisterSectionUISchemaRequestBody, UpdateRegisterSectionUISchemaRequestPayload,
     CreateRegisterRequest, CreateRegisterRequestBody, CreateRegisterRequestPayload,
     UpdateRegisterSchemaRequest, UpdateRegisterSchemaRequestBody, UpdateRegisterSchemaRequestPayload,
+    UpdateDedupIsEnabledRequest, UpdateDedupIsEnabledRequestBody, UpdateDedupIsEnabledRequestPayload,
+    UpdateDedupThresholdScoreRequest, UpdateDedupThresholdScoreRequestBody, UpdateDedupThresholdScoreRequestPayload,
+    UpdateDeduplicationSchemaRequest, UpdateDeduplicationSchemaRequestBody, UpdateDeduplicationSchemaRequestPayload,
+    UpdateSearchResultSchemaRequest, UpdateSearchResultSchemaRequestBody, UpdateSearchResultSchemaRequestPayload,
     GetSectionRecordsRequest, GetSectionRecordsRequestBody, GetSectionRecordsRequestPayload,
     GetRegisterTabRecordsRequest, GetRegisterTabRecordsRequestBody, GetRegisterTabRecordsRequestPayload
 )

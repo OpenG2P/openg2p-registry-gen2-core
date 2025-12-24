@@ -10,6 +10,8 @@ from ..schemas import (
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
     CreateRegisterRequest, UpdateRegisterSchemaRequest,
+    UpdateDedupIsEnabledRequest, UpdateDedupThresholdScoreRequest,
+    UpdateDeduplicationSchemaRequest, UpdateSearchResultSchemaRequest,
     RegisterSchemaData, RegisterSectionData
 )
 
@@ -204,5 +206,61 @@ class G2PRegisterMetadataControllerService(BaseService):
             deduplicate_schema=payload.deduplicate_schema,
             search_result_schema=payload.search_result_schema,
             filter_schema=payload.filter_schema
+        )
+        return register_schema_data
+
+    async def update_dedup_is_enabled(self, update_dedup_is_enabled_request: UpdateDedupIsEnabledRequest) -> RegisterSchemaData:
+        """
+        Update the dedup_is_enabled flag for a register.
+        """
+        payload = update_dedup_is_enabled_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Updating dedup_is_enabled for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.update_dedup_is_enabled(
+            register_id=register_id,
+            dedup_is_enabled=payload.dedup_is_enabled
+        )
+        return register_schema_data
+
+    async def update_dedup_threshold_score(self, update_dedup_threshold_score_request: UpdateDedupThresholdScoreRequest) -> RegisterSchemaData:
+        """
+        Update the dedup_threshold_score for a register.
+        """
+        payload = update_dedup_threshold_score_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Updating dedup_threshold_score for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.update_dedup_threshold_score(
+            register_id=register_id,
+            dedup_threshold_score=payload.dedup_threshold_score
+        )
+        return register_schema_data
+
+    async def update_deduplication_schema(self, update_deduplication_schema_request: UpdateDeduplicationSchemaRequest) -> RegisterSchemaData:
+        """
+        Update the deduplicate_schema for a register.
+        """
+        payload = update_deduplication_schema_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Updating deduplicate_schema for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.update_deduplication_schema(
+            register_id=register_id,
+            deduplicate_schema=payload.deduplicate_schema
+        )
+        return register_schema_data
+
+    async def update_search_result_schema(self, update_search_result_schema_request: UpdateSearchResultSchemaRequest) -> RegisterSchemaData:
+        """
+        Update the search_result_schema for a register.
+        """
+        payload = update_search_result_schema_request.request_body.request_payload
+        register_id = payload.register_id
+        _logger.info(f"Updating search_result_schema for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_schema_data: RegisterSchemaData = await g2p_register_service.update_search_result_schema(
+            register_id=register_id,
+            search_result_schema=payload.search_result_schema
         )
         return register_schema_data

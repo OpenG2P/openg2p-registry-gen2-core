@@ -1998,3 +1998,127 @@ class G2PRegisterService(BaseService):
                 search_result_schema=search_result_schema,
                 filter_schema=filter_schema
             )
+
+    async def update_dedup_is_enabled(
+        self,
+        register_id: str,
+        dedup_is_enabled: bool
+    ) -> RegisterSchemaData:
+        """
+        Update the dedup_is_enabled flag for a register.
+        This is stored in the register definition, not the schema.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate and get register definition
+            result = await session.execute(
+                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+            )
+            register_definition = result.scalar()
+
+            if not register_definition:
+                raise ValueError(f"Register definition does not exist for register_id: {register_id}")
+
+            register_definition.dedup_is_enabled = dedup_is_enabled
+            await session.commit()
+
+            _logger.info(f"Updated dedup_is_enabled to {dedup_is_enabled} for register_id: {register_id}")
+
+            # Return the schema data (fetch from schema table)
+            return await self.get_register_schema(register_id)
+
+    async def update_dedup_threshold_score(
+        self,
+        register_id: str,
+        dedup_threshold_score: float
+    ) -> RegisterSchemaData:
+        """
+        Update the dedup_threshold_score for a register.
+        This is stored in the register definition, not the schema.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate and get register definition
+            result = await session.execute(
+                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+            )
+            register_definition = result.scalar()
+
+            if not register_definition:
+                raise ValueError(f"Register definition does not exist for register_id: {register_id}")
+
+            register_definition.dedup_threshold_score = dedup_threshold_score
+            await session.commit()
+
+            _logger.info(f"Updated dedup_threshold_score to {dedup_threshold_score} for register_id: {register_id}")
+
+            # Return the schema data (fetch from schema table)
+            return await self.get_register_schema(register_id)
+
+    async def update_deduplication_schema(
+        self,
+        register_id: str,
+        deduplicate_schema: list[dict]
+    ) -> RegisterSchemaData:
+        """
+        Update the deduplicate_schema for a register.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch existing schema
+            result = await session.execute(
+                select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            )
+            existing_schema: G2PRegisterSchema = result.scalar()
+
+            if not existing_schema:
+                raise ValueError(f"Register schema does not exist for register_id: {register_id}.")
+
+            existing_schema.deduplicate_schema = deduplicate_schema
+            await session.commit()
+
+            _logger.info(f"Updated deduplicate_schema for register_id: {register_id}")
+
+            return RegisterSchemaData(
+                register_id=register_id,
+                deduplicate_schema=existing_schema.deduplicate_schema,
+                search_result_schema=existing_schema.search_result_schema,
+                filter_schema=existing_schema.filter_schema
+            )
+
+    async def update_search_result_schema(
+        self,
+        register_id: str,
+        search_result_schema: list[dict]
+    ) -> RegisterSchemaData:
+        """
+        Update the search_result_schema for a register.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            await self.validate_register_definition(register_id, session)
+
+            # Fetch existing schema
+            result = await session.execute(
+                select(G2PRegisterSchema).where(G2PRegisterSchema.register_id == register_id)
+            )
+            existing_schema: G2PRegisterSchema = result.scalar()
+
+            if not existing_schema:
+                raise ValueError(f"Register schema does not exist for register_id: {register_id}.")
+
+            existing_schema.search_result_schema = search_result_schema
+            await session.commit()
+
+            _logger.info(f"Updated search_result_schema for register_id: {register_id}")
+
+            return RegisterSchemaData(
+                register_id=register_id,
+                deduplicate_schema=existing_schema.deduplicate_schema,
+                search_result_schema=existing_schema.search_result_schema,
+                filter_schema=existing_schema.filter_schema
+            )

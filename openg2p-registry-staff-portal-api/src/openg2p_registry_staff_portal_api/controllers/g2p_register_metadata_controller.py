@@ -12,6 +12,8 @@ from openg2p_registry_core.schemas import (
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
     CreateRegisterRequest, UpdateRegisterSchemaRequest,
+    UpdateDedupIsEnabledRequest, UpdateDedupThresholdScoreRequest,
+    UpdateDeduplicationSchemaRequest, UpdateSearchResultSchemaRequest,
     RegisterSchemaDataResponse, RegisterSchemaData,
     RegisterSectionsDataResponse, RegisterSectionData, RegisterSectionDataResponse,
     RegisterDataResponse, RegisterUITabData, RegisterTabsDataResponse,
@@ -75,6 +77,35 @@ class G2PRegisterMetadataController(BaseController):
         self.router.add_api_route(
             "/update_register_schema",
             self.update_register_schema,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        # Deduplication configuration endpoints (split from update_register_schema)
+        self.router.add_api_route(
+            "/update_dedup_is_enabled",
+            self.update_dedup_is_enabled,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/update_dedup_threshold_score",
+            self.update_dedup_threshold_score,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/update_deduplication_schema",
+            self.update_deduplication_schema,
+            responses={200: {"model": RegisterSchemaDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/update_search_result_schema",
+            self.update_search_result_schema,
             responses={200: {"model": RegisterSchemaDataResponse}},
             methods=["POST"],
         )
@@ -358,4 +389,64 @@ class G2PRegisterMetadataController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in update_register_schema: {str(error_exception)}")
             error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_register_schema_request)
+            return error_response
+
+    async def update_dedup_is_enabled(self, update_dedup_is_enabled_request: UpdateDedupIsEnabledRequest) -> RegisterSchemaDataResponse:
+        """
+        Update the dedup_is_enabled flag for a register.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_metadata_controller_service.update_dedup_is_enabled(update_dedup_is_enabled_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=update_dedup_is_enabled_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in update_dedup_is_enabled: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_dedup_is_enabled_request)
+            return error_response
+
+    async def update_dedup_threshold_score(self, update_dedup_threshold_score_request: UpdateDedupThresholdScoreRequest) -> RegisterSchemaDataResponse:
+        """
+        Update the dedup_threshold_score for a register.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_metadata_controller_service.update_dedup_threshold_score(update_dedup_threshold_score_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=update_dedup_threshold_score_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in update_dedup_threshold_score: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_dedup_threshold_score_request)
+            return error_response
+
+    async def update_deduplication_schema(self, update_deduplication_schema_request: UpdateDeduplicationSchemaRequest) -> RegisterSchemaDataResponse:
+        """
+        Update the deduplicate_schema for a register.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_metadata_controller_service.update_deduplication_schema(update_deduplication_schema_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=update_deduplication_schema_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in update_deduplication_schema: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_deduplication_schema_request)
+            return error_response
+
+    async def update_search_result_schema(self, update_search_result_schema_request: UpdateSearchResultSchemaRequest) -> RegisterSchemaDataResponse:
+        """
+        Update the search_result_schema for a register.
+        """
+        try:
+            register_schema_data: RegisterSchemaData = await self.g2p_register_metadata_controller_service.update_search_result_schema(update_search_result_schema_request)
+            register_schema_response: RegisterSchemaDataResponse = self.helper.construct_register_schema_success_response(
+                register_schema_data=register_schema_data, g2p_request=update_search_result_schema_request
+            )
+            return register_schema_response
+        except Exception as error_exception:
+            _logger.error(f"Error in update_search_result_schema: {str(error_exception)}")
+            error_response: RegisterSchemaDataResponse = self.helper.construct_error_response(error_exception, update_search_result_schema_request)
             return error_response

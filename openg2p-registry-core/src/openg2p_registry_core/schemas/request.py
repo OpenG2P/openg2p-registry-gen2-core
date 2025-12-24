@@ -436,6 +436,59 @@ class UpdateRegisterSchemaRequest(G2PRequest):
     request_body: UpdateRegisterSchemaRequestBody
 
 
+# Deduplication Configuration APIs - split from UpdateRegisterSchema
+class UpdateDedupIsEnabledRequestPayload(BaseModel):
+    register_id: str
+    dedup_is_enabled: bool
+
+
+class UpdateDedupIsEnabledRequestBody(G2PRequestBody):
+    request_payload: UpdateDedupIsEnabledRequestPayload
+
+
+class UpdateDedupIsEnabledRequest(G2PRequest):
+    request_body: UpdateDedupIsEnabledRequestBody
+
+
+class UpdateDedupThresholdScoreRequestPayload(BaseModel):
+    register_id: str
+    dedup_threshold_score: float
+
+
+class UpdateDedupThresholdScoreRequestBody(G2PRequestBody):
+    request_payload: UpdateDedupThresholdScoreRequestPayload
+
+
+class UpdateDedupThresholdScoreRequest(G2PRequest):
+    request_body: UpdateDedupThresholdScoreRequestBody
+
+
+class UpdateDeduplicationSchemaRequestPayload(BaseModel):
+    register_id: str
+    deduplicate_schema: list[dict]
+
+
+class UpdateDeduplicationSchemaRequestBody(G2PRequestBody):
+    request_payload: UpdateDeduplicationSchemaRequestPayload
+
+
+class UpdateDeduplicationSchemaRequest(G2PRequest):
+    request_body: UpdateDeduplicationSchemaRequestBody
+
+
+class UpdateSearchResultSchemaRequestPayload(BaseModel):
+    register_id: str
+    search_result_schema: list[dict]
+
+
+class UpdateSearchResultSchemaRequestBody(G2PRequestBody):
+    request_payload: UpdateSearchResultSchemaRequestPayload
+
+
+class UpdateSearchResultSchemaRequest(G2PRequest):
+    request_body: UpdateSearchResultSchemaRequestBody
+
+
 class GetSectionRecordsRequestPayload(BaseModel):
     subject_register_id: str
     subject_record_id: str
