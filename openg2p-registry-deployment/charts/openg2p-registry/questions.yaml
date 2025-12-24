@@ -1,0 +1,139 @@
+questions:
+- variable: global.g2pBridgeHostname
+  description: Hostname under which all Bridge services will be accessed
+  type: string
+  label: G2P Bridge Hostname
+  group: General
+
+- variable: g2pBridgeApi.enabled
+  description: Install G2P Bridge API
+  type: boolean
+  label: G2P Bridge API
+  group: General
+
+- variable: g2pBridgeCeleryBeatProducers.enabled
+  description: Install Celery Beat Producers
+  type: boolean
+  label: Celery Beat Producers
+  group: General
+
+- variable: g2pBridgeCeleryWorkers.enabled
+  description: Install Celery Workers
+  type: boolean
+  label: Celery Workers
+  group: General
+
+- variable: benePortalApi.enabled
+  description: Install Beneficiary Portal API
+  type: boolean
+  label: Beneficiary Portal API
+  group: General
+
+# Keycloak
+- variable: global.keycloakBaseUrl
+  description: Keycloak Base Url used in all components
+  type: string
+  label: Keycloak Base URL
+  group: Keycloak
+
+- variable: global.g2pBridgeAuthClientId
+  description: OIDC Client ID for G2P Bridge
+  type: string
+  label: OIDC Client ID
+  group: Keycloak
+
+- variable: global.g2pBridgeAuthClientSecret
+  description: OIDC Client Secret for G2P Bridge
+  type: string
+  label: OIDC Client Secret
+  group: Keycloak
+
+# SPAR
+- variable: global.g2pBridgeMapperBaseUrl
+  description: Base URL to reach SPAR Mapper
+  type: string
+  label: SPAR Mapper API Base URL
+  group: SPAR
+
+# Example bank
+- variable: global.g2pBridgeExampleBankBaseUrl
+  description: Base URL for Example Bank
+  type: string
+  label: Bank APIs Base URL
+  group: Example Bank
+
+# PBMS DB
+- variable: global.PBMSDBHostname
+  description: PBMS database hostname
+  type: string
+  label: PBMS Database Hostname
+  group: PBMS
+
+- variable: global.PBMSDB
+  description: PBMS Database
+  type: string
+  label: PBMS Database 
+  group: PBMS
+
+- variable: global.PBMSDBUser
+  description: PBMS database user
+  type: string
+  label: PBMS Database User 
+  group: PBMS
+
+- variable: global.PBMSDBSecret
+  description: PBMS database user Kubernetes secret
+  type: string
+  label: PBMS Database User Secret 
+  group: PBMS
+
+- variable: global.PBMSDBUserPasswordkey
+  description: PBMS database user password key
+  type: string
+  label: PBMS Database User Password Key
+  group: PBMS
+
+# Registry DB
+- variable: global.RegistryDBHostname
+  description: Registry database hostname
+  type: string
+  label: Registry Database Hostname
+  group: Registry
+
+- variable: global.RegistryDB
+  description: Registry Database
+  type: string
+  label: Registry Database 
+  group: Registry
+
+- variable: global.RegistryDBUser
+  description: Registry database user
+  type: string
+  label: Registry Database User 
+  group: Registry
+
+- variable: global.RegistryDBSecret
+  description: Registry database user Kubernetes secret
+  type: string
+  label: Registry Database User Secret 
+  group: Registry
+
+- variable: global.RegistryDBUserPasswordkey
+  description: Registry database user password key
+  type: string
+  label: Registry Database User Password Key
+  group: Registry
+
+# Keymanager
+- variable: global.g2pBridgeKeymanagerAuthEnabled
+  label: API Authentication Enabled
+  description: Enables Keymanager API authentication.
+  type: boolean
+  group: Keymanager
+
+- variable: global.g2pBridgeKeymanagerAppId
+  description: Keymanager Application ID for G2P Bridge
+  type: string
+  label: Keymanager App ID
+  group: Keymanager 
+
