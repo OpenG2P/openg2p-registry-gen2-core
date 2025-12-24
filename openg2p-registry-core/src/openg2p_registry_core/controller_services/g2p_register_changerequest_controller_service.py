@@ -84,7 +84,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
         cross_register_changes: list[CrossRegisterChangeRequestData] = await g2p_register_service.get_cross_register_changes(subject_register_id, subject_record_id)
         return cross_register_changes
 
-    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> tuple[list[ChangeRequestData], int, int]:
+    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> tuple[list[dict], int, int]:
         payload = get_change_requests_request.request_body.request_payload
         pagination = get_change_requests_request.request_body.pagination_request
         subject_register_id = payload.subject_register_id
@@ -92,7 +92,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
         tab_id = payload.tab_id
         _logger.info(f"Getting change requests for subject_register_id: {subject_register_id}, subject_record_id: {subject_record_id}, tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        change_requests_list, total_items = await g2p_register_service.get_change_requests(
+        # Use flattened version to return change_payload fields at root level
+        change_requests_list, total_items = await g2p_register_service.get_change_requests_flattened(
             subject_register_id, subject_record_id, tab_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0

@@ -9,7 +9,7 @@ from .payload import (
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, IngestDataPayload,
     NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
-    ChangeRequestData, ChangeRequestsData, RecordData, VerificationData, VerificationsData,
+    ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
     RegisterTabRecordData
@@ -114,6 +114,13 @@ class ChangeRequestsDataResponseBody(G2PResponseBody):
 
 class ChangeRequestsDataResponse(G2PResponse):
     response_body: Optional[ChangeRequestsDataResponseBody] = None
+
+
+class ChangeRequestFlattenedDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[ChangeRequestFlattenedData]] = None
+
+class ChangeRequestFlattenedDataResponse(G2PResponse):
+    response_body: Optional[ChangeRequestFlattenedDataResponseBody] = None
 
 
 class RecordDataResponseBody(G2PResponseBody):
