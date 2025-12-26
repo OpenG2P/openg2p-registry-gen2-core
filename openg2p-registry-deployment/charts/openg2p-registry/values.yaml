@@ -4,6 +4,7 @@ global:
   # Database
   postgresqlHost: openg2p-commons-postgresql
   registryDB: '{{ .Release.Name }}_db'
+  registryDBPort: 5432
   registryDBUser: '{{ .Release.Name }}_db_user'
   registryDBSecret: '{{ .Release.Name }}'
   registryDBUserPasswordKey: '{{ .Release.Name }}_db_user'
@@ -87,22 +88,22 @@ partnerApi:
       enabled: false
   
   envVars:
-    REGISTRY_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
-    REGISTRY_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
-    REGISTRY_DB_PORT: 5432
-    REGISTRY_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
-    REGISTRY_PORT: '{{ .Values.containerPort }}'
-    REGISTRY_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+    REGISTRY_PARTNER_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_PARTNER_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_PARTNER_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_PARTNER_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+    REGISTRY_PARTNER_API_PORT: '{{ .Values.containerPort }}'
+    REGISTRY_PARTNER_API_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
     
-    REGISTRY_JWT_VALIDATE_KEYMANAGER_APP_ID: '{{ .Values.global.registryKeymanagerAppId }}'
-    REGISTRY_KEYMANAGER_API_BASE_URL: "http://{{ .Values.global.keymanagerInstallationName }}/v1/keymanager"
-    REGISTRY_OAUTH_ENABLED: '{{ .Values.global.registryKeymanagerAuthEnabled }}'
-    REGISTRY_OAUTH_URL: "{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/token"
-    REGISTRY_OAUTH_CLIENT_ID: '{{ tpl .Values.global.registryAuthClientId $ }}'
-    REGISTRY_OAUTH_CLIENT_SECRET: '{{ .Values.global.registryAuthClientSecret }}'
+    REGISTRY_PARTNER_API_JWT_VALIDATE_KEYMANAGER_APP_ID: '{{ .Values.global.registryKeymanagerAppId }}'
+    REGISTRY_PARTNER_API_KEYMANAGER_API_BASE_URL: "http://{{ .Values.global.keymanagerInstallationName }}/v1/keymanager"
+    REGISTRY_PARTNER_API_OAUTH_ENABLED: '{{ .Values.global.registryKeymanagerAuthEnabled }}'
+    REGISTRY_PARTNER_API_OAUTH_URL: "{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/token"
+    REGISTRY_PARTNER_API_OAUTH_CLIENT_ID: '{{ tpl .Values.global.registryAuthClientId $ }}'
+    REGISTRY_PARTNER_API_OAUTH_CLIENT_SECRET: '{{ .Values.global.registryAuthClientSecret }}'
 
   envVarsFrom:
-    REGISTRY_DB_PASSWORD:
+    REGISTRY_PARTNER_API_DB_PASSWORD:
       secretKeyRef:
         name: '{{ tpl .Values.global.registryDBSecret $ }}'
         key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
@@ -148,7 +149,7 @@ partnerApi:
     - 'sh'
     args:
     - '-c'
-    - 'until pg_isready -U ${REGISTRY_DB_USERNAME} -h ${REGISTRY_DB_HOSTNAME} -p ${REGISTRY_DB_PORT:-5432} -d ${REGISTRY_DB_DBNAME:-registrydb}; do sleep 3; done'
+    - 'until pg_isready -U ${REGISTRY_PARTNER_API_DB_USERNAME} -h ${REGISTRY_PARTNER_API_DB_HOSTNAME} -p ${REGISTRY_PARTNER_API_DB_PORT:-5432} -d ${REGISTRY_PARTNER_API_DB_DBNAME:-registrydb}; do sleep 3; done'
     containerSecurityContext:
       enabled: false
 
