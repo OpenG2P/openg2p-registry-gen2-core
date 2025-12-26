@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import httpx
 from fastapi import UploadFile
 
@@ -511,6 +511,35 @@ class G2PIngestionConfigurationService(BaseService):
                 )
             return DataModelData.model_validate(data_model_obj)
 
+    async def get_all_data_models(self) -> List[DataModelData]:
+        """Get all data models"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(select(DataModel))
+            data_models = result.scalars().all()
+            return [DataModelData.model_validate(dm) for dm in data_models]
+
+    async def delete_data_model(self, data_model_id: str) -> DataModelData:
+        """Delete a data model by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            data_model = await session.execute(
+                select(DataModel).where(DataModel.data_model_id == data_model_id)
+            )
+            data_model_obj = data_model.scalar_one_or_none()
+            if not data_model_obj:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
+                )
+            data_model_data = DataModelData.model_validate(data_model_obj)
+            # Delete associated template file if exists
+            if data_model_obj.response_template_file_id:
+                await self._delete_template_file(data_model_obj.response_template_file_id)
+            await session.delete(data_model_obj)
+            await session.commit()
+            return data_model_data
+
     async def update_data_model(
         self, data_model_id: str, data_model_payload: DataModelUpdatePayload, response_template_file: Optional[UploadFile] = None
     ) -> DataModelData:
@@ -535,6 +564,58 @@ class G2PIngestionConfigurationService(BaseService):
                 data_model_obj.data_model_mnemonic = data_model_payload.data_model_mnemonic
             if data_model_payload.pattern_for_data_model is not None:
                 data_model_obj.pattern_for_data_model = data_model_payload.pattern_for_data_model
+
+            await session.commit()
+            await session.refresh(data_model_obj)
+            return DataModelData.model_validate(data_model_obj)
+
+    async def change_response_template_file(
+        self, data_model_id: str, response_template_file: Optional[UploadFile] = None
+    ) -> DataModelData:
+        """Change the response template file for a data model"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            data_model = await session.execute(
+                select(DataModel).where(DataModel.data_model_id == data_model_id)
+            )
+            data_model_obj = data_model.scalar_one_or_none()
+            if not data_model_obj:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
+                )
+
+            # Delete old template file if exists
+            if data_model_obj.response_template_file_id:
+                await self._delete_template_file(data_model_obj.response_template_file_id)
+
+            # Upload new template file if provided
+            if response_template_file:
+                data_model_obj.response_template_file_id = await self._upload_template_file(response_template_file)
+            else:
+                data_model_obj.response_template_file_id = None
+
+            await session.commit()
+            await session.refresh(data_model_obj)
+            return DataModelData.model_validate(data_model_obj)
+
+    async def change_active_status(
+        self, data_model_id: str, is_active: bool
+    ) -> DataModelData:
+        """Change the active status of a data model"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            data_model = await session.execute(
+                select(DataModel).where(DataModel.data_model_id == data_model_id)
+            )
+            data_model_obj = data_model.scalar_one_or_none()
+            if not data_model_obj:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
+                )
+
+            data_model_obj.is_active = is_active
 
             await session.commit()
             await session.refresh(data_model_obj)

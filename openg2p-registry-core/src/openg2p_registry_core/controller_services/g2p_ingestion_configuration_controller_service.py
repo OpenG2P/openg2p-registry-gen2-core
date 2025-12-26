@@ -179,23 +179,47 @@ class G2PIngestionConfigurationControllerService(BaseService):
         return await self.g2p_template_service.delete_incoming_template(template_delete_payload.template_id)
 
     async def create_data_model(
-        self, data_model_payload: DataModelPayload
+        self, data_model_payload: DataModelPayload, response_template_file=None
     ) -> DataModelData:
         """Create a new data model"""
         return await self.g2p_ingestion_configuration_service.create_data_model(
-            data_model_payload
+            data_model_payload, response_template_file
         )
 
     async def get_data_model(self, data_model_id: str) -> DataModelData:
         """Get data model by ID"""
         return await self.g2p_ingestion_configuration_service.get_data_model(data_model_id)
 
+    async def get_all_data_models(self) -> list[DataModelData]:
+        """Get all data models"""
+        return await self.g2p_ingestion_configuration_service.get_all_data_models()
+
     async def update_data_model(
-        self, data_model_id: str, data_model_payload: DataModelUpdatePayload
+        self, data_model_id: str, data_model_payload: DataModelUpdatePayload, response_template_file=None
     ) -> DataModelData:
         """Update data model"""
         return await self.g2p_ingestion_configuration_service.update_data_model(
-            data_model_id, data_model_payload
+            data_model_id, data_model_payload, response_template_file
+        )
+
+    async def delete_data_model(self, data_model_id: str) -> DataModelData:
+        """Delete data model"""
+        return await self.g2p_ingestion_configuration_service.delete_data_model(data_model_id)
+
+    async def change_response_template_file(
+        self, data_model_id: str, response_template_file=None
+    ) -> DataModelData:
+        """Change response template file for data model"""
+        return await self.g2p_ingestion_configuration_service.change_response_template_file(
+            data_model_id, response_template_file
+        )
+
+    async def change_active_status(
+        self, data_model_id: str, is_active: bool
+    ) -> DataModelData:
+        """Change active status of data model"""
+        return await self.g2p_ingestion_configuration_service.change_active_status(
+            data_model_id, is_active
         )
 
     async def create_subscription_activity_log(
