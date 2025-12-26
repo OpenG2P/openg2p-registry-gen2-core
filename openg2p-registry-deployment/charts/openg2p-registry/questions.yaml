@@ -1,32 +1,38 @@
 questions:
-- variable: global.g2pBridgeHostname
-  description: Hostname under which all Bridge services will be accessed
+- variable: global.registryHostname
+  description: Hostname under which all Registry services will be accessed
   type: string
-  label: G2P Bridge Hostname
+  label: Registry Hostname
   group: General
 
-- variable: g2pBridgeApi.enabled
-  description: Install G2P Bridge API
+- variable: partnerApi.enabled
+  description: Install Partner API
   type: boolean
-  label: G2P Bridge API
+  label: Partner API
   group: General
 
-- variable: g2pBridgeCeleryBeatProducers.enabled
-  description: Install Celery Beat Producers
+- variable: staffPortalApi.enabled
+  description: Install Staff Portal API
   type: boolean
-  label: Celery Beat Producers
-  group: General
-
-- variable: g2pBridgeCeleryWorkers.enabled
-  description: Install Celery Workers
-  type: boolean
-  label: Celery Workers
+  label: Staff Portal API
   group: General
 
 - variable: benePortalApi.enabled
   description: Install Beneficiary Portal API
   type: boolean
   label: Beneficiary Portal API
+  group: General
+
+- variable: celeryBeatProducer.enabled
+  description: Install Celery Beat Producers
+  type: boolean
+  label: Celery Beat Producers
+  group: General
+
+- variable: celeryWorker.enabled
+  description: Install Celery Workers
+  type: boolean
+  label: Celery Workers
   group: General
 
 # Keycloak
@@ -36,104 +42,76 @@ questions:
   label: Keycloak Base URL
   group: Keycloak
 
-- variable: global.g2pBridgeAuthClientId
-  description: OIDC Client ID for G2P Bridge
+- variable: global.keycloakIssuerUrl
+  description: Keycloak Issuer URL
+  type: string
+  label: Keycloak Issuer URL
+  group: Keycloak
+
+- variable: global.registryAuthClientId
+  description: OIDC Client ID for Registry
   type: string
   label: OIDC Client ID
   group: Keycloak
 
-- variable: global.g2pBridgeAuthClientSecret
-  description: OIDC Client Secret for G2P Bridge
+- variable: global.registryAuthClientSecret
+  description: OIDC Client Secret for Registry
   type: string
   label: OIDC Client Secret
   group: Keycloak
 
-# SPAR
-- variable: global.g2pBridgeMapperBaseUrl
-  description: Base URL to reach SPAR Mapper
-  type: string
-  label: SPAR Mapper API Base URL
-  group: SPAR
-
-# Example bank
-- variable: global.g2pBridgeExampleBankBaseUrl
-  description: Base URL for Example Bank
-  type: string
-  label: Bank APIs Base URL
-  group: Example Bank
-
-# PBMS DB
-- variable: global.PBMSDBHostname
-  description: PBMS database hostname
-  type: string
-  label: PBMS Database Hostname
-  group: PBMS
-
-- variable: global.PBMSDB
-  description: PBMS Database
-  type: string
-  label: PBMS Database 
-  group: PBMS
-
-- variable: global.PBMSDBUser
-  description: PBMS database user
-  type: string
-  label: PBMS Database User 
-  group: PBMS
-
-- variable: global.PBMSDBSecret
-  description: PBMS database user Kubernetes secret
-  type: string
-  label: PBMS Database User Secret 
-  group: PBMS
-
-- variable: global.PBMSDBUserPasswordkey
-  description: PBMS database user password key
-  type: string
-  label: PBMS Database User Password Key
-  group: PBMS
-
 # Registry DB
-- variable: global.RegistryDBHostname
+- variable: global.postgresqlHost
   description: Registry database hostname
   type: string
   label: Registry Database Hostname
-  group: Registry
+  group: Registry Database
 
-- variable: global.RegistryDB
+- variable: global.registryDB
   description: Registry Database
   type: string
   label: Registry Database 
-  group: Registry
+  group: Registry Database
 
-- variable: global.RegistryDBUser
+- variable: global.registryDBUser
   description: Registry database user
   type: string
   label: Registry Database User 
-  group: Registry
+  group: Registry Database
 
-- variable: global.RegistryDBSecret
+- variable: global.registryDBSecret
   description: Registry database user Kubernetes secret
   type: string
   label: Registry Database User Secret 
-  group: Registry
+  group: Registry Database
 
-- variable: global.RegistryDBUserPasswordkey
+- variable: global.registryDBUserPasswordKey
   description: Registry database user password key
   type: string
   label: Registry Database User Password Key
-  group: Registry
+  group: Registry Database
 
 # Keymanager
-- variable: global.g2pBridgeKeymanagerAuthEnabled
+- variable: global.keymanagerInstallationName
+  description: Keymanager Installation Name
+  type: string
+  label: Keymanager Installation Name
+  group: Keymanager
+
+- variable: global.keycloakBaseUrl
+  description: Keycloak Base URL
+  type: string
+  label: Keycloak Base URL
+  group: Keymanager
+
+- variable: global.registryKeymanagerAuthEnabled
   label: API Authentication Enabled
   description: Enables Keymanager API authentication.
   type: boolean
   group: Keymanager
 
-- variable: global.g2pBridgeKeymanagerAppId
-  description: Keymanager Application ID for G2P Bridge
+- variable: global.registryKeymanagerAppId
+  description: Keymanager Application ID for Registry
   type: string
   label: Keymanager App ID
-  group: Keymanager 
-
+  group: Keymanager
