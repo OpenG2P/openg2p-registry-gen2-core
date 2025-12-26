@@ -206,7 +206,7 @@ benePortalApi:
   envVars:
     REGISTRY_BENE_PORTAL_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
     REGISTRY_BENE_PORTAL_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
-    REGISTRY_BENE_PORTAL_API_DB_PORT: 5432
+    REGISTRY_BENE_PORTAL_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
     REGISTRY_BENE_PORTAL_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
   envVarsFrom:
     REGISTRY_BENE_PORTAL_API_DB_PASSWORD:
@@ -312,7 +312,7 @@ staffPortalApi:
   envVars:
     REGISTRY_STAFF_PORTAL_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
     REGISTRY_STAFF_PORTAL_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
-    REGISTRY_STAFF_PORTAL_API_DB_PORT: 5432
+    REGISTRY_STAFF_PORTAL_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
     REGISTRY_STAFF_PORTAL_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
   envVarsFrom:
     REGISTRY_STAFF_PORTAL_API_DB_PASSWORD:
