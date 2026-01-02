@@ -109,6 +109,41 @@ class G2PRegisterMetadataControllerService(BaseService):
         register_tab_data: RegisterUITabData = await g2p_register_service.delete_register_tab(tab_id)
         return register_tab_data
 
+    async def manage_primary_section(
+        self,
+        g2p_register_service: G2PRegisterService,
+        register_id: str,
+        section_register_id: str,
+        is_primary_section: bool
+    ) -> bool:
+        """
+        Manage the primary section logic when adding a new section.
+        There has to be exactly one mandatory primary section per register_id.
+
+        Returns the resolved is_primary_section value.
+        """
+        if not is_primary_section:
+            return False
+
+        primary_section = await g2p_register_service.get_primary_register_section(register_id)
+        if primary_section:
+            # If there is a primary section, and the section_register_id is the same as the register_id, then we can make the new section the primary section
+            if primary_section.section_register_id == register_id:
+                # set the existing primary section to not primary
+                await g2p_register_service.update_register_section(
+                    register_id=primary_section.register_id,
+                    section_id=primary_section.section_id,
+                    is_primary_section=False
+                )
+                return True
+            else:
+                return False
+        else:
+            # If there is no primary section, and the section_register_id is the same as the register_id, then we can make the new section the primary section
+            if section_register_id == register_id:
+                return True
+            return False
+
     async def add_register_section(self, add_register_section_request: AddRegisterSectionRequest) -> RegisterSectionData:
         """
         Add a new section for a given register_id.
@@ -116,6 +151,13 @@ class G2PRegisterMetadataControllerService(BaseService):
         payload = add_register_section_request.request_body.request_payload
         _logger.info(f"Adding register section for register_id: {payload.register_id} with section_mnemonic: {payload.section_mnemonic} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
+        is_primary_section = await self.manage_primary_section(
+            g2p_register_service=g2p_register_service,
+            register_id=payload.register_id,
+            section_register_id=payload.section_register_id,
+            is_primary_section=payload.is_primary_section
+        )
+
         section_data: RegisterSectionData = await g2p_register_service.add_register_section(
             section_register_id=payload.section_register_id,
             register_id=payload.register_id,
@@ -126,6 +168,7 @@ class G2PRegisterMetadataControllerService(BaseService):
             no_of_verifications_required=payload.no_of_verifications_required,
             auto_approval=payload.auto_approval,
             is_list=payload.is_list,
+            is_primary_section=is_primary_section,
             section_ui_schema=payload.section_ui_schema
         )
         return section_data

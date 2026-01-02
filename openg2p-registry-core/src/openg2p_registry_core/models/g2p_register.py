@@ -9,7 +9,6 @@ from openg2p_fastapi_common.models import BaseORMModel
 
 class G2PRegister(BaseORMModel):
     __abstract__ = True
-    __register_mnemonic__ = "g2p"
 
     internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)

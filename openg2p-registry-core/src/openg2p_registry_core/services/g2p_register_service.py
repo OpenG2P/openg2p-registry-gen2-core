@@ -16,7 +16,7 @@ from ..models import (
     G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload, G2PRegisterDefinition,
     G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
-    G2PRegisterSection, G2PRegisterUITab
+    G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
@@ -401,27 +401,51 @@ class G2PRegisterService(BaseService):
             return change_requests_list, total_items
 
     async def approve_change_request(self, change_request_id: str):
+        # if change_request.change_request_source is APPLICATION, loop through all change requests for the application and approve them
+        # if change_request.change_request_source is DIRECT, just approve the single change request
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate change request exists and is pending approval
             change_request = await self.validate_change_request_exists(change_request_id, session)
-            _logger.info(f"Validated change request for approval: {change_request}")
-            await self.validate_change_request_section(change_request, session)
-            # Validate whether verifications are done
-            await self.validate_change_request_verifications(change_request, session)
-            # Ensure there are no earlier change requests for the internal_record_id pending approval
-            await self.validate_change_request_sequence(change_request, session)
-            # In case of approval, insert data into register_history 
-            await self.insert_into_register_history(change_request, session)
-            # Upsert data into register
-            await self.insert_into_register(change_request, session)
-            # Mark change request as approved
-            change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-            change_request.approved_by = "system"
-            change_request.approved_at = func.now()
+            if change_request.change_request_source == ChangeRequestSourceEnum.APPLICATION.value:
+                change_requests = await self._fetch_change_requests_for_application(change_request.application_id, session)
+                for change_request in change_requests:
+                    await self.approve_single_change_request(change_request.change_request_id, session)
+                    _logger.info(f"Approved change request: {change_request.change_request_id}")
+            else:
+                await self.approve_single_change_request(change_request_id, session)
+                _logger.info(f"Approved change request: {change_request_id}")    
+
             await session.commit()
             await session.refresh(change_request)
-            return change_request
+            return change_request              
+       
+
+    async def approve_single_change_request(self, change_request_id: str, session):
+        # Validate change request exists and is pending approval
+        change_request = await self.validate_change_request_exists(change_request_id, session)
+        _logger.info(f"Validated change request for approval: {change_request}")
+        await self.validate_change_request_section(change_request, session)
+        # Validate whether verifications are done
+        await self.validate_change_request_verifications(change_request, session)
+        # Ensure there are no earlier change requests for the internal_record_id pending approval
+        await self.validate_change_request_sequence(change_request, session)
+        # In case of approval, insert data into register_history 
+        await self.insert_into_register_history(change_request, session)
+        # Upsert data into register
+        await self.insert_into_register(change_request, session)
+        # Mark change request as approved
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system"
+        change_request.approved_at = func.now()
+        return change_request
+            
+    async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
+        result = await session.execute(
+            select(G2PRegisterChangeRequest).where(
+                G2PRegisterChangeRequest.application_id == application_id
+            )
+        )
+        return result.scalars().all()
     
     async def reject_change_request(self, change_request_id: str, reason: str):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -524,6 +548,10 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
             )
+        if register_definition.register_purpose == RegisterPurposeEnum.PROGRAM_APPLICATION.value:
+            # No history for program applications
+            return
+        
         module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
         history_class_prefix = "G2PRegisterHistory"
         implementation_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
@@ -2121,4 +2149,36 @@ class G2PRegisterService(BaseService):
                 deduplicate_schema=existing_schema.deduplicate_schema,
                 search_result_schema=existing_schema.search_result_schema,
                 filter_schema=existing_schema.filter_schema
+            )
+    
+    async def get_primary_register_section(self, register_id: str) -> RegisterSectionData | None:
+        """
+        Get the primary section for a register.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegisterSection).where(
+                    (G2PRegisterSection.register_id == register_id) &
+                    (G2PRegisterSection.is_primary_section == True)
+                )
+            )
+            primary_section: G2PRegisterSection = result.scalar()
+
+            if not primary_section:
+                return None
+
+            return RegisterSectionData(
+                section_register_id=primary_section.section_register_id,
+                register_id=primary_section.register_id,
+                tab_id=primary_section.tab_id,
+                section_id=primary_section.section_id,
+                section_mnemonic=primary_section.section_mnemonic,
+                section_description=primary_section.section_description,
+                documents_required=primary_section.documents_required,
+                no_of_verifications_required=primary_section.no_of_verifications_required,
+                auto_approval=primary_section.auto_approval,
+                is_list=primary_section.is_list,
+                is_primary_section=primary_section.is_primary_section,
+                section_ui_schema=primary_section.section_ui_schema
             )

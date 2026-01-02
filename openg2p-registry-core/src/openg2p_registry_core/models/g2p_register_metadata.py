@@ -1,10 +1,15 @@
 import uuid
 import re
+import enum
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Float
+from sqlalchemy import Boolean, Integer, String, Text, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
+class RegisterPurposeEnum(enum.Enum):
+    REGISTER = "REGISTER"
+    PROGRAM_APPLICATION = "PROGRAM_APPLICATION"
+    TABLE = "TABLE"
 
 class G2PRegisterDefinition(BaseORMModel):
     __tablename__ = "g2p_register_definitions"
@@ -16,8 +21,9 @@ class G2PRegisterDefinition(BaseORMModel):
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     # Register type flags
-    is_register: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    is_program_application: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    register_purpose: Mapped[RegisterPurposeEnum] = mapped_column(String, nullable=False)
+    program_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    program_mnemonic: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     # Deduplication configuration
     dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -35,20 +41,6 @@ class G2PRegisterDefinition(BaseORMModel):
             capitalized_plural: str = plural_form[0].upper() + plural_form[1:]
             self.register_subject = capitalized_plural
         return register_mnemonic_value
-
-    @validates('is_register', 'is_program_application')
-    def validate_register_type_flags(self, key: str, value: bool) -> bool:
-        """
-        Validate that is_register and is_program_application cannot both be true.
-        Both can be false.
-        """
-        if key == 'is_register' and value is True:
-            if getattr(self, 'is_program_application', False) is True:
-                raise ValueError("is_register and is_program_application cannot both be true")
-        elif key == 'is_program_application' and value is True:
-            if getattr(self, 'is_register', False) is True:
-                raise ValueError("is_register and is_program_application cannot both be true")
-        return value
 
 
 class G2PRegisterUITab(BaseORMModel):

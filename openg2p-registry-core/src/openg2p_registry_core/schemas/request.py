@@ -347,6 +347,7 @@ class AddRegisterSectionRequestPayload(BaseModel):
     no_of_verifications_required: int = 0
     auto_approval: bool = False
     is_list: bool = False
+    is_primary_section: bool = False
     section_ui_schema: Optional[dict] = None
 
 
