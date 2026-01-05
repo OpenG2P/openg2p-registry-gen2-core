@@ -1,2 +1,0 @@
-from .g2p_register_ingest_worker import g2p_register_ingest_worker
-from .g2p_external_data_poller_worker import g2p_external_data_poller_worker
