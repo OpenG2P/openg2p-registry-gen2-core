@@ -1,0 +1,57 @@
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
+from sqlalchemy.orm import Mapped, mapped_column
+from openg2p_fastapi_common.models import BaseORMModel
+
+from .data_models import ProcessStatusEnum
+
+class IncomingRawData(BaseORMModel):
+
+    __tablename__ = "incoming_raw_data"
+
+    ingest_id: Mapped[str] = mapped_column(String, primary_key=True)
+    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    ingest_message_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    ingest_correlation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    receipt_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    classification_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
+    classification_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    classification_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    classification_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
+
+class IncomingRawDataPayload(BaseORMModel):
+
+    __tablename__ = "incoming_raw_data_payloads"
+
+    ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    raw_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+
+class IncomingEnrichedTransformedData(BaseORMModel):
+    __tablename__ = "incoming_enriched_transformed_data"
+
+    ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    enriched_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    enriched_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+    transformed_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
+    transformed_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+
+class IncomingClassifiedData(BaseORMModel):
+
+    __tablename__ = "incoming_classified_data"
+
+    ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    semantic_pattern_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
+    transformation_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    transformation_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    transformation_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
+    ingestion_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.NOT_APPLICABLE.value)
+    ingestion_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    ingestion_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ingestion_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
