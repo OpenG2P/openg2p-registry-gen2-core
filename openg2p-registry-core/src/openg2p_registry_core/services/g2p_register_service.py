@@ -41,7 +41,7 @@ _engine = dbengine.get()
 
 class G2PRegisterService(BaseService):
 
-    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None):
+    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, application_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
@@ -52,7 +52,7 @@ class G2PRegisterService(BaseService):
             # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
             # We don't validate internal_record_id existence here - it will be created when the change request is approved
 
-            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id)
+            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, application_id)
 
             session.add(g2p_register_change_request)
             # Add the payload object if it exists
@@ -757,7 +757,7 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None) -> G2PRegisterChangeRequest:
+    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, application_id: str = None) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id from change_payload if present, otherwise generate new UUID
         internal_record_id: str = None
@@ -774,6 +774,9 @@ class G2PRegisterService(BaseService):
             change_payload_array=[item.model_dump() for item in change_request_request_payload.change_payload_array] if change_request_request_payload.change_payload_array else None,
         )
 
+        # Determine change request source based on application_id
+        change_request_source = ChangeRequestSourceEnum.APPLICATION.value if application_id else ChangeRequestSourceEnum.DIRECT.value
+
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
             change_request_id=change_request_id,
@@ -783,6 +786,8 @@ class G2PRegisterService(BaseService):
             section_id=change_request_request_payload.section_id,
             section_register_id=change_request_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
+            change_request_source=change_request_source,
+            application_id=application_id,
             created_by="system",  # TODO: Replace with actual user info
             created_at=func.now(),
             no_of_verifications_required=g2p_register_section.no_of_verifications_required,

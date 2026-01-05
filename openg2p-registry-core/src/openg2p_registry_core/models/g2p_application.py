@@ -2,7 +2,7 @@ from enum import unique, Enum
 import json
 import uuid
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, Index
 from sqlalchemy.orm import validates
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
@@ -17,6 +17,7 @@ class ChangeRequestStatusEnum(Enum):
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     PROCESSED = "PROCESSED"
+    FAILED = "FAILED"
    
 class G2PApplication(BaseORMModel):
     
@@ -49,3 +50,7 @@ class G2PApplicationSectionPayload(BaseORMModel):
             else:
                 self.application_json_text = str(value)
         return value
+    
+    __table_args__ = (
+        Index('ix_g2p_application_section_payloads_application_json_text_gin', 'application_json_text', postgresql_using='gin', postgresql_ops={'application_json_text': 'gin_trgm_ops'}),
+    )

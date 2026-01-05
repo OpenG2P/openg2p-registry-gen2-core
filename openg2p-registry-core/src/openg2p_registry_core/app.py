@@ -33,7 +33,7 @@ from .models import (
     G2PRegisterVerification,
     G2PRegisterChangeRequest,
     G2PRegisterChangeRequestPayload,
-    G2PRegisterChangeRequestDocuments,
+    G2PRegisterChangeRequestDocument,
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingRawData,
@@ -100,7 +100,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
-            await G2PRegisterChangeRequestDocuments.create_migrate()
+            await G2PRegisterChangeRequestDocument.create_migrate()
 
             # Incoming Models
             await IncomingPartner.create_migrate()

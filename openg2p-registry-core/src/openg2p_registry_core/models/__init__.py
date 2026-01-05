@@ -41,3 +41,9 @@ from .outgestion_pipeline import (
     OutgoingTransformedDataPayload,
 )
 from .data_models import DataModel, ProcessStatusEnum
+from .g2p_application import (
+    G2PApplication,
+    G2PApplicationSectionPayload,
+    ApplicationStatusEnum,
+    ChangeRequestStatusEnum
+)
