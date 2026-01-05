@@ -25,6 +25,10 @@ class G2PRegisterDefinition(BaseORMModel):
     program_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     program_mnemonic: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
+    # Register display configuration
+    register_icon: Mapped[str] = mapped_column(Text, nullable=True)  # BASE64 encoded icon
+    has_image: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     # Deduplication configuration
     dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     dedup_threshold_score: Mapped[float] = mapped_column(Float, nullable=True)

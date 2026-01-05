@@ -38,7 +38,12 @@ from .request import (
     UpdateDeduplicationSchemaRequest, UpdateDeduplicationSchemaRequestBody, UpdateDeduplicationSchemaRequestPayload,
     UpdateSearchResultSchemaRequest, UpdateSearchResultSchemaRequestBody, UpdateSearchResultSchemaRequestPayload,
     GetSectionRecordsRequest, GetSectionRecordsRequestBody, GetSectionRecordsRequestPayload,
-    GetRegisterTabRecordsRequest, GetRegisterTabRecordsRequestBody, GetRegisterTabRecordsRequestPayload
+    GetRegisterTabRecordsRequest, GetRegisterTabRecordsRequestBody, GetRegisterTabRecordsRequestPayload,
+    CreateRegistryConfigurationRequest, CreateRegistryConfigurationRequestBody, CreateRegistryConfigurationRequestPayload,
+    GetRegistryConfigurationRequest, GetRegistryConfigurationRequestBody,
+    UpdateRegistryConfigurationRequest, UpdateRegistryConfigurationRequestBody, UpdateRegistryConfigurationRequestPayload,
+    GetNumberOfRequestsPendingRequest, GetNumberOfRequestsPendingRequestBody,
+    GetEarliestPendingChangeRequestRequest, GetEarliestPendingChangeRequestRequestBody
 )
 from .response import (
     ChangeRequestResponse, ChangeRequestResponseBody,
@@ -69,7 +74,10 @@ from .response import (
     RegisterTabDataResponse, RegisterTabDataResponseBody,
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
     RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
-    UploadDocumentsResponse, UploadDocumentsResponseBody
+    UploadDocumentsResponse, UploadDocumentsResponseBody,
+    RegistryConfigurationDataResponse, RegistryConfigurationDataResponseBody,
+    NumberOfRequestsPendingResponse, NumberOfRequestsPendingResponseBody,
+    EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody
 )
 from .payload import (
     ChangeRequestRequestPayload, ChangeRequestResponsePayload,
@@ -82,7 +90,9 @@ from .payload import (
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, DeduplicationRegisterResultData,
     DeduplicationChangerequestResultData, RegisterSchemaData, RegisterSectionData,
-    RegisterTabRecordData
+    RegisterTabRecordData,
+    RegistryConfigurationData, RegistryConfigurationPayload, RegistryConfigurationUpdatePayload,
+    NumberOfRequestsPendingData, EarliestPendingChangeRequestData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

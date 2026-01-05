@@ -12,7 +12,8 @@ from .payload import (
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
-    RegisterTabRecordData, UploadDocumentsResponseData
+    RegisterTabRecordData, UploadDocumentsResponseData,
+    RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData
 )
 
 
@@ -229,3 +230,35 @@ class UploadDocumentsResponseBody(G2PResponseBody):
 
 class UploadDocumentsResponse(G2PResponse):
     response_body: Optional[UploadDocumentsResponseBody] = None
+
+
+# =============================================================================
+# Registry Configuration Responses
+# =============================================================================
+
+class RegistryConfigurationDataResponseBody(G2PResponseBody):
+    response_payload: Optional["RegistryConfigurationData"] = None
+
+
+class RegistryConfigurationDataResponse(G2PResponse):
+    response_body: Optional[RegistryConfigurationDataResponseBody] = None
+
+
+# =============================================================================
+# Change Request Additional Responses
+# =============================================================================
+
+class NumberOfRequestsPendingResponseBody(G2PResponseBody):
+    response_payload: Optional["NumberOfRequestsPendingData"] = None
+
+
+class NumberOfRequestsPendingResponse(G2PResponse):
+    response_body: Optional[NumberOfRequestsPendingResponseBody] = None
+
+
+class EarliestPendingChangeRequestResponseBody(G2PResponseBody):
+    response_payload: Optional["EarliestPendingChangeRequestData"] = None
+
+
+class EarliestPendingChangeRequestResponse(G2PResponse):
+    response_body: Optional[EarliestPendingChangeRequestResponseBody] = None

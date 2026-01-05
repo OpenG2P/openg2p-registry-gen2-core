@@ -516,3 +516,62 @@ class GetRegisterTabRecordsRequestBody(G2PRequestBody):
 
 class GetRegisterTabRecordsRequest(G2PRequest):
     request_body: GetRegisterTabRecordsRequestBody
+
+
+# =============================================================================
+# Registry Configuration Requests
+# =============================================================================
+
+class CreateRegistryConfigurationRequestPayload(BaseModel):
+    registry_name: str
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+class CreateRegistryConfigurationRequestBody(G2PRequestBody):
+    request_payload: CreateRegistryConfigurationRequestPayload
+
+
+class CreateRegistryConfigurationRequest(G2PRequest):
+    request_body: CreateRegistryConfigurationRequestBody
+
+
+class GetRegistryConfigurationRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetRegistryConfigurationRequest(G2PRequest):
+    request_body: GetRegistryConfigurationRequestBody
+
+
+class UpdateRegistryConfigurationRequestPayload(BaseModel):
+    configuration_id: str
+    registry_name: Optional[str] = None
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+class UpdateRegistryConfigurationRequestBody(G2PRequestBody):
+    request_payload: UpdateRegistryConfigurationRequestPayload
+
+
+class UpdateRegistryConfigurationRequest(G2PRequest):
+    request_body: UpdateRegistryConfigurationRequestBody
+
+
+# =============================================================================
+# Change Request Additional Requests
+# =============================================================================
+
+class GetNumberOfRequestsPendingRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetNumberOfRequestsPendingRequest(G2PRequest):
+    request_body: GetNumberOfRequestsPendingRequestBody
+
+
+class GetEarliestPendingChangeRequestRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetEarliestPendingChangeRequestRequest(G2PRequest):
+    request_body: GetEarliestPendingChangeRequestRequestBody

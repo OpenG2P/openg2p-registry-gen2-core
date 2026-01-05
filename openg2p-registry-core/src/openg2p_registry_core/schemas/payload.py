@@ -491,3 +491,58 @@ class UploadedDocumentData(BaseModel):
 class UploadDocumentsResponseData(BaseModel):
     """Response data for upload_change_request_documents endpoint"""
     uploaded_documents: List[UploadedDocumentData]
+
+
+# =============================================================================
+# Registry Configuration Schemas
+# =============================================================================
+
+class RegistryConfigurationData(BaseModel):
+    """Data for registry configuration"""
+    configuration_id: str
+    registry_name: str
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+    class Config:
+        from_attributes: bool = True
+
+
+class RegistryConfigurationPayload(BaseModel):
+    """Payload for creating registry configuration"""
+    registry_name: str
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+class RegistryConfigurationUpdatePayload(BaseModel):
+    """Payload for updating registry configuration"""
+    configuration_id: str
+    registry_name: Optional[str] = None
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+# =============================================================================
+# Change Request Additional Schemas
+# =============================================================================
+
+class NumberOfRequestsPendingData(BaseModel):
+    """Data for get_number_of_requests_pending endpoint"""
+    number_of_requests_pending: int
+
+
+class EarliestPendingChangeRequestData(BaseModel):
+    """Data for get_earliest_pending_change_request endpoint"""
+    change_request_id: Optional[str] = None
+    register_id: Optional[str] = None
+    tab_id: Optional[str] = None
+    internal_record_id: Optional[str] = None
+    section_id: Optional[str] = None
+    source_partner_id: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    no_of_verifications_required: Optional[int] = None
+    no_of_verifications_done: Optional[int] = None
+    approval_status: Optional[str] = None
+    change_payload: Optional[dict] = None
+
+    class Config:
+        from_attributes: bool = True

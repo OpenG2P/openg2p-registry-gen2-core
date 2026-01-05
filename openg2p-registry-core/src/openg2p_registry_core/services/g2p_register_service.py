@@ -17,7 +17,8 @@ from ..models import (
     G2PRegisterDefinition, G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
-    G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory
+    G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory,
+    G2PRegistryConfiguration
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
@@ -29,7 +30,8 @@ from ..schemas import (
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, DisplayField,
-    UploadedDocumentData, UploadDocumentsResponseData
+    UploadedDocumentData, UploadDocumentsResponseData,
+    RegistryConfigurationData, EarliestPendingChangeRequestData
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder
@@ -2335,3 +2337,143 @@ class G2PRegisterService(BaseService):
                 )
                 session.add(new_section_doc)
                 _logger.info(f"Created new document {cr_doc.document_label_id} for record {change_request.internal_record_id}")
+
+    # =============================================================================
+    # Registry Configuration Methods
+    # =============================================================================
+
+    async def create_registry_configuration(
+        self,
+        registry_name: str,
+        registry_logo: str = None
+    ) -> RegistryConfigurationData:
+        """Create a new registry configuration"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Check if configuration already exists
+            stmt = select(G2PRegistryConfiguration)
+            result = await session.execute(stmt)
+            existing_config = result.scalar_one_or_none()
+
+            if existing_config:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value,
+                    message="Registry configuration already exists. Use update instead."
+                )
+
+            configuration_id = str(uuid.uuid4())
+            registry_configuration = G2PRegistryConfiguration(
+                configuration_id=configuration_id,
+                registry_name=registry_name,
+                registry_logo=registry_logo
+            )
+            session.add(registry_configuration)
+            await session.commit()
+
+            return RegistryConfigurationData(
+                configuration_id=configuration_id,
+                registry_name=registry_name,
+                registry_logo=registry_logo
+            )
+
+    async def get_registry_configuration(self) -> RegistryConfigurationData:
+        """Get the registry configuration"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            stmt = select(G2PRegistryConfiguration)
+            result = await session.execute(stmt)
+            registry_configuration = result.scalar_one_or_none()
+
+            if not registry_configuration:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
+                    message="Registry configuration not found"
+                )
+
+            return RegistryConfigurationData(
+                configuration_id=registry_configuration.configuration_id,
+                registry_name=registry_configuration.registry_name,
+                registry_logo=registry_configuration.registry_logo
+            )
+
+    async def update_registry_configuration(
+        self,
+        configuration_id: str,
+        registry_name: str = None,
+        registry_logo: str = None
+    ) -> RegistryConfigurationData:
+        """Update the registry configuration"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            stmt = select(G2PRegistryConfiguration).where(
+                G2PRegistryConfiguration.configuration_id == configuration_id
+            )
+            result = await session.execute(stmt)
+            registry_configuration = result.scalar_one_or_none()
+
+            if not registry_configuration:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
+                    message="Registry configuration not found"
+                )
+
+            if registry_name is not None:
+                registry_configuration.registry_name = registry_name
+            if registry_logo is not None:
+                registry_configuration.registry_logo = registry_logo
+
+            await session.commit()
+
+            return RegistryConfigurationData(
+                configuration_id=registry_configuration.configuration_id,
+                registry_name=registry_configuration.registry_name,
+                registry_logo=registry_configuration.registry_logo
+            )
+
+    async def get_total_pending_change_requests(self) -> int:
+        """Get the total number of pending change requests across all registers"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            stmt = select(func.count()).select_from(G2PRegisterChangeRequest).where(
+                G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value
+            )
+            result = await session.execute(stmt)
+            count = result.scalar()
+            return count or 0
+
+    async def get_earliest_pending_change_request(self) -> EarliestPendingChangeRequestData:
+        """Get the earliest pending change request based on created_at"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            stmt = select(G2PRegisterChangeRequest).where(
+                G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value
+            ).order_by(G2PRegisterChangeRequest.created_at.asc()).limit(1)
+
+            result = await session.execute(stmt)
+            change_request = result.scalar_one_or_none()
+
+            if not change_request:
+                # Return empty data if no pending change requests
+                return EarliestPendingChangeRequestData()
+
+            # Get the change payload
+            payload_stmt = select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
+            )
+            payload_result = await session.execute(payload_stmt)
+            payload = payload_result.scalar_one_or_none()
+
+            return EarliestPendingChangeRequestData(
+                change_request_id=change_request.change_request_id,
+                register_id=change_request.register_id,
+                tab_id=change_request.tab_id,
+                internal_record_id=change_request.internal_record_id,
+                section_id=change_request.section_id,
+                source_partner_id=change_request.source_partner_id,
+                created_by=change_request.created_by,
+                created_at=str(change_request.created_at) if change_request.created_at else None,
+                no_of_verifications_required=change_request.no_of_verifications_required,
+                no_of_verifications_done=change_request.no_of_verifications_done,
+                approval_status=change_request.approval_status,
+                change_payload=payload.change_payload if payload else None
+            )

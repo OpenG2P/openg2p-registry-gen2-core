@@ -36,6 +36,9 @@ from openg2p_registry_core.schemas import (
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
     RegisterTabRecordData, RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
     UploadDocumentsResponseData, UploadDocumentsResponse, UploadDocumentsResponseBody,
+    RegistryConfigurationData, RegistryConfigurationDataResponse, RegistryConfigurationDataResponseBody,
+    NumberOfRequestsPendingData, NumberOfRequestsPendingResponse, NumberOfRequestsPendingResponseBody,
+    EarliestPendingChangeRequestData, EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -788,3 +791,81 @@ class RequestResponseHelper(BaseService):
             response_body=None
         )
         return upload_response
+
+    def construct_registry_configuration_data_success_response(
+        self,
+        registry_configuration_data: RegistryConfigurationData,
+        g2p_request: G2PRequest = None
+    ) -> RegistryConfigurationDataResponse:
+        """Construct success response for registry configuration endpoints."""
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: RegistryConfigurationDataResponseBody = RegistryConfigurationDataResponseBody(
+            response_payload=registry_configuration_data
+        )
+
+        response: RegistryConfigurationDataResponse = RegistryConfigurationDataResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return response
+
+    def construct_number_of_requests_pending_success_response(
+        self,
+        number_of_requests_pending_data: NumberOfRequestsPendingData,
+        g2p_request: G2PRequest = None
+    ) -> NumberOfRequestsPendingResponse:
+        """Construct success response for get_number_of_requests_pending endpoint."""
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: NumberOfRequestsPendingResponseBody = NumberOfRequestsPendingResponseBody(
+            response_payload=number_of_requests_pending_data
+        )
+
+        response: NumberOfRequestsPendingResponse = NumberOfRequestsPendingResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return response
+
+    def construct_earliest_pending_change_request_success_response(
+        self,
+        earliest_pending_change_request_data: EarliestPendingChangeRequestData,
+        g2p_request: G2PRequest = None
+    ) -> EarliestPendingChangeRequestResponse:
+        """Construct success response for get_earliest_pending_change_request endpoint."""
+        request_id = g2p_request.request_header.request_id if g2p_request else ""
+
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id=request_id,
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: EarliestPendingChangeRequestResponseBody = EarliestPendingChangeRequestResponseBody(
+            response_payload=earliest_pending_change_request_data
+        )
+
+        response: EarliestPendingChangeRequestResponse = EarliestPendingChangeRequestResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return response
