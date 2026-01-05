@@ -35,6 +35,7 @@ from openg2p_registry_core.schemas import (
     RegisterTabDataResponse, RegisterTabDataResponseBody,
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
     RegisterTabRecordData, RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
+    UploadDocumentsResponseData, UploadDocumentsResponse, UploadDocumentsResponseBody,
 )
 from openg2p_registry_core.errors import G2PRegistryException
 
@@ -738,3 +739,52 @@ class RequestResponseHelper(BaseService):
             response_body=response_body
         )
         return tab_records_response
+
+    def construct_upload_documents_success_response(
+        self,
+        upload_response_data: UploadDocumentsResponseData
+    ) -> UploadDocumentsResponse:
+        """Construct success response for upload_change_request_documents endpoint."""
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.SUCCESS,
+            response_error_code="",
+            response_error_message="",
+            response_timestamp=datetime.now()
+        )
+
+        response_body: UploadDocumentsResponseBody = UploadDocumentsResponseBody(
+            response_payload=upload_response_data
+        )
+
+        upload_response: UploadDocumentsResponse = UploadDocumentsResponse(
+            response_header=g2p_response_header,
+            response_body=response_body
+        )
+        return upload_response
+
+    def construct_upload_documents_error_response(
+        self,
+        error_exception: Exception
+    ) -> UploadDocumentsResponse:
+        """Construct error response for upload_change_request_documents endpoint."""
+        error_code = ""
+        error_message = str(error_exception)
+
+        if isinstance(error_exception, G2PRegistryException):
+            error_code = error_exception.code
+            error_message = error_exception.message
+
+        g2p_response_header: G2PResponseHeader = G2PResponseHeader(
+            request_id="",
+            response_status=G2PResponseStatus.ERROR,
+            response_error_code=error_code,
+            response_error_message=error_message,
+            response_timestamp=datetime.now()
+        )
+
+        upload_response: UploadDocumentsResponse = UploadDocumentsResponse(
+            response_header=g2p_response_header,
+            response_body=None
+        )
+        return upload_response

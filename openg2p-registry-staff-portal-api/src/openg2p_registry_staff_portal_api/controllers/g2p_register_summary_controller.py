@@ -4,9 +4,7 @@ from openg2p_fastapi_common.controller import BaseController
 from openg2p_registry_core.controller_services import G2PRegisterSummaryControllerService
 from openg2p_registry_core.schemas import (
     RegisterSummaryDataResponse, RegisterSummaryData,
-    ChangeRequestSummaryDataResponse, ChangeRequestSummaryData,
     GetRegisterSummaryDataRequest,
-    GetChangeRequestSummaryDataRequest,
     SearchResultsResponse,
     SearchRegisterRequest,
     SearchChangeRequestRequest,
@@ -37,13 +35,6 @@ class G2PRegisterSummaryController(BaseController):
         )
 
         self.router.add_api_route(
-            "/get_register_changerequest_data",
-            self.get_register_changerequest_data,
-            responses={200: {"model": ChangeRequestSummaryDataResponse}},
-            methods=["POST"],
-        )
-
-        self.router.add_api_route(
             "/search_in_a_register",
             self.search_in_a_register,
             responses={200: {"model": SearchResultsResponse}},
@@ -67,18 +58,6 @@ class G2PRegisterSummaryController(BaseController):
         except Exception as error_exception:
             _logger.error(f"Error in get_register_summary_data: {str(error_exception)}")
             error_response: RegisterSummaryDataResponse = self.helper.construct_error_response(error_exception, get_register_summary_data_request)
-            return error_response
-
-    async def get_register_changerequest_data(self, get_changerequest_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryDataResponse:
-        try:
-            changerequest_summary_data: ChangeRequestSummaryData = await self.g2p_register_summary_controller_service.get_changerequest_summary_data(get_changerequest_summary_data_request)
-            changerequest_summary_data_response: ChangeRequestSummaryDataResponse = self.helper.construct_changerequest_summary_data_success_response(
-                changerequest_summary_data=changerequest_summary_data, g2p_request=get_changerequest_summary_data_request
-            )
-            return changerequest_summary_data_response
-        except Exception as error_exception:
-            _logger.error(f"Error in get_register_changerequest_data: {str(error_exception)}")
-            error_response: ChangeRequestSummaryDataResponse = self.helper.construct_error_response(error_exception, get_changerequest_summary_data_request)
             return error_response
 
     async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> SearchResultsResponse:

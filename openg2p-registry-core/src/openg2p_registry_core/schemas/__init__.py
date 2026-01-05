@@ -68,10 +68,12 @@ from .response import (
     RegisterTabsDataResponse, RegisterTabsDataResponseBody,
     RegisterTabDataResponse, RegisterTabDataResponseBody,
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
-    RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody
+    RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
+    UploadDocumentsResponse, UploadDocumentsResponseBody
 )
 from .payload import (
     ChangeRequestRequestPayload, ChangeRequestResponsePayload,
+    ChangeRequestDocumentPayload, UploadedDocumentData, UploadDocumentsResponseData,
     RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, IngestDataPayload, DisplayField,
     NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,

@@ -12,7 +12,7 @@ from .payload import (
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
-    RegisterTabRecordData
+    RegisterTabRecordData, UploadDocumentsResponseData
 )
 
 
@@ -220,3 +220,12 @@ class RegisterTabRecordsDataResponseBody(G2PResponseBody):
 
 class RegisterTabRecordsDataResponse(G2PResponse):
     response_body: Optional[RegisterTabRecordsDataResponseBody] = None
+
+
+# Upload Documents Response
+class UploadDocumentsResponseBody(G2PResponseBody):
+    response_payload: Optional[UploadDocumentsResponseData] = None
+
+
+class UploadDocumentsResponse(G2PResponse):
+    response_body: Optional[UploadDocumentsResponseBody] = None

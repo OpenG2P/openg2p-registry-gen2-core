@@ -3,8 +3,8 @@ from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PRegisterService
 from ..schemas import (
-    RegisterSummaryData, ChangeRequestSummaryData,
-    GetRegisterSummaryDataRequest, GetChangeRequestSummaryDataRequest,
+    RegisterSummaryData,
+    GetRegisterSummaryDataRequest,
     SearchRegisterRequest, SearchChangeRequestRequest,
     SearchResultData, ChangeRequestSearchResultData
 )
@@ -19,12 +19,6 @@ class G2PRegisterSummaryControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         register_summary_data_list: list[RegisterSummaryData] = await g2p_register_service.get_register_summary_data()
         return register_summary_data_list
-
-    async def get_changerequest_summary_data(self, get_changerequest_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryData:
-        _logger.info("Fetching changerequest summary data through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        changerequest_summary_data: ChangeRequestSummaryData = await g2p_register_service.get_changerequest_summary_data()
-        return changerequest_summary_data
 
     async def search_in_a_register(self, search_register_request: SearchRegisterRequest) -> tuple[list[SearchResultData], int, int]:
         payload = search_register_request.request_body.request_payload

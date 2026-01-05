@@ -13,10 +13,11 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
-    G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload, G2PRegisterDefinition,
-    G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
+    G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload, G2PRegisterChangeRequestDocument,
+    G2PRegisterDefinition, G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
-    G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum
+    G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
+    G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
@@ -27,7 +28,8 @@ from ..schemas import (
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
-    RegisterSchemaData, RegisterSectionData, DisplayField
+    RegisterSchemaData, RegisterSectionData, DisplayField,
+    UploadedDocumentData, UploadDocumentsResponseData
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder
@@ -54,6 +56,17 @@ class G2PRegisterService(BaseService):
             # Add the payload object if it exists
             if hasattr(g2p_register_change_request, '_payload_to_add'):
                 session.add(g2p_register_change_request._payload_to_add)
+
+            # Add documents if provided
+            if change_request_request_payload.documents:
+                for doc in change_request_request_payload.documents:
+                    change_request_doc = G2PRegisterChangeRequestDocument(
+                        change_request_id=g2p_register_change_request.change_request_id,
+                        document_label_id=doc.document_label_id,
+                        document_store_id=doc.document_store_id
+                    )
+                    session.add(change_request_doc)
+
             await session.commit()
             # Refresh to get any DB defaults
             await session.refresh(g2p_register_change_request)
@@ -424,15 +437,18 @@ class G2PRegisterService(BaseService):
         # Validate change request exists and is pending approval
         change_request = await self.validate_change_request_exists(change_request_id, session)
         _logger.info(f"Validated change request for approval: {change_request}")
-        await self.validate_change_request_section(change_request, session)
+        g2p_register_section = await self.validate_change_request_section(change_request, session)
         # Validate whether verifications are done
         await self.validate_change_request_verifications(change_request, session)
         # Ensure there are no earlier change requests for the internal_record_id pending approval
         await self.validate_change_request_sequence(change_request, session)
-        # In case of approval, insert data into register_history 
+        # In case of approval, insert data into register_history
         await self.insert_into_register_history(change_request, session)
         # Upsert data into register
         await self.insert_into_register(change_request, session)
+        # Handle documents if section.documents_required is True
+        if g2p_register_section and g2p_register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, g2p_register_section, session)
         # Mark change request as approved
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
         change_request.approved_by = "system"
@@ -462,7 +478,7 @@ class G2PRegisterService(BaseService):
             await session.refresh(change_request)
             return change_request
 
-    async def validate_change_request_section(self, g2p_register_change_request: G2PRegisterChangeRequest, session) -> None:
+    async def validate_change_request_section(self, g2p_register_change_request: G2PRegisterChangeRequest, session) -> G2PRegisterSection:
         g2p_register_section: G2PRegisterSection = (
             await session.execute(
                 select(G2PRegisterSection).where(
@@ -477,6 +493,7 @@ class G2PRegisterService(BaseService):
             )
         # Note: internal_record_id is already set during change request creation in construct_change_request
         # Do not generate a new one here during approval
+        return g2p_register_section
         
 
 
@@ -2182,3 +2199,139 @@ class G2PRegisterService(BaseService):
                 is_primary_section=primary_section.is_primary_section,
                 section_ui_schema=primary_section.section_ui_schema
             )
+
+    # =========================================================================
+    # Document Upload and Handling Methods
+    # =========================================================================
+
+    async def upload_documents(
+        self,
+        section_id: str,
+        files: list,  # List of (document_label_id, file) tuples
+    ) -> UploadDocumentsResponseData:
+        """
+        Upload documents to MinIO and return document store IDs with labels.
+
+        Args:
+            section_id: The section ID to validate document labels against
+            files: List of tuples containing (document_label_id, UploadFile)
+
+        Returns:
+            UploadDocumentsResponseData with list of uploaded document info
+        """
+        from ..helpers import MinioClient
+
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate section exists
+            section = await self.validate_section(section_id, session)
+            if not section.documents_required:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
+                    message="Section does not require documents"
+                )
+
+            minio_client: MinioClient = MinioClient.get_component()
+            uploaded_documents: list[UploadedDocumentData] = []
+
+            for document_label_id, file in files:
+                # Validate document label exists for this section
+                label_result = await session.execute(
+                    select(G2PRegisterSectionDocumentLabel).where(
+                        (G2PRegisterSectionDocumentLabel.section_id == section_id) &
+                        (G2PRegisterSectionDocumentLabel.document_label_id == document_label_id)
+                    )
+                )
+                document_label = label_result.scalar()
+                if not document_label:
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
+                        message=f"Document label {document_label_id} not found for section {section_id}"
+                    )
+
+                # Read file content
+                file_content = await file.read()
+
+                # Generate unique object name
+                object_name = f"documents/{section_id}/{document_label_id}/{uuid.uuid4().hex}_{file.filename}"
+
+                # Upload to MinIO
+                import io
+                document_store_id = minio_client.put_object(
+                    object_name=object_name,
+                    data=io.BytesIO(file_content),
+                    length=len(file_content),
+                    content_type=file.content_type or "application/octet-stream"
+                )
+
+                uploaded_documents.append(UploadedDocumentData(
+                    document_store_id=document_store_id,
+                    document_label_id=document_label_id,
+                    document_label=document_label.document_label,
+                    filename=file.filename
+                ))
+
+            return UploadDocumentsResponseData(uploaded_documents=uploaded_documents)
+
+    async def _handle_documents_on_approval(
+        self,
+        change_request: G2PRegisterChangeRequest,
+        section: G2PRegisterSection,
+        session
+    ) -> None:
+        """
+        Handle documents when a change request is approved.
+        - Move documents from change request to section documents (replace existing with same label)
+        - Create document history entries
+        """
+        # Fetch documents attached to this change request
+        docs_result = await session.execute(
+            select(G2PRegisterChangeRequestDocument).where(
+                G2PRegisterChangeRequestDocument.change_request_id == change_request.change_request_id
+            )
+        )
+        change_request_documents = docs_result.scalars().all()
+
+        if not change_request_documents:
+            _logger.info(f"No documents to process for change request {change_request.change_request_id}")
+            return
+
+        for cr_doc in change_request_documents:
+             # Create history entry for the old document before replacing
+            history_entry = G2PRegisterDocumentHistory(
+                internal_record_id=change_request.internal_record_id,
+                change_request_id=change_request.change_request_id,
+                section_id=section.section_id,
+                document_label_id=existing_doc.document_label_id,
+                document_store_id=existing_doc.document_store_id,
+                created_by=change_request.created_by,
+                created_at=change_request.created_at,
+                approved_by="system",
+                approved_at=func.now()
+            )
+            session.add(history_entry)
+            # Check if a document with the same label already exists for this section/record
+            existing_doc_result = await session.execute(
+                select(G2PRegisterSectionDocument).where(
+                    (G2PRegisterSectionDocument.internal_record_id == change_request.internal_record_id) &
+                    (G2PRegisterSectionDocument.section_id == section.section_id) &
+                    (G2PRegisterSectionDocument.document_label_id == cr_doc.document_label_id)
+                )
+            )
+            existing_doc = existing_doc_result.scalar()
+
+            if existing_doc:
+                # Update existing document with new store ID
+                existing_doc.document_store_id = cr_doc.document_store_id
+                _logger.info(f"Replaced document {cr_doc.document_label_id} for record {change_request.internal_record_id}")
+            else:
+                # Create new section document
+                new_section_doc = G2PRegisterSectionDocument(
+                    internal_record_id=change_request.internal_record_id,
+                    register_id=section.register_id,
+                    section_id=section.section_id,
+                    document_label_id=cr_doc.document_label_id,
+                    document_store_id=cr_doc.document_store_id
+                )
+                session.add(new_section_doc)
+                _logger.info(f"Created new document {cr_doc.document_label_id} for record {change_request.internal_record_id}")

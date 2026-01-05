@@ -223,6 +223,12 @@ class ChangePayload(BaseChangePayload):
         extra = "allow"  # Allow extra fields to be preserved and accessible
 
 
+class ChangeRequestDocumentPayload(BaseModel):
+    """Document reference to attach to a change request"""
+    document_label_id: str
+    document_store_id: str
+
+
 class ChangeRequestRequestPayload(RegisterPayload):
     """Request payload for creating/updating change requests - sent from Partners"""
     register_id: Optional[str] = None
@@ -232,6 +238,8 @@ class ChangeRequestRequestPayload(RegisterPayload):
     section_register_id: Optional[str] = None
     change_payload: Optional[ChangePayload] = None
     change_payload_array: Optional[List[ChangePayload]] = None
+    # Document references (list of document_label_id + document_store_id)
+    documents: Optional[List[ChangeRequestDocumentPayload]] = None
     # For approve/reject operations
     change_request_id: Optional[str] = None
     rejection_reason: Optional[str] = None
@@ -463,3 +471,23 @@ class RegisterTabRecordData(BaseModel):
     """
     section_register_id: str
     records: List[RecordData]
+
+
+# =============================================================================
+# Document Upload Schemas
+# =============================================================================
+
+class UploadedDocumentData(BaseModel):
+    """Response data for a single uploaded document"""
+    document_store_id: str
+    document_label_id: str
+    document_label: str
+    filename: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class UploadDocumentsResponseData(BaseModel):
+    """Response data for upload_change_request_documents endpoint"""
+    uploaded_documents: List[UploadedDocumentData]

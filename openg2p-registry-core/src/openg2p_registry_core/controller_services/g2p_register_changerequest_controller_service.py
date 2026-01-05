@@ -14,6 +14,7 @@ from ..schemas import (
     GetCrossRegisterChangesRequest,
     GetChangeRequestsRequest, GetChangeRequestRequest,
     GetVerificationsRequest, AddVerificationRequest,
+    GetChangeRequestSummaryDataRequest, ChangeRequestSummaryData
 )
 
 _logger = logging.getLogger('g2p-register-changerequest-controller-service')
@@ -142,3 +143,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
         verification_data: VerificationData = await g2p_register_service.add_verification_for_change_request(add_verification_payload)
         return verification_data
 
+    async def get_changerequest_summary_data(self, get_changerequest_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryData:
+        _logger.info("Fetching changerequest summary data through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        changerequest_summary_data: ChangeRequestSummaryData = await g2p_register_service.get_changerequest_summary_data()
+        return changerequest_summary_data

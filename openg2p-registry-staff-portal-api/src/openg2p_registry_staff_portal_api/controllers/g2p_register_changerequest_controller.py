@@ -1,4 +1,5 @@
 import logging
+
 from openg2p_fastapi_common.controller import BaseController
 
 from openg2p_registry_core.controller_services import G2PRegisterChangerequestControllerService
@@ -11,6 +12,7 @@ from openg2p_registry_core.schemas import (
     GetChangeRequestRequest,
     GetVerificationsRequest,
     AddVerificationRequest,
+    GetChangeRequestSummaryDataRequest,
     NumberOfPendingChangeRequestsResponse, NumberOfPendingChangeRequestsData,
     NumberOfCrossRegisterChangesResponse, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesDataResponse,
@@ -18,6 +20,7 @@ from openg2p_registry_core.schemas import (
     ChangeRequestFlattenedDataResponse,
     VerificationsDataResponse,
     VerificationDataResponse, VerificationData,
+    ChangeRequestSummaryDataResponse, ChangeRequestSummaryData
 )
 from openg2p_fastapi_common.schemas import G2PResponse
 
@@ -104,6 +107,13 @@ class G2PRegisterChangerequestController(BaseController):
             "/add_verification_for_change_request",
             self.add_verification_for_change_request,
             responses={200: {"model": VerificationDataResponse}},
+            methods=["POST"],
+        )
+
+        self.router.add_api_route(
+            "/get_register_changerequest_data",
+            self.get_register_changerequest_data,
+            responses={200: {"model": ChangeRequestSummaryDataResponse}},
             methods=["POST"],
         )
 
@@ -229,3 +239,14 @@ class G2PRegisterChangerequestController(BaseController):
             error_response: VerificationDataResponse = self.helper.construct_error_response(error_exception, add_verification_request)
             return error_response
 
+    async def get_register_changerequest_data(self, get_changerequest_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryDataResponse:
+        try:
+            changerequest_summary_data: ChangeRequestSummaryData = await self.g2p_register_changerequest_controller_service.get_changerequest_summary_data(get_changerequest_summary_data_request)
+            changerequest_summary_data_response: ChangeRequestSummaryDataResponse = self.helper.construct_changerequest_summary_data_success_response(
+                changerequest_summary_data=changerequest_summary_data, g2p_request=get_changerequest_summary_data_request
+            )
+            return changerequest_summary_data_response
+        except Exception as error_exception:
+            _logger.error(f"Error in get_register_changerequest_data: {str(error_exception)}")
+            error_response: ChangeRequestSummaryDataResponse = self.helper.construct_error_response(error_exception, get_changerequest_summary_data_request)
+            return error_response

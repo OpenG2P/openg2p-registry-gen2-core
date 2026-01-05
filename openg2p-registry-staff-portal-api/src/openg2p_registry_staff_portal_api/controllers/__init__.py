@@ -4,3 +4,4 @@ from .g2p_register_summary_controller import G2PRegisterSummaryController
 from .g2p_register_metadata_controller import G2PRegisterMetadataController
 from .ingestion_configuration_controller import IngestionConfigurationController
 from .outgestion_configuration_controller import OutgestionConfigurationController
+from .g2p_document_controller import G2PDocumentController

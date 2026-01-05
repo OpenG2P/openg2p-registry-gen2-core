@@ -84,6 +84,11 @@ class G2PRegisterSectionDocument(BaseORMModel):
         index=True,
         default=lambda: str(uuid.uuid4())
     )
+    internal_record_id: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        index=True
+    )
     register_id: Mapped[str] = mapped_column(
         String,
         nullable=False,
