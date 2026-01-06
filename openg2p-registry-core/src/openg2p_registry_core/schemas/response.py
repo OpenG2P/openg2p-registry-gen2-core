@@ -12,8 +12,9 @@ from .payload import (
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
-    RegisterTabRecordData, UploadDocumentsResponseData,
-    RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData
+    RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
+    RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
+    DocumentLabelsForSectionData, SectionDocumentsData, ChangeRequestDocumentsData
 )
 
 
@@ -230,6 +231,40 @@ class UploadDocumentsResponseBody(G2PResponseBody):
 
 class UploadDocumentsResponse(G2PResponse):
     response_body: Optional[UploadDocumentsResponseBody] = None
+
+
+# Upload Record Image Response
+class UploadRecordImageResponseBody(G2PResponseBody):
+    response_payload: Optional["UploadRecordImageData"] = None
+
+
+class UploadRecordImageResponse(G2PResponse):
+    response_body: Optional[UploadRecordImageResponseBody] = None
+
+
+# Document Labels and Section Documents Responses
+class DocumentLabelsForSectionResponseBody(G2PResponseBody):
+    response_payload: Optional["DocumentLabelsForSectionData"] = None
+
+
+class DocumentLabelsForSectionResponse(G2PResponse):
+    response_body: Optional[DocumentLabelsForSectionResponseBody] = None
+
+
+class SectionDocumentsResponseBody(G2PResponseBody):
+    response_payload: Optional["SectionDocumentsData"] = None
+
+
+class SectionDocumentsResponse(G2PResponse):
+    response_body: Optional[SectionDocumentsResponseBody] = None
+
+
+class ChangeRequestDocumentsResponseBody(G2PResponseBody):
+    response_payload: Optional["ChangeRequestDocumentsData"] = None
+
+
+class ChangeRequestDocumentsResponse(G2PResponse):
+    response_body: Optional[ChangeRequestDocumentsResponseBody] = None
 
 
 # =============================================================================

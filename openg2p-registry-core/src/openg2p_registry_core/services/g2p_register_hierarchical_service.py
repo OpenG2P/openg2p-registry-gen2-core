@@ -240,6 +240,8 @@ class G2PRegisterHierarchicalService(BaseService):
         Returns:
             RecordData object with flattened extra fields
         """
+        from ..helpers import MinioClient
+
         mapper = sa_inspect(record.__class__)
         extra_fields: dict = {}
 
@@ -248,6 +250,9 @@ class G2PRegisterHierarchicalService(BaseService):
             'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
         }
 
+        # Get MinIO client for generating presigned URLs
+        minio_client: MinioClient = MinioClient.get_component()
+
         for column in mapper.columns:
             column_name: str = column.name
             value = getattr(record, column_name, None)
@@ -255,7 +260,10 @@ class G2PRegisterHierarchicalService(BaseService):
             if value is not None and hasattr(value, 'isoformat'):
                 value = value.isoformat()
 
-            if column_name not in base_fields:
+            # Convert image field to record_image_url with presigned URL
+            if column_name == 'image' and value:
+                extra_fields['record_image_url'] = minio_client.get_url(object_name=value)
+            elif column_name not in base_fields:
                 extra_fields[column_name] = value
 
         record_data: RecordData = RecordData(

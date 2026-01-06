@@ -111,6 +111,7 @@ class GetMasterRegisterRequest(G2PRequest):
 class GetNumberOfVersionsRequestPayload(BaseModel):
     register_id: str
     internal_record_id: str
+    tab_id: str
 
 
 class GetNumberOfVersionsRequestBody(G2PRequestBody):
@@ -575,3 +576,46 @@ class GetEarliestPendingChangeRequestRequestBody(G2PRequestBody):
 
 class GetEarliestPendingChangeRequestRequest(G2PRequest):
     request_body: GetEarliestPendingChangeRequestRequestBody
+
+
+# =============================================================================
+# Document APIs Requests
+# =============================================================================
+
+class GetDocumentLabelsForSectionRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+
+
+class GetDocumentLabelsForSectionRequestBody(G2PRequestBody):
+    request_payload: GetDocumentLabelsForSectionRequestPayload
+
+
+class GetDocumentLabelsForSectionRequest(G2PRequest):
+    request_body: GetDocumentLabelsForSectionRequestBody
+
+
+class GetSectionDocumentsRequestPayload(BaseModel):
+    register_id: str
+    record_id: str
+    section_id: str
+
+
+class GetSectionDocumentsRequestBody(G2PRequestBody):
+    request_payload: GetSectionDocumentsRequestPayload
+
+
+class GetSectionDocumentsRequest(G2PRequest):
+    request_body: GetSectionDocumentsRequestBody
+
+
+class GetSectionDocumentsForChangeRequestRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class GetSectionDocumentsForChangeRequestRequestBody(G2PRequestBody):
+    request_payload: GetSectionDocumentsForChangeRequestRequestPayload
+
+
+class GetSectionDocumentsForChangeRequestRequest(G2PRequest):
+    request_body: GetSectionDocumentsForChangeRequestRequestBody

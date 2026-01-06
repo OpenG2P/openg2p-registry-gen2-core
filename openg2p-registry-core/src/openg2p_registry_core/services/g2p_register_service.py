@@ -1031,6 +1031,10 @@ class G2PRegisterService(BaseService):
 
         search_results_list: list[SearchResultData] = []
 
+        # Get MinIO client for generating presigned URLs
+        from ..helpers import MinioClient
+        minio_client: MinioClient = MinioClient.get_component()
+
         # Convert ORM objects to SearchResultData while still in session context
         for result in search_results:
             # Build display_fields list from schema with actual values
@@ -1051,13 +1055,18 @@ class G2PRegisterService(BaseService):
                         order=field_config.get("order", 999)
                     ))
 
+            # Generate presigned URL for record image if it exists
+            record_image_url = None
+            if result.image:
+                record_image_url = minio_client.get_url(object_name=result.image)
+
             # Create SearchResultData object
             search_result_data: SearchResultData = SearchResultData(
                 internal_record_id=result.internal_record_id,
                 functional_record_id=result.functional_record_id,
                 link_record_id=result.link_record_id,
                 record_name=result.record_name,
-                image=result.image,
+                record_image_url=record_image_url,
                 created_by=result.created_by,
                 created_at=str(result.created_at.isoformat()) if result.created_at and hasattr(result.created_at, 'isoformat') else None,
                 last_approved_at=str(result.last_approved_at.isoformat()) if result.last_approved_at and hasattr(result.last_approved_at, 'isoformat') else None,
@@ -1135,8 +1144,8 @@ class G2PRegisterService(BaseService):
 
         return search_results_list, total_items
 
-    async def get_number_of_versions(self, register_id: str, internal_record_id: str) -> NumberOfVersionsData:
-        """Get the number of versions (history records) for a given register and internal_record_id"""
+    async def get_number_of_versions(self, register_id: str, internal_record_id: str, tab_id: str) -> NumberOfVersionsData:
+        """Get the number of versions (history records) for a given register, internal_record_id and tab_id"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
@@ -1203,6 +1212,7 @@ class G2PRegisterService(BaseService):
             return NumberOfVersionsData(
                 register_id=register_id,
                 internal_record_id=internal_record_id,
+                tab_id=tab_id,
                 number_of_versions=number_of_versions,
                 last_updated_by=last_updated_by,
                 last_updated_at=last_updated_at,
@@ -1569,6 +1579,10 @@ class G2PRegisterService(BaseService):
                 'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
             }
 
+            # Get MinIO client for generating presigned URLs
+            from ..helpers import MinioClient
+            minio_client: MinioClient = MinioClient.get_component()
+
             for column in mapper.columns:
                 column_name: str = column.name
                 value = getattr(record, column_name, None)
@@ -1577,8 +1591,11 @@ class G2PRegisterService(BaseService):
                 if value is not None and hasattr(value, 'isoformat'):
                     value = value.isoformat()
 
-                # Add to extra_fields if not a base field
-                if column_name not in base_fields:
+                # Convert image field to record_image_url with presigned URL
+                if column_name == 'image' and value:
+                    extra_fields['record_image_url'] = minio_client.get_url(object_name=value)
+                elif column_name not in base_fields:
+                    # Add to extra_fields if not a base field
                     extra_fields[column_name] = value
 
             # Create RecordData object with flattened extra fields
@@ -2271,14 +2288,67 @@ class G2PRegisterService(BaseService):
                     content_type=file.content_type or "application/octet-stream"
                 )
 
+                # Generate presigned URL for the uploaded document
+                document_url = minio_client.get_url(object_name=document_store_id)
+
                 uploaded_documents.append(UploadedDocumentData(
                     document_store_id=document_store_id,
                     document_label_id=document_label_id,
                     document_label=document_label.document_label,
-                    filename=file.filename
+                    filename=file.filename,
+                    document_url=document_url
                 ))
 
             return UploadDocumentsResponseData(uploaded_documents=uploaded_documents)
+
+    # Hardcoded label ID for record images
+    RECORD_IMAGE_LABEL_ID = "RECORD_IMAGE"
+
+    async def upload_record_image(
+        self,
+        section_id: str,
+        file  # UploadFile
+    ) -> "UploadRecordImageData":
+        """
+        Upload a record image to MinIO storage.
+
+        Args:
+            section_id: The section ID (for organizing storage path)
+            file: The image file to upload
+
+        Returns:
+            UploadRecordImageData with document_store_id and filename
+        """
+        from ..helpers import MinioClient
+        from ..schemas import UploadRecordImageData
+
+        minio_client: MinioClient = MinioClient.get_component()
+
+        # Read file content
+        file_content = await file.read()
+
+        # Generate unique object name using hardcoded RECORD_IMAGE label
+        object_name = f"record_images/{section_id}/{self.RECORD_IMAGE_LABEL_ID}/{uuid.uuid4().hex}_{file.filename}"
+
+        # Upload to MinIO
+        import io
+        document_store_id = minio_client.put_object(
+            object_name=object_name,
+            data=io.BytesIO(file_content),
+            length=len(file_content),
+            content_type=file.content_type or "image/jpeg"
+        )
+
+        # Generate presigned URL for the uploaded image
+        document_url = minio_client.get_url(object_name=document_store_id)
+
+        _logger.info(f"Uploaded record image: {document_store_id} for section_id: {section_id}")
+
+        return UploadRecordImageData(
+            document_store_id=document_store_id,
+            filename=file.filename,
+            document_url=document_url
+        )
 
     async def _handle_documents_on_approval(
         self,
@@ -2342,6 +2412,190 @@ class G2PRegisterService(BaseService):
                 )
                 session.add(new_section_doc)
                 _logger.info(f"Created new document {cr_doc.document_label_id} for record {change_request.internal_record_id}")
+
+    async def get_document_labels_for_section(
+        self,
+        register_id: str,
+        section_id: str
+    ) -> "DocumentLabelsForSectionData":
+        """
+        Get document labels for a section.
+
+        Args:
+            register_id: The register ID
+            section_id: The section ID
+
+        Returns:
+            DocumentLabelsForSectionData with list of document labels
+        """
+        from ..schemas import DocumentLabelsForSectionData, DocumentLabelData
+
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register and section exist
+            await self.validate_register_definition(register_id, session)
+            await self.validate_section(section_id, session)
+
+            # Get all document labels for this section
+            labels_result = await session.execute(
+                select(G2PRegisterSectionDocumentLabel).where(
+                    (G2PRegisterSectionDocumentLabel.register_id == register_id) &
+                    (G2PRegisterSectionDocumentLabel.section_id == section_id)
+                )
+            )
+            labels = labels_result.scalars().all()
+
+            document_labels = [
+                DocumentLabelData(
+                    document_label_id=label.document_label_id,
+                    document_label=label.document_label
+                )
+                for label in labels
+            ]
+
+            return DocumentLabelsForSectionData(
+                register_id=register_id,
+                section_id=section_id,
+                document_labels=document_labels
+            )
+
+    async def get_section_documents(
+        self,
+        register_id: str,
+        record_id: str,
+        section_id: str
+    ) -> "SectionDocumentsData":
+        """
+        Get documents for a section record.
+
+        Args:
+            register_id: The register ID
+            record_id: The internal record ID
+            section_id: The section ID
+
+        Returns:
+            SectionDocumentsData with list of documents (label, document_store_id, document_url)
+        """
+        from ..schemas import SectionDocumentsData, SectionDocumentData
+        from ..helpers import MinioClient
+
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate section exists
+            await self.validate_section(section_id, session)
+
+            # Get all documents for this record/section
+            docs_result = await session.execute(
+                select(G2PRegisterSectionDocument).where(
+                    (G2PRegisterSectionDocument.register_id == register_id) &
+                    (G2PRegisterSectionDocument.internal_record_id == record_id) &
+                    (G2PRegisterSectionDocument.section_id == section_id)
+                )
+            )
+            docs = docs_result.scalars().all()
+
+            minio_client: MinioClient = MinioClient.get_component()
+
+            # Get document labels for each document
+            documents = []
+            for doc in docs:
+                # Get the label for this document
+                label_result = await session.execute(
+                    select(G2PRegisterSectionDocumentLabel).where(
+                        G2PRegisterSectionDocumentLabel.document_label_id == doc.document_label_id
+                    )
+                )
+                label = label_result.scalar()
+                label_name = label.document_label if label else ""
+
+                # Generate presigned URL for the document
+                document_url = minio_client.get_url(object_name=doc.document_store_id)
+
+                documents.append(
+                    SectionDocumentData(
+                        document_label_id=doc.document_label_id,
+                        document_label=label_name,
+                        document_store_id=doc.document_store_id,
+                        document_url=document_url
+                    )
+                )
+
+            return SectionDocumentsData(
+                register_id=register_id,
+                record_id=record_id,
+                section_id=section_id,
+                documents=documents
+            )
+
+    async def get_section_documents_for_change_request(
+        self,
+        change_request_id: str
+    ) -> "ChangeRequestDocumentsData":
+        """
+        Get documents for a change request.
+
+        Args:
+            change_request_id: The change request ID
+
+        Returns:
+            ChangeRequestDocumentsData with list of documents (label, document_store_id, document_url)
+        """
+        from ..schemas import ChangeRequestDocumentsData, SectionDocumentData
+        from ..helpers import MinioClient
+
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate change request exists
+            cr_result = await session.execute(
+                select(G2PRegisterChangeRequest).where(
+                    G2PRegisterChangeRequest.change_request_id == change_request_id
+                )
+            )
+            change_request = cr_result.scalar()
+            if not change_request:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
+                )
+
+            # Get all documents for this change request
+            docs_result = await session.execute(
+                select(G2PRegisterChangeRequestDocument).where(
+                    G2PRegisterChangeRequestDocument.change_request_id == change_request_id
+                )
+            )
+            docs = docs_result.scalars().all()
+
+            minio_client: MinioClient = MinioClient.get_component()
+
+            # Get document labels for each document
+            documents = []
+            for doc in docs:
+                # Get the label for this document
+                label_result = await session.execute(
+                    select(G2PRegisterSectionDocumentLabel).where(
+                        G2PRegisterSectionDocumentLabel.document_label_id == doc.document_label_id
+                    )
+                )
+                label = label_result.scalar()
+                label_name = label.document_label if label else ""
+
+                # Generate presigned URL for the document
+                document_url = minio_client.get_url(object_name=doc.document_store_id)
+
+                documents.append(
+                    SectionDocumentData(
+                        document_label_id=doc.document_label_id,
+                        document_label=label_name,
+                        document_store_id=doc.document_store_id,
+                        document_url=document_url
+                    )
+                )
+
+            return ChangeRequestDocumentsData(
+                change_request_id=change_request_id,
+                documents=documents
+            )
 
     # =============================================================================
     # Registry Configuration Methods
