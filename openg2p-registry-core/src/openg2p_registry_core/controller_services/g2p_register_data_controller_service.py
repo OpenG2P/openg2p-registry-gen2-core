@@ -20,9 +20,10 @@ class G2PRegisterDataControllerService(BaseService):
     async def get_number_of_versions(self, get_number_of_versions_request: GetNumberOfVersionsRequest) -> NumberOfVersionsData:
         register_id = get_number_of_versions_request.request_body.request_payload.register_id
         internal_record_id = get_number_of_versions_request.request_body.request_payload.internal_record_id
-        _logger.info(f"Getting number of versions for register_id: {register_id}, internal_record_id: {internal_record_id} through controller service")
+        tab_id = get_number_of_versions_request.request_body.request_payload.tab_id
+        _logger.info(f"Getting number of versions for register_id: {register_id}, internal_record_id: {internal_record_id}, tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id)
+        number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id, tab_id)
         return number_of_versions_data
 
     async def get_subject_record(self, get_subject_record_request: GetSubjectRecordRequest) -> RecordData:

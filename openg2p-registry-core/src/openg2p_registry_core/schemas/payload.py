@@ -168,7 +168,7 @@ class SearchResultData(BaseModel):
     functional_record_id: str
     link_record_id: Optional[str] = None
     record_name: Optional[str] = None
-    image: Optional[str] = None
+    record_image_url: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[str] = None
     last_approved_at: Optional[str] = None
@@ -267,6 +267,7 @@ class ChangeRequestResponsePayload(RegisterPayload):
 class NumberOfVersionsData(BaseModel):
     register_id: str
     internal_record_id: str
+    tab_id: str
     number_of_versions: int
     last_updated_by: Optional[str] = None
     last_updated_at: Optional[datetime] = None
@@ -483,6 +484,7 @@ class UploadedDocumentData(BaseModel):
     document_label_id: str
     document_label: str
     filename: str
+    document_url: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -491,6 +493,57 @@ class UploadedDocumentData(BaseModel):
 class UploadDocumentsResponseData(BaseModel):
     """Response data for upload_change_request_documents endpoint"""
     uploaded_documents: List[UploadedDocumentData]
+
+
+class UploadRecordImageData(BaseModel):
+    """Response data for upload_record_image endpoint"""
+    document_store_id: str
+    filename: str
+    document_url: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DocumentLabelData(BaseModel):
+    """Data for a document label"""
+    document_label_id: str
+    document_label: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DocumentLabelsForSectionData(BaseModel):
+    """Response data for get_document_labels_for_section endpoint"""
+    register_id: str
+    section_id: str
+    document_labels: List[DocumentLabelData]
+
+
+class SectionDocumentData(BaseModel):
+    """Data for a section document (label + document_store_id)"""
+    document_label_id: str
+    document_label: str
+    document_store_id: str
+    document_url: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class SectionDocumentsData(BaseModel):
+    """Response data for get_section_documents endpoint"""
+    register_id: str
+    record_id: str
+    section_id: str
+    documents: List[SectionDocumentData]
+
+
+class ChangeRequestDocumentsData(BaseModel):
+    """Response data for get_section_documents_for_change_request endpoint"""
+    change_request_id: str
+    documents: List[SectionDocumentData]
 
 
 # =============================================================================

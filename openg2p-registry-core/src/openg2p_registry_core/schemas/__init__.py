@@ -43,7 +43,10 @@ from .request import (
     GetRegistryConfigurationRequest, GetRegistryConfigurationRequestBody,
     UpdateRegistryConfigurationRequest, UpdateRegistryConfigurationRequestBody, UpdateRegistryConfigurationRequestPayload,
     GetNumberOfRequestsPendingRequest, GetNumberOfRequestsPendingRequestBody,
-    GetEarliestPendingChangeRequestRequest, GetEarliestPendingChangeRequestRequestBody
+    GetEarliestPendingChangeRequestRequest, GetEarliestPendingChangeRequestRequestBody,
+    GetDocumentLabelsForSectionRequest, GetDocumentLabelsForSectionRequestBody, GetDocumentLabelsForSectionRequestPayload,
+    GetSectionDocumentsRequest, GetSectionDocumentsRequestBody, GetSectionDocumentsRequestPayload,
+    GetSectionDocumentsForChangeRequestRequest, GetSectionDocumentsForChangeRequestRequestBody, GetSectionDocumentsForChangeRequestRequestPayload
 )
 from .response import (
     ChangeRequestResponse, ChangeRequestResponseBody,
@@ -75,13 +78,18 @@ from .response import (
     SectionRecordsDataResponse, SectionRecordsDataResponseBody,
     RegisterTabRecordsDataResponse, RegisterTabRecordsDataResponseBody,
     UploadDocumentsResponse, UploadDocumentsResponseBody,
+    UploadRecordImageResponse, UploadRecordImageResponseBody,
     RegistryConfigurationDataResponse, RegistryConfigurationDataResponseBody,
     NumberOfRequestsPendingResponse, NumberOfRequestsPendingResponseBody,
-    EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody
+    EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody,
+    DocumentLabelsForSectionResponse, DocumentLabelsForSectionResponseBody,
+    SectionDocumentsResponse, SectionDocumentsResponseBody,
+    ChangeRequestDocumentsResponse, ChangeRequestDocumentsResponseBody
 )
 from .payload import (
     ChangeRequestRequestPayload, ChangeRequestResponsePayload,
     ChangeRequestDocumentPayload, UploadedDocumentData, UploadDocumentsResponseData,
+    UploadRecordImageData,
     RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, IngestDataPayload, DisplayField,
     NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
@@ -92,7 +100,8 @@ from .payload import (
     DeduplicationChangerequestResultData, RegisterSchemaData, RegisterSectionData,
     RegisterTabRecordData,
     RegistryConfigurationData, RegistryConfigurationPayload, RegistryConfigurationUpdatePayload,
-    NumberOfRequestsPendingData, EarliestPendingChangeRequestData
+    NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
+    DocumentLabelData, DocumentLabelsForSectionData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

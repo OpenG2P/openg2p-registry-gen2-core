@@ -14,7 +14,7 @@ class G2PRegister(BaseORMModel):
     functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     link_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
-    image: Mapped[str] = mapped_column(Text, nullable=True)
+    record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     last_approved_at: Mapped[str] = mapped_column(DateTime, nullable=False)
