@@ -17,11 +17,12 @@ classifiers = [
 ]
 dependencies = [
   "openg2p-fastapi-common >= 1.1.3",
-  "minio",
-  "uuid",
   "jsonpath_ng",
+  "asyncpg",
   "jinja2",
-  "pyld"
+  "minio",
+  "pyld",
+  "uuid"
 ]
 dynamic = ["version"]
 
