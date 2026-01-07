@@ -70,7 +70,6 @@ class G2PRegisterChangeRequestPayload(BaseORMModel):
 
     change_request_id: Mapped[str] = mapped_column(String, primary_key=True)
     change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
-    change_payload_array: Mapped[JSON] = mapped_column(JSON, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
@@ -79,10 +78,10 @@ class G2PRegisterChangeRequestPayload(BaseORMModel):
 
     @validates('change_payload')
     def update_search_text(self, key, value):
-        """Automatically populate search_text from change_payload JSON"""
+        """Automatically populate search_text from change_payload JSON (array of payloads)"""
         if value:
             # Convert JSON to string representation for searching
-            if isinstance(value, dict):
+            if isinstance(value, (dict, list)):
                 self.search_text = json.dumps(value)
             else:
                 self.search_text = str(value)

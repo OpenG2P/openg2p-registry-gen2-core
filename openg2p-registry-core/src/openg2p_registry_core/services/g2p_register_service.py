@@ -588,16 +588,9 @@ class G2PRegisterService(BaseService):
             )
         )
         payload = payload_result.scalar()
+        # change_payload is now always a list
         if payload.change_payload:
-            self._create_history_record(
-                change_payload=payload.change_payload,
-                change_request=change_request,
-                history_schema_class=history_schema_class,
-                history_class=history_class,
-                session=session
-            )
-        else:
-            for change_payload in payload.change_payload_array:
+            for change_payload in payload.change_payload:
                 self._create_history_record(
                     change_payload=change_payload,
                     change_request=change_request,
@@ -651,15 +644,9 @@ class G2PRegisterService(BaseService):
         )
         payload = payload_result.scalar()
 
+        # change_payload is now always a list
         if payload.change_payload:
-            await self._create_or_update_register_record(
-                change_payload=payload.change_payload,
-                schema_class=schema_class,
-                register_class=register_class,
-                session=session
-            )
-        else:
-            for change_payload in payload.change_payload_array:
+            for change_payload in payload.change_payload:
                 await self._create_or_update_register_record(
                     change_payload=change_payload,
                     schema_class=schema_class,
@@ -761,17 +748,14 @@ class G2PRegisterService(BaseService):
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id from change_payload if present, otherwise generate new UUID
         internal_record_id: str = None
-        if change_request_request_payload.change_payload:
-            internal_record_id = change_request_request_payload.change_payload.internal_record_id
-        elif change_request_request_payload.change_payload_array and len(change_request_request_payload.change_payload_array) > 0:
-            internal_record_id = change_request_request_payload.change_payload_array[0].internal_record_id
+        if change_request_request_payload.change_payload and len(change_request_request_payload.change_payload) > 0:
+            internal_record_id = change_request_request_payload.change_payload[0].internal_record_id
         internal_record_id = internal_record_id or str(uuid.uuid4())
 
-        # Create the payload object
+        # Create the payload object - change_payload is now always a list
         change_request_payload_obj = G2PRegisterChangeRequestPayload(
             change_request_id=change_request_id,
-            change_payload=change_request_request_payload.change_payload.model_dump() if change_request_request_payload.change_payload else None,
-            change_payload_array=[item.model_dump() for item in change_request_request_payload.change_payload_array] if change_request_request_payload.change_payload_array else None,
+            change_payload=[item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else [],
         )
 
         # Determine change request source based on application_id
@@ -1398,7 +1382,7 @@ class G2PRegisterService(BaseService):
             change_payload = payload.change_payload if payload else None
 
             # Create ChangeRequestData object
-            # Note: change_payload_old is not populated in list view for performance reasons
+            # Note: current_register_data is not populated in list view for performance reasons
             change_request_data: ChangeRequestData = ChangeRequestData(
                 change_request_id=change_request.change_request_id,
                 register_id=change_request.register_id,
@@ -1414,7 +1398,7 @@ class G2PRegisterService(BaseService):
                 approved_by=change_request.approved_by,
                 approved_at=approved_at_str,
                 change_payload=change_payload,
-                change_payload_old=None
+                current_register_data=None
             )
             change_requests_list.append(change_request_data)
 
@@ -1448,8 +1432,8 @@ class G2PRegisterService(BaseService):
         # Get change_payload from the payload object
         change_payload = payload.change_payload if payload else None
 
-        # Fetch existing register data (old values) for change_payload_old
-        change_payload_old = None
+        # Fetch existing register data (old values) for current_register_data
+        current_register_data = None
         try:
             # Get the register definition to find the implementation class
             g2p_register_definition: G2PRegisterDefinition = (
@@ -1478,11 +1462,11 @@ class G2PRegisterService(BaseService):
                     ).scalar()
 
                     if existing_record:
-                        # Convert ORM object to dict for change_payload_old
+                        # Convert ORM object to dict for current_register_data
                         mapper = inspect(existing_record.__class__)
-                        change_payload_old = {}
+                        current_register_data = {}
 
-                        # Base fields to exclude from change_payload_old
+                        # Base fields to exclude from current_register_data
                         base_fields: set = {'search_text'}
 
                         for column in mapper.columns:
@@ -1494,7 +1478,7 @@ class G2PRegisterService(BaseService):
                                 if value is not None and hasattr(value, 'isoformat'):
                                     value = value.isoformat()
 
-                                change_payload_old[column_name] = value
+                                current_register_data[column_name] = value
 
                 except (AttributeError, ModuleNotFoundError) as error:
                     _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
@@ -1517,7 +1501,7 @@ class G2PRegisterService(BaseService):
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
             change_payload=change_payload,
-            change_payload_old=change_payload_old
+            current_register_data=current_register_data
         )
 
         return change_request_data

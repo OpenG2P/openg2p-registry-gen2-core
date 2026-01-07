@@ -126,6 +126,8 @@ class RegisterSummaryData(BaseModel):
     register_id: str
     register_mnemonic: str
     register_subject: Optional[str] = None
+    has_image: bool
+    register_icon: Optional[str] = None
     total_record_count: int
 
 
@@ -236,8 +238,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
-    change_payload: Optional[ChangePayload] = None
-    change_payload_array: Optional[List[ChangePayload]] = None
+    change_payload: Optional[List[ChangePayload]] = None
     # Document references (list of document_label_id + document_store_id)
     documents: Optional[List[ChangeRequestDocumentPayload]] = None
     # For approve/reject operations
@@ -328,7 +329,7 @@ class ChangeRequestData(BaseModel):
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
     change_payload: Optional[dict] = None
-    change_payload_old: Optional[dict] = None
+    current_register_data: Optional[dict] = None
 
     class Config:
         from_attributes: bool = True
