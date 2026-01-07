@@ -20,6 +20,7 @@ class ChangeRequestStatusEnum(Enum):
     FAILED = "FAILED"
    
 class G2PApplication(BaseORMModel):
+    __tablename__ = "g2p_applications"
     
     application_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -35,6 +36,7 @@ class G2PApplication(BaseORMModel):
     last_updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
 
 class G2PApplicationSectionPayload(BaseORMModel):
+    __tablename__ = "g2p_application_section_payloads"
     application_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     application_payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
