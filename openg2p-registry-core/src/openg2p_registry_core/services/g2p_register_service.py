@@ -1398,6 +1398,7 @@ class G2PRegisterService(BaseService):
             change_payload = payload.change_payload if payload else None
 
             # Create ChangeRequestData object
+            # Note: change_payload_old is not populated in list view for performance reasons
             change_request_data: ChangeRequestData = ChangeRequestData(
                 change_request_id=change_request.change_request_id,
                 register_id=change_request.register_id,
@@ -1412,7 +1413,8 @@ class G2PRegisterService(BaseService):
                 approval_status=change_request.approval_status,
                 approved_by=change_request.approved_by,
                 approved_at=approved_at_str,
-                change_payload=change_payload
+                change_payload=change_payload,
+                change_payload_old=None
             )
             change_requests_list.append(change_request_data)
 
@@ -1446,6 +1448,59 @@ class G2PRegisterService(BaseService):
         # Get change_payload from the payload object
         change_payload = payload.change_payload if payload else None
 
+        # Fetch existing register data (old values) for change_payload_old
+        change_payload_old = None
+        try:
+            # Get the register definition to find the implementation class
+            g2p_register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == change_request.section_register_id
+                    )
+                )
+            ).scalar()
+
+            if g2p_register_definition:
+                # Get the implementation class for this register
+                try:
+                    module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+                    register_class_prefix: str = "G2PRegister"
+                    implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+                    implementation_class = getattr(module, implementation_class_name)
+
+                    # Fetch the existing record by internal_record_id
+                    existing_record = (
+                        await session.execute(
+                            select(implementation_class).where(
+                                implementation_class.internal_record_id == change_request.internal_record_id
+                            )
+                        )
+                    ).scalar()
+
+                    if existing_record:
+                        # Convert ORM object to dict for change_payload_old
+                        mapper = inspect(existing_record.__class__)
+                        change_payload_old = {}
+
+                        # Base fields to exclude from change_payload_old
+                        base_fields: set = {'search_text'}
+
+                        for column in mapper.columns:
+                            column_name: str = column.name
+                            if column_name not in base_fields:
+                                value = getattr(existing_record, column_name, None)
+
+                                # Convert datetime objects to strings
+                                if value is not None and hasattr(value, 'isoformat'):
+                                    value = value.isoformat()
+
+                                change_payload_old[column_name] = value
+
+                except (AttributeError, ModuleNotFoundError) as error:
+                    _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
+        except Exception as error:
+            _logger.warning(f"Error fetching old register data for change request {change_request_id}: {str(error)}")
+
         # Create ChangeRequestData object
         change_request_data: ChangeRequestData = ChangeRequestData(
             change_request_id=change_request.change_request_id,
@@ -1461,7 +1516,8 @@ class G2PRegisterService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
-            change_payload=change_payload
+            change_payload=change_payload,
+            change_payload_old=change_payload_old
         )
 
         return change_request_data

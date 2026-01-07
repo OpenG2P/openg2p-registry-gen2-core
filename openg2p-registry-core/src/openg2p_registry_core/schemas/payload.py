@@ -328,6 +328,7 @@ class ChangeRequestData(BaseModel):
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
     change_payload: Optional[dict] = None
+    change_payload_old: Optional[dict] = None
 
     class Config:
         from_attributes: bool = True
