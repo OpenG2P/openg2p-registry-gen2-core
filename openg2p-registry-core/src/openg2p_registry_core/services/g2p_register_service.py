@@ -23,6 +23,7 @@ from ..models import (
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
+    RecordHistoryData, RecordHistoryListData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData,
@@ -88,6 +89,7 @@ class G2PRegisterService(BaseService):
             return changerequest_summary_data
 
     async def get_all_registers(self) -> list[RegisterData]:
+        print("Fetching all registers for you", dbengine.get())
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             all_registers_list: list[RegisterData] = await self._fetch_all_registers(session)
@@ -1202,6 +1204,88 @@ class G2PRegisterService(BaseService):
                 last_updated_at=last_updated_at,
                 last_approved_by=last_approved_by,
                 last_approved_at=last_approved_at
+            )
+
+    async def get_record_history(self, register_id: str, internal_record_id: str, tab_id: str) -> RecordHistoryListData:
+        """Get the history records for a given register, internal_record_id and tab_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, history_class_name)
+
+            # Fetch all history records for the given internal_record_id, ordered by approved_at descending
+            history_records_result = await session.execute(
+                select(history_class).where(
+                    history_class.internal_record_id == internal_record_id
+                ).order_by(history_class.approved_at.desc())
+            )
+            history_records = history_records_result.scalars().all()
+
+            # Get base columns from G2PRegisterHistory model
+            from ..models import G2PRegisterHistory
+            base_columns = set(G2PRegisterHistory.__table__.columns.keys()) if hasattr(G2PRegisterHistory, '__table__') else set()
+            # Also include the abstract class columns
+            base_columns.update([
+                'history_record_id', 'internal_record_id', 'change_request_id', 'tab_id', 'section_id',
+                'is_primary_section', 'application_id', 'change_request_source', 'created_by', 'created_at',
+                'approved_by', 'approved_at'
+            ])
+
+            # Get all columns from history_class to identify additional fields
+            history_columns = set(history_class.__table__.columns.keys())
+            additional_columns = history_columns - base_columns
+
+            history_data_list: list[RecordHistoryData] = []
+            for history_record in history_records:
+                # Build base record data dict
+                record_data_dict = {
+                    'history_record_id': history_record.history_record_id,
+                    'internal_record_id': history_record.internal_record_id,
+                    'change_request_id': history_record.change_request_id,
+                    'tab_id': history_record.tab_id,
+                    'section_id': history_record.section_id,
+                    'is_primary_section': history_record.is_primary_section,
+                    'application_id': history_record.application_id,
+                    'change_request_source': history_record.change_request_source.value if history_record.change_request_source else None,
+                    'created_by': history_record.created_by,
+                    'created_at': history_record.created_at.isoformat() if history_record.created_at else None,
+                    'approved_by': history_record.approved_by,
+                    'approved_at': history_record.approved_at.isoformat() if history_record.approved_at else None,
+                }
+
+                # Add additional domain-specific fields
+                for col in additional_columns:
+                    value = getattr(history_record, col, None)
+                    # Handle datetime serialization
+                    if hasattr(value, 'isoformat'):
+                        value = value.isoformat()
+                    record_data_dict[col] = value
+
+                history_data: RecordHistoryData = RecordHistoryData(**record_data_dict)
+                history_data_list.append(history_data)
+
+            return RecordHistoryListData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                tab_id=tab_id,
+                history_records=history_data_list
             )
 
     async def get_number_of_pending_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeRequestsData:

@@ -14,7 +14,8 @@ from .payload import (
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
     RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    DocumentLabelsForSectionData, SectionDocumentsData, ChangeRequestDocumentsData
+    DocumentLabelsForSectionData, SectionDocumentsData, ChangeRequestDocumentsData,
+    RecordHistoryData, RecordHistoryListData
 )
 
 
@@ -79,6 +80,13 @@ class NumberOfVersionsResponseBody(G2PResponseBody):
 
 class NumberOfVersionsResponse(G2PResponse):
     response_body: Optional[NumberOfVersionsResponseBody] = None
+
+
+class RecordHistoryDataResponseBody(G2PResponseBody):
+    response_payload: Optional["RecordHistoryListData"] = None
+
+class RecordHistoryDataResponse(G2PResponse):
+    response_body: Optional[RecordHistoryDataResponseBody] = None
 
 
 class NumberOfPendingChangeRequestsResponseBody(G2PResponseBody):

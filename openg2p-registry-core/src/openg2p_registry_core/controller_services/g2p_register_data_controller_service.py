@@ -4,8 +4,10 @@ from openg2p_fastapi_common.service import BaseService
 from ..services import G2PRegisterService, G2PRegisterHierarchicalService
 from ..schemas import (
     NumberOfVersionsData, RecordData, RegisterTabRecordData,
+    RecordHistoryListData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     GetNumberOfVersionsRequest, GetSubjectRecordRequest,
+    GetRecordHistoryRequest,
     GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangerequestResultsRequest,
     GetRegisterSectionRequest, RegisterSectionData,
@@ -25,6 +27,16 @@ class G2PRegisterDataControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         number_of_versions_data: NumberOfVersionsData = await g2p_register_service.get_number_of_versions(register_id, internal_record_id, tab_id)
         return number_of_versions_data
+
+    async def get_record_history(self, get_record_history_request: GetRecordHistoryRequest) -> RecordHistoryListData:
+        """Get the history records for a given register, internal_record_id and tab_id"""
+        register_id = get_record_history_request.request_body.request_payload.register_id
+        internal_record_id = get_record_history_request.request_body.request_payload.internal_record_id
+        tab_id = get_record_history_request.request_body.request_payload.tab_id
+        _logger.info(f"Getting record history for register_id: {register_id}, internal_record_id: {internal_record_id}, tab_id: {tab_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        record_history_data: RecordHistoryListData = await g2p_register_service.get_record_history(register_id, internal_record_id, tab_id)
+        return record_history_data
 
     async def get_subject_record(self, get_subject_record_request: GetSubjectRecordRequest) -> RecordData:
         subject_register_id = get_subject_record_request.request_body.request_payload.subject_register_id
