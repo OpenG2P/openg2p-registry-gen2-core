@@ -9,6 +9,7 @@ with built-in protection against:
 - SQL injection (via SQLAlchemy parameterized queries)
 """
 
+import json
 import logging
 from datetime import datetime
 from typing import Any
@@ -37,22 +38,34 @@ class FilterBuilder:
         self.filter_schema = filter_schema or []
         self.allowed_fields = {f["field_name"]: f for f in self.filter_schema}
 
-    def build_conditions(self, filter_by: dict | None, model_class) -> list:
+    def build_conditions(self, filter_by: dict | str | None, model_class) -> list:
         """
         Build SQLAlchemy filter conditions with security validations.
-        
+
         Args:
-            filter_by: Dict of field_name -> operators/value
+            filter_by: Dict of field_name -> operators/value, or JSON string
             model_class: SQLAlchemy model class
-            
+
         Returns:
             List of SQLAlchemy filter conditions
-            
+
         Raises:
             ValueError: If filter validation fails
         """
         if not filter_by:
             return []
+
+        # Handle JSON string input (parse to dict)
+        if isinstance(filter_by, str):
+            try:
+                filter_by = json.loads(filter_by)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid filter_by JSON string: {e}")
+
+            # After parsing, if it's still not a dict, return empty
+            if not isinstance(filter_by, dict):
+                _logger.warning(f"filter_by parsed to non-dict type: {type(filter_by)}")
+                return []
 
         # Security: Limit number of filter fields
         if len(filter_by) > MAX_FILTER_FIELDS:
