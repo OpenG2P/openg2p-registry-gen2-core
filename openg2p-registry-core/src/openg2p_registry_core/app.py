@@ -28,6 +28,10 @@ from .controller_services import (
 )
 from .models import (
     DataModel,
+    G2PRegisterUITab,
+    G2PRegisterSchema,
+    G2PRegistryConfiguration,
+    G2PRegisterDocumentHistory,
     G2PRegisterDefinition,
     G2PRegisterSection,
     G2PRegisterVerification,
@@ -47,7 +51,15 @@ from .models import (
     OutgoingRawData,
     OutgoingRawDataPayload,
     OutgoingTransformedDataPayload,
+    G2PRegisterSectionDocument,
+    G2PRegisterSectionDocumentLabel,
+    SubscriptionActivityLog,
+    G2PApplication,
+    G2PApplicationSectionPayload,
+    DeduplicationRegisterResult,
+    DeduplicationChangerequestResult
 )
+
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
 
 _logger = logging.getLogger(_config.logging_default_logger_name)
@@ -95,27 +107,40 @@ class Initializer(BaseInitializer):
             await DataModel.create_migrate()
 
             # Register Models
-            await G2PRegisterDefinition.create_migrate()
+            await G2PApplication.create_migrate()
+            await G2PRegisterUITab.create_migrate()
+            await G2PRegisterSchema.create_migrate()
             await G2PRegisterSection.create_migrate()
+            await G2PRegisterDefinition.create_migrate()
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
+            await G2PRegistryConfiguration.create_migrate()
+            await G2PRegisterDocumentHistory.create_migrate()
+            await G2PRegisterSectionDocument.create_migrate()
+            await G2PApplicationSectionPayload.create_migrate()
+            await G2PRegisterSectionDocumentLabel.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
             await G2PRegisterChangeRequestDocument.create_migrate()
+
+            # Deduplication Models
+            await DeduplicationRegisterResult.create_migrate()
+            await DeduplicationChangerequestResult.create_migrate()
 
             # Incoming Models
             await IncomingPartner.create_migrate()
             await IncomingRawData.create_migrate()
             await IncomingTemplate.create_migrate()
+            await IncomingModelKeyPath.create_migrate()
             await IncomingRawDataPayload.create_migrate()
             await IncomingClassifiedData.create_migrate()
-            await IncomingEnrichedTransformedData.create_migrate()
+            await SubscriptionActivityLog.create_migrate()
             await IncomingModelSemanticPattern.create_migrate()
-            await IncomingModelKeyPath.create_migrate()
+            await IncomingEnrichedTransformedData.create_migrate()
 
             # Outgoing Models
             await OutgoingTopic.create_migrate()
-            await OutgoingTemplate.create_migrate()
             await OutgoingRawData.create_migrate()
+            await OutgoingTemplate.create_migrate()
             await OutgoingRawDataPayload.create_migrate()
             await OutgoingTransformedDataPayload.create_migrate()
         
