@@ -122,6 +122,20 @@ class GetNumberOfVersionsRequest(G2PRequest):
     request_body: GetNumberOfVersionsRequestBody
 
 
+class GetRecordHistoryRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+
+
+class GetRecordHistoryRequestBody(G2PRequestBody):
+    request_payload: GetRecordHistoryRequestPayload
+
+
+class GetRecordHistoryRequest(G2PRequest):
+    request_body: GetRecordHistoryRequestBody
+
+
 class GetNumberOfPendingChangeRequestsRequestPayload(BaseModel):
     subject_register_id: str
     subject_record_id: str
