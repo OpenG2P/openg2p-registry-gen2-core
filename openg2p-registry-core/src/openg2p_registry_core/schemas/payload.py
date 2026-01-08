@@ -276,6 +276,35 @@ class NumberOfVersionsData(BaseModel):
     last_approved_at: Optional[datetime] = None
 
 
+class RecordHistoryData(BaseModel):
+    """
+    History record data with flattened additional fields.
+    Extra fields from the register history implementation table are included at root level.
+    """
+    model_config = ConfigDict(extra="allow", from_attributes=True)
+
+    history_record_id: str
+    internal_record_id: str
+    change_request_id: str
+    tab_id: str
+    section_id: str
+    is_primary_section: bool = False
+    application_id: Optional[str] = None
+    change_request_source: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[str] = None
+
+
+class RecordHistoryListData(BaseModel):
+    """Container for a list of history records with metadata"""
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+    history_records: List["RecordHistoryData"] = []
+
+
 class NumberOfPendingChangeRequestsData(BaseModel):
     subject_register_id: str
     subject_record_id: str
