@@ -2416,7 +2416,8 @@ class G2PRegisterService(BaseService):
                     object_name=object_name,
                     data=io.BytesIO(file_content),
                     length=len(file_content),
-                    content_type=file.content_type or "application/octet-stream"
+                    content_type=file.content_type or "application/octet-stream",
+                    bucket_name="documents" #TODO: Make configurable
                 )
 
                 # Generate presigned URL for the uploaded document
@@ -2467,7 +2468,8 @@ class G2PRegisterService(BaseService):
             object_name=object_name,
             data=io.BytesIO(file_content),
             length=len(file_content),
-            content_type=file.content_type or "image/jpeg"
+            content_type=file.content_type or "image/jpeg",
+            bucket_name="record_images" #TODO: Make configurable
         )
 
         # Generate presigned URL for the uploaded image
