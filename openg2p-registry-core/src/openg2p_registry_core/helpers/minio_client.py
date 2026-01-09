@@ -3,6 +3,7 @@ from minio import Minio
 from minio.error import S3Error
 from minio.helpers import ObjectWriteResult
 from typing import Optional, BinaryIO
+from datetime import timedelta
 
 from openg2p_fastapi_common.service import BaseService
 
@@ -82,14 +83,14 @@ class MinioClient(BaseService):
         self,
         object_name: str,
         bucket_name: Optional[str] = None,
-        expiry_seconds: int = 3600,
+        expires: timedelta = timedelta(hours=1),
     ) -> str:
         bucket_name = bucket_name or self.default_bucket
 
         return self.client.presigned_get_object(
             bucket_name=bucket_name,
             object_name=object_name,
-            expires=expiry_seconds,
+            expires=expires,
         )
 
     # List Objects

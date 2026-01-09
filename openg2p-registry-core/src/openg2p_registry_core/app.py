@@ -25,6 +25,8 @@ from .controller_services import (
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2POutgestionConfigurationControllerService,
+    G2PDocumentControllerService,
+    G2PRegistryControllerService,
 )
 from .models import (
     DataModel,
@@ -98,6 +100,8 @@ class Initializer(BaseInitializer):
         G2PRegisterSummaryControllerService()
         G2PIngestionConfigurationControllerService()
         G2POutgestionConfigurationControllerService()
+        G2PDocumentControllerService()
+        G2PRegistryControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
