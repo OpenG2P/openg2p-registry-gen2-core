@@ -2,10 +2,6 @@
 import asyncio
 import logging
 
-from .config import Settings
-
-_config = Settings.get_config()
-
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 from .services import (
@@ -64,6 +60,9 @@ from .models import (
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
 
+from .config import Settings
+
+_config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
