@@ -24,6 +24,8 @@ class G2PApplication(BaseORMModel):
     
     application_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     application_status: Mapped[ApplicationStatusEnum] = mapped_column(String, nullable=False, default=ApplicationStatusEnum.DRAFT.value)
     change_request_submission_status: Mapped[ChangeRequestStatusEnum] = mapped_column(String, nullable=False, default=ChangeRequestStatusEnum.PENDING.value)
     change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)

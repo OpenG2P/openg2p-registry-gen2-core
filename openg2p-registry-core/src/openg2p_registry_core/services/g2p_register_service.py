@@ -1053,6 +1053,8 @@ class G2PRegisterService(BaseService):
                 internal_record_id=result.internal_record_id,
                 functional_record_id=result.functional_record_id,
                 link_record_id=result.link_record_id,
+                foundational_id=result.foundational_id,
+                link_foundational_id=result.link_foundational_id,
                 record_name=result.record_name,
                 record_image_url=record_image_url,
                 created_by=result.created_by,
@@ -1702,6 +1704,7 @@ class G2PRegisterService(BaseService):
             # Base fields to exclude from extra fields
             base_fields: set = {
                 'internal_record_id', 'functional_record_id', 'link_record_id',
+                'foundational_id', 'link_foundational_id',
                 'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
             }
 
@@ -1729,6 +1732,8 @@ class G2PRegisterService(BaseService):
                 internal_record_id=record.internal_record_id,
                 functional_record_id=record.functional_record_id,
                 link_record_id=record.link_record_id,
+                foundational_id=record.foundational_id,
+                link_foundational_id=record.link_foundational_id,
                 created_by=record.created_by,
                 created_at=str(record.created_at.isoformat()) if record.created_at and hasattr(record.created_at, 'isoformat') else None,
                 last_approved_at=str(record.last_approved_at.isoformat()) if record.last_approved_at and hasattr(record.last_approved_at, 'isoformat') else None,
