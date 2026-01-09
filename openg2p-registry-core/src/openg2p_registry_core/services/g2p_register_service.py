@@ -800,6 +800,8 @@ class G2PRegisterService(BaseService):
                 register_id=register_definition.register_id,
                 register_mnemonic=register_definition.register_mnemonic,
                 register_subject=register_definition.register_subject,
+                has_image=register_definition.has_image,
+                register_icon=register_definition.register_icon,
                 total_record_count=total_record_count
             )
             register_summary_data_list.append(register_summary_data)
@@ -1043,7 +1045,7 @@ class G2PRegisterService(BaseService):
 
             # Generate presigned URL for record image if it exists
             record_image_url = None
-            if result.image:
+            if hasattr(result, 'image') and result.image:
                 record_image_url = minio_client.get_url(object_name=result.image)
 
             # Create SearchResultData object
