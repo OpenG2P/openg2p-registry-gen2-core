@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -15,9 +15,17 @@ class G2PRegisterHistory(BaseORMModel):
 
     history_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    link_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    record_name: Mapped[str] = mapped_column(String, nullable=True)
+    record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
+    administrative_area_large_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    administrative_area_small_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     change_request_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True) # TODO
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     
     is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     application_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
