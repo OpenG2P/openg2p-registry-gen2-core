@@ -1052,7 +1052,7 @@ class G2PRegisterService(BaseService):
             search_result_data: SearchResultData = SearchResultData(
                 internal_record_id=result.internal_record_id,
                 functional_record_id=result.functional_record_id,
-                link_record_id=result.link_record_id,
+                link_internal_record_id=result.link_internal_record_id,
                 foundational_id=result.foundational_id,
                 link_foundational_id=result.link_foundational_id,
                 record_name=result.record_name,
@@ -1706,7 +1706,7 @@ class G2PRegisterService(BaseService):
 
             # Base fields to exclude from extra fields
             base_fields: set = {
-                'internal_record_id', 'functional_record_id', 'link_record_id',
+                'internal_record_id', 'functional_record_id', 'link_internal_record_id',
                 'foundational_id', 'link_foundational_id',
                 'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
             }
@@ -1734,7 +1734,7 @@ class G2PRegisterService(BaseService):
             record_data: RecordData = RecordData(
                 internal_record_id=record.internal_record_id,
                 functional_record_id=record.functional_record_id,
-                link_record_id=record.link_record_id,
+                link_internal_record_id=record.link_internal_record_id,
                 foundational_id=record.foundational_id,
                 link_foundational_id=record.link_foundational_id,
                 created_by=record.created_by,

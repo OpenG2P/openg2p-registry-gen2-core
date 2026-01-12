@@ -170,6 +170,8 @@ class G2PRegisterHierarchicalService(BaseService):
     ) -> list[G2PRegisterDefinition] | None:
         """
         Find path from start_register up to target_register via master_register_id.
+        In case of DOWN, start_register is section_register_id, target_register_id is subject_register_id.
+        In case of UP, start_register is subject_register_id, target_register_id is section_register_id.
         
         Args:
             start_register_id: Starting register
@@ -246,7 +248,7 @@ class G2PRegisterHierarchicalService(BaseService):
         extra_fields: dict = {}
 
         base_fields: set = {
-            'internal_record_id', 'functional_record_id', 'link_record_id',
+            'internal_record_id', 'functional_record_id', 'link_internal_record_id',
             'foundational_id', 'link_foundational_id',
             'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
         }
@@ -270,7 +272,7 @@ class G2PRegisterHierarchicalService(BaseService):
         record_data: RecordData = RecordData(
             internal_record_id=record.internal_record_id,
             functional_record_id=record.functional_record_id,
-            link_record_id=record.link_record_id,
+            link_internal_record_id=record.link_internal_record_id,
             foundational_id=record.foundational_id,
             link_foundational_id=record.link_foundational_id,
             created_by=record.created_by,
@@ -328,10 +330,10 @@ class G2PRegisterHierarchicalService(BaseService):
             register_def: G2PRegisterDefinition = path_reversed[i]
             impl_class = self._get_implementation_class(register_def.register_mnemonic)
 
-            # Find all records in this register where link_record_id is in current_record_ids
+            # Find all records in this register where link_internal_record_id is in current_record_ids
             result = await session.execute(
                 select(impl_class).where(
-                    impl_class.link_record_id.in_(current_record_ids)
+                    impl_class.link_internal_record_id.in_(current_record_ids)
                 )
             )
             records = result.scalars().all()
@@ -356,7 +358,7 @@ class G2PRegisterHierarchicalService(BaseService):
         session
     ) -> list[RecordData]:
         """
-        Traverse UP from descendant to ancestor, following link_record_id.
+        Traverse UP from descendant to ancestor, following link_internal_record_id.
 
         Args:
             subject_register: The subject register definition (descendant)
@@ -369,7 +371,7 @@ class G2PRegisterHierarchicalService(BaseService):
         """
         current_record_id: str = subject_record_id
 
-        # Start from subject, traverse up using link_record_id
+        # Start from subject, traverse up using link_internal_record_id
         for i in range(len(path) - 1):
             current_register: G2PRegisterDefinition = path[i]
             impl_class = self._get_implementation_class(current_register.register_mnemonic)
@@ -388,10 +390,10 @@ class G2PRegisterHierarchicalService(BaseService):
                     message=f"Record {current_record_id} not found in register {current_register.register_mnemonic}"
                 )
 
-            if not record.link_record_id:
+            if not record.link_internal_record_id:
                 return []
 
-            current_record_id = record.link_record_id
+            current_record_id = record.link_internal_record_id
 
         # Now get the final record from related_register
         related_register: G2PRegisterDefinition = path[-1]
