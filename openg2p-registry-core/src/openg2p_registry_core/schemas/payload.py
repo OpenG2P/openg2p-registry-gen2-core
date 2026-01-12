@@ -353,6 +353,7 @@ class ChangeRequestData(BaseModel):
     tab_id: str
     internal_record_id: str
     section_id: str
+    section_mnemonic: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
@@ -375,6 +376,7 @@ class ChangeRequestFlattenedData(BaseModel):
     tab_id: str
     internal_record_id: str
     section_id: str
+    section_mnemonic: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
