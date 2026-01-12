@@ -12,6 +12,7 @@ from .services import (
     G2PIngestionConfigurationService,
     G2POutgestionConfigurationService,
     G2PTemplateService,
+    G2PAttributeService,
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
@@ -23,6 +24,7 @@ from .controller_services import (
     G2POutgestionConfigurationControllerService,
     G2PDocumentControllerService,
     G2PRegistryControllerService,
+    G2PAttributeControllerService,
 )
 from .models import (
     DataModel,
@@ -55,7 +57,9 @@ from .models import (
     G2PApplication,
     G2PApplicationSectionPayload,
     DeduplicationRegisterResult,
-    DeduplicationChangerequestResult
+    DeduplicationChangerequestResult,
+    G2PAttribute,
+    G2PAttributeValue,
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
@@ -90,6 +94,7 @@ class Initializer(BaseInitializer):
         G2PIngestionConfigurationService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
+        G2PAttributeService()
 
         # Controller Services
         G2PIngestControllerService()
@@ -101,6 +106,7 @@ class Initializer(BaseInitializer):
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
         G2PRegistryControllerService()
+        G2PAttributeControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -146,5 +152,9 @@ class Initializer(BaseInitializer):
             await OutgoingTemplate.create_migrate()
             await OutgoingRawDataPayload.create_migrate()
             await OutgoingTransformedDataPayload.create_migrate()
-        
+
+            # Attribute Models
+            await G2PAttribute.create_migrate()
+            await G2PAttributeValue.create_migrate()
+
         asyncio.run(migrate())

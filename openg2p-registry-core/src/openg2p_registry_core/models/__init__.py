@@ -47,3 +47,4 @@ from .g2p_application import (
     ApplicationStatusEnum,
     ChangeRequestStatusEnum
 )
+from .g2p_attributes import G2PAttribute, G2PAttributeValue

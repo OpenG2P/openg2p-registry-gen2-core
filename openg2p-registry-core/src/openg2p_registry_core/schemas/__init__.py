@@ -228,3 +228,11 @@ from .outgestion_configuration_request_response import (
     OutgoingTemplateResponseBody,
     OutgoingTemplateResponse,
 )
+from .g2p_attributes import (
+    G2PAttributeValueData,
+    GetG2PAttributeValuesRequestPayload,
+    GetG2PAttributeValuesRequestBody,
+    GetG2PAttributeValuesRequest,
+    GetG2PAttributeValuesResponseBody,
+    GetG2PAttributeValuesResponse,
+)
