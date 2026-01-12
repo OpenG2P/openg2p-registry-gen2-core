@@ -12,11 +12,11 @@ class G2PRegister(BaseORMModel):
 
     internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
-    linked_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to internal_record_id of the parent
-    linked_internal_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to register_id of the parent
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to internal_record_id of the parent
+    link_internal_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to register_id of the parent
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    linked_foundational_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    link_foundational_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
     administrative_area_large_id: Mapped[str] = mapped_column(String, nullable=True, index=True)

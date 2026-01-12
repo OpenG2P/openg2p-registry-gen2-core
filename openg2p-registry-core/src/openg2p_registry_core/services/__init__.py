@@ -6,3 +6,4 @@ from .g2p_ingestion_configuration_service import G2PIngestionConfigurationServic
 from .g2p_outgestion_configuration_service import G2POutgestionConfigurationService
 from .g2p_template_service import G2PTemplateService
 from .filter_builder import FilterBuilder
+from .g2p_attribute_service import G2PAttributeService
