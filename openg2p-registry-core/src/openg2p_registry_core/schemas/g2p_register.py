@@ -6,7 +6,7 @@ class G2PRegisterSchema(BaseModel):
 
     internal_record_id: Optional[str] = None
     functional_record_id: Optional[str] = None
-    link_record_id: Optional[str] = None
+    link_internal_record_id: Optional[str] = None
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
     created_by: Optional[str] = None
