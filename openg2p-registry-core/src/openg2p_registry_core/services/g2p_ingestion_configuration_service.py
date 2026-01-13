@@ -42,6 +42,7 @@ from ..schemas import (
 from .g2p_template_service import G2PTemplateService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import MinioClient, TemplateHelper
+from ..engine import get_engines
 
 _logger = logging.getLogger("g2p-ingestion-configuration-service")
 
@@ -52,7 +53,8 @@ class G2PIngestionConfigurationService(BaseService):
         self, incoming_partner_payload: IncomingPartnerPayload
     ) -> IncomingPartnerData:
         """Create a new incoming partner"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        master_data_engine = get_engines().get("db_engine_master_data")
+        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         async with session_maker() as session:
             # Check if partner mnemonic already exists
             existing = await session.execute(
@@ -80,7 +82,8 @@ class G2PIngestionConfigurationService(BaseService):
 
     async def get_incoming_partner(self, partner_id: str) -> IncomingPartnerData:
         """Get incoming partner by ID"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        master_data_engine = get_engines().get("db_engine_master_data")
+        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         async with session_maker() as session:
             partner = await session.execute(
                 select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
@@ -97,7 +100,8 @@ class G2PIngestionConfigurationService(BaseService):
         self, partner_id: str, incoming_partner_payload: IncomingPartnerUpdatePayload
     ) -> IncomingPartnerData:
         """Update incoming partner - only updates provided fields"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        master_data_engine = get_engines().get("db_engine_master_data")
+        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         async with session_maker() as session:
             partner = await session.execute(
                 select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
@@ -123,7 +127,8 @@ class G2PIngestionConfigurationService(BaseService):
 
     async def delete_incoming_partner(self, partner_id: str) -> None:
         """Soft delete incoming partner"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        master_data_engine = get_engines().get("db_engine_master_data")
+        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         async with session_maker() as session:
             partner = await session.execute(
                 select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
@@ -140,7 +145,8 @@ class G2PIngestionConfigurationService(BaseService):
 
     async def get_all_incoming_partners(self) -> list[IncomingPartnerData]:
         """Get all incoming partners"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        master_data_engine = get_engines().get("db_engine_master_data")
+        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         async with session_maker() as session:
             result = await session.execute(
                 select(IncomingPartner).order_by(IncomingPartner.partner_mnemonic)
