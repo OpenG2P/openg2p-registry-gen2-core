@@ -61,7 +61,6 @@ class G2PIngestService(BaseService):
                 incoming_raw_data_payload = IncomingRawDataPayload(
                     ingest_id=ingest_id,
                     raw_data_json=ingest_data_payload,
-                    raw_data_text=json.dumps(ingest_data_payload),
                 )
 
                 _logger.debug(f"Storing raw data and payload to db with ingest_id: {ingest_id}")
