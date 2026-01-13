@@ -24,3 +24,11 @@ class Settings(BaseSettings):
     minio_secret_key: str = "secret"
     minio_secure: bool = False
     minio_bucket_name: str = "templates"
+
+    # Master Data Database Configuration
+    master_data_db_driver: str = "postgresql+asyncpg"
+    master_data_db_username: str = "postgres"
+    master_data_db_password: str = "postgres"
+    master_data_db_hostname: str = "localhost"
+    master_data_db_port: int = 5432
+    master_data_db_dbname: str = "openg2p_gen2_master_data_db"

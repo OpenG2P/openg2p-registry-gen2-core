@@ -19,6 +19,7 @@ from ..models import (
     IncomingRawDataPayload,
     DataModel,
 )
+from ..engine import get_engines
 
 _logger = logging.getLogger("g2p-partner-service")
 
@@ -104,22 +105,27 @@ class G2PIngestService(BaseService):
         return data_model
 
     async def _get_partner_from_partner_mnemonic(
-        self, partner_mnemonic: str, session: Session
+        self, partner_mnemonic: str
     ) -> IncomingPartner:
-        partner: IncomingPartner = (
-            await session.execute(
-                select(IncomingPartner).where(
-                    IncomingPartner.partner_mnemonic == partner_mnemonic
-                )
-            )
-        ).scalar_one_or_none()
+        """Get incoming partner from master-data-db by partner mnemonic"""
+        master_data_engine = get_engines().get("db_engine_master_data")
+        master_data_session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
 
-        if not partner:
-            raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[1],
-                message=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[0],
-            )
-        return partner
+        async with master_data_session_maker() as master_data_session:
+            partner: IncomingPartner = (
+                await master_data_session.execute(
+                    select(IncomingPartner).where(
+                        IncomingPartner.partner_mnemonic == partner_mnemonic
+                    )
+                )
+            ).scalar_one_or_none()
+
+            if not partner:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[1],
+                    message=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[0],
+                )
+            return partner
 
     def _match_message_id_pattern(self, ingest_data: Dict, incoming_model_key_path: IncomingModelKeyPath) -> str:
         pattern_matcher = PatternMatcher().get_component()
@@ -159,7 +165,7 @@ class G2PIngestService(BaseService):
             )
 
         incoming_partner = await self._get_partner_from_partner_mnemonic(
-            partner_mnemonic, session
+            partner_mnemonic
         )
 
         return incoming_partner, signature, signature_payload, incoming_model_key_path

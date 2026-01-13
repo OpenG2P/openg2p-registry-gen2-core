@@ -44,7 +44,6 @@ from .models import (
     IncomingRawDataPayload,
     IncomingModelSemanticPattern,
     IncomingModelKeyPath,
-    IncomingPartner,
     IncomingTemplate,
     OutgoingTopic,
     OutgoingTemplate,
@@ -135,8 +134,7 @@ class Initializer(BaseInitializer):
             await DeduplicationRegisterResult.create_migrate()
             await DeduplicationChangerequestResult.create_migrate()
 
-            # Incoming Models
-            await IncomingPartner.create_migrate()
+            # Incoming Models (IncomingPartner removed - now in master-data-db)
             await IncomingRawData.create_migrate()
             await IncomingTemplate.create_migrate()
             await IncomingModelKeyPath.create_migrate()
