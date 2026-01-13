@@ -15,7 +15,7 @@ class PatternMatcher(BaseService):
     Example:
         key_path_for_sender = "$.body.sender_name"
         key_path_for_signature = "$.header.auth"
-        key_path_for_signature_payload = "$.body.message.payload"
+        key_path_for_signature_payload = "$.body['header', 'message']"
         key_path_for_business_payload = "$.body.message.payload.business_payload"
         pattern_for_data_model = "$.body.meta.data_model_is=>^[A-Z]+$"
     """
@@ -49,12 +49,27 @@ class PatternMatcher(BaseService):
     def get_business_payload(
         self, incoming_model_semantic_pattern: IncomingModelSemanticPattern, data: Dict
     ) -> Optional[Dict]:
-        business_payload = self._extract_jsonpath(
-            data, incoming_model_semantic_pattern.key_path_for_business_payload
-        )
 
-        if business_payload is None:
+        # parse and evaluate JSONPath directly without _extract_jsonpath
+        expr = jsonpath_parse(
+            incoming_model_semantic_pattern.key_path_for_business_payload
+        )
+        matches = expr.find(data)
+
+        if not matches:
             return None
+
+        # multiple matches -> reconstruct object
+        if len(matches) > 1:
+            result = {}
+            for match in matches:
+                # extract field name: 'header', 'message'
+                field_name = match.path.fields[0]
+                result[field_name] = match.value
+            return result
+
+        # single match -> preserve existing behavior
+        business_payload = matches[0].value
 
         if isinstance(business_payload, dict):
             return business_payload
@@ -66,10 +81,14 @@ class PatternMatcher(BaseService):
             try:
                 return json.loads(business_payload)
             except json.JSONDecodeError:
-                raise ValueError(f"Business payload is not valid JSON: {business_payload}")
+                raise ValueError(
+                    f"Business payload is not valid JSON: {business_payload}"
+                )
 
-        raise TypeError(f"Unsupported business_payload type: {type(business_payload)}")
-    
+        raise TypeError(
+            f"Unsupported business_payload type: {type(business_payload)}"
+        )
+
     def get_data_model_pattern_match(
         self, data_model: DataModel, data: Dict
     ) -> str:
