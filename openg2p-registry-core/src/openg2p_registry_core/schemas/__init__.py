@@ -228,6 +228,28 @@ from .outgestion_configuration_request_response import (
     OutgoingTemplateResponseBody,
     OutgoingTemplateResponse,
 )
+
+from .payload_ingestion import (
+    IngestionSummaryData,
+    IngestionDataSearchResultData,
+    IngestionDataPayload
+)
+from .response_ingestion import (
+    IngestionSummaryDataResponse,
+    IngestionSummaryDataResponseBody,
+    IngestionDataSearchResultsResponse,
+    IngestionDataSearchResultsResponseBody,
+    IngestionDataPayloadResponse,
+    IngestionDataPayloadResponseBody
+)
+from .request_ingestion import (
+    GetIngestionSummaryDataRequest,
+    GetIngestionSummaryDataRequestBody,
+    SearchIngestionDataRequest,
+    SearchIngestionDataRequestBody,
+    GetIngestionDataPayloadRequest,
+    GetIngestionDataPayloadRequestBody
+)
 from .g2p_attributes import (
     G2PAttributeValueData,
     GetG2PAttributeValuesRequestPayload,

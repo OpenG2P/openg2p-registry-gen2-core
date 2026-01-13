@@ -1,5 +1,7 @@
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+import json
+
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, JSON, Index
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 from .data_models import ProcessStatusEnum
@@ -26,6 +28,23 @@ class IncomingRawDataPayload(BaseORMModel):
     ingest_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
     raw_data_json: Mapped[JSON] = mapped_column(JSON, nullable=True)
     raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+    raw_data_text: Mapped[str] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index('ix_incoming_raw_data_payloads_raw_data_text_gin', 'raw_data_text', postgresql_using='gin', postgresql_ops={'raw_data_text': 'gin_trgm_ops'}),
+    )
+
+    @validates('raw_data_json')
+    def update_raw_data_text(self, key, value):
+        """Automatically populate search_text from change_payload JSON (array of payloads)"""
+        if value:
+            # Convert JSON to string representation for searching
+            if isinstance(value, (dict, list)):
+                self.raw_data_text = json.dumps(value)
+            else:
+                self.raw_data_text = str(value)
+        return value
+
 
 class IncomingEnrichedTransformedData(BaseORMModel):
     __tablename__ = "incoming_enriched_transformed_data"
@@ -55,3 +74,5 @@ class IncomingClassifiedData(BaseORMModel):
     ingestion_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
     ingestion_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ingestion_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
+
+    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)

@@ -13,6 +13,7 @@ from .services import (
     G2POutgestionConfigurationService,
     G2PTemplateService,
     G2PAttributeService,
+    G2PIngestionDataService,
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
@@ -25,6 +26,7 @@ from .controller_services import (
     G2PDocumentControllerService,
     G2PRegistryControllerService,
     G2PAttributeControllerService,
+    G2PIngestionDataControllerService,
 )
 from .models import (
     DataModel,
@@ -91,6 +93,7 @@ class Initializer(BaseInitializer):
         G2PRegisterHierarchicalService()
         G2PRegisterDomainService()
         G2PIngestionConfigurationService()
+        G2PIngestionDataService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
         G2PAttributeService()
@@ -102,6 +105,7 @@ class Initializer(BaseInitializer):
         G2PRegisterMetadataControllerService()
         G2PRegisterSummaryControllerService()
         G2PIngestionConfigurationControllerService()
+        G2PIngestionDataControllerService()
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
         G2PRegistryControllerService()

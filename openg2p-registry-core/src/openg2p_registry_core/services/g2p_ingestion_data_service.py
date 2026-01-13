@@ -1,0 +1,170 @@
+import logging
+
+from openg2p_fastapi_common.service import BaseService
+from openg2p_fastapi_common.context import dbengine
+
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import async_sessionmaker
+from ..models import (
+    IncomingRawData,
+    IncomingClassifiedData,
+    IncomingRawDataPayload,
+    IncomingEnrichedTransformedData
+)
+from ..schemas import (
+    IngestionSummaryData,
+    IngestionDataPayload,
+    IngestionDataSearchResultData,
+)
+
+_logger = logging.getLogger("g2p-ingestion-data-service")
+
+class G2PIngestionDataService(BaseService):
+    async def get_ingestion_summary_data(self) -> IngestionSummaryData:
+        _logger.info("Fetching ingestion summary data through service")
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+
+        async with session_maker() as session:
+            no_of_messages: int = (
+                await session.execute(select(func.count()).select_from(IncomingRawData))
+            ).scalar()
+            no_of_partners: int = (
+                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.partner_id))
+            ).scalar()
+            no_of_data_models: int = (
+                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.data_model_id))
+            ).scalar()
+            
+            ingestion_summary_data = IngestionSummaryData(
+                no_of_messages = no_of_messages,
+                no_of_partners = no_of_partners,
+                no_of_data_models = no_of_data_models
+            )
+            return ingestion_summary_data
+    
+    async def search_in_ingestion_data(
+            self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None
+        ) -> tuple[list[IngestionDataSearchResultData], int, int]:
+        _logger.info("Searching in ingestion data through service")
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+
+        async with session_maker() as session:
+            search_results, total_items = await self._search_in_ingestion_data(search_text, current_page, page_size, sort_by, filter_by, session)
+            return search_results, total_items
+    
+    async def get_raw_data_payload(self, ingest_id: int) -> IngestionDataPayload:
+        _logger.info("Fetching raw payload through service")
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+
+        async with session_maker() as session:
+            incoming_raw_data_payload = (
+                await session.execute(select(IncomingRawDataPayload).where(IncomingRawDataPayload.ingest_id == ingest_id))
+            ).scalar_one_or_none()
+            return IngestionDataPayload (
+                raw_data_json = incoming_raw_data_payload.raw_data_json,
+            )
+    
+    async def get_enriched_and_transformed_data_payload(self, ingest_id: int) -> IngestionDataPayload:
+        _logger.info("Fetching enriched and transformed data payload through service")
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+
+        async with session_maker() as session:
+            incoming_enriched_and_transformed_data_payload: IncomingEnrichedTransformedData | None = (
+                await session.execute(select(IncomingEnrichedTransformedData).where(IncomingEnrichedTransformedData.ingest_id == ingest_id))
+            ).scalar_one_or_none()
+            return IngestionDataPayload (
+                enriched_data_json = incoming_enriched_and_transformed_data_payload.enriched_data_json or None,
+                transformed_data_json = incoming_enriched_and_transformed_data_payload.transformed_data_json or None,
+            )
+    
+    async def _search_in_ingestion_data(search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[IngestionDataSearchResultData], int]:
+        """Helper method to search in ingestion data with pagination"""
+        search_query = f"%{search_text}%"
+
+        # Build base query
+        base_query = select(IncomingRawDataPayload.ingest_id).where(IncomingRawDataPayload.raw_data_text.ilike(search_query)).order_by(IncomingRawDataPayload.ingest_id)
+
+        # Get total count
+        count_result = await session.execute(select(func.count()).select_from(IncomingRawDataPayload.ingest_id).where(
+            IncomingRawDataPayload.raw_data_text.ilike(search_query)
+        ))
+        total_items = count_result.scalar() or 0
+
+        # Apply pagination
+        offset = (current_page - 1) * page_size
+        query = base_query.offset(offset).limit(page_size)
+
+        result = await session.execute(query)
+        search_results = result.all()
+        ingest_ids = [row.ingest_id for row in search_results]
+
+        stmt = (
+            select(
+                IncomingRawData.ingest_id,
+                IncomingRawData.partner_id,
+                IncomingRawData.data_model_id,
+                IncomingRawData.ingest_message_id,
+                IncomingRawData.ingest_correlation_id,
+                IncomingRawData.receipt_date_time,
+                IncomingRawData.classification_status,
+                IncomingRawData.classification_date_time,
+                IncomingRawData.classification_number_of_attempts,
+                IncomingRawData.classification_latest_error_code,
+
+                IncomingClassifiedData.change_request_id,
+                IncomingClassifiedData.register_id,
+                IncomingClassifiedData.section_id,
+                IncomingClassifiedData.semantic_pattern_id,
+                IncomingClassifiedData.transformation_status,
+                IncomingClassifiedData.transformation_date_time,
+                IncomingClassifiedData.transformation_number_of_attempts,
+                IncomingClassifiedData.transformation_latest_error_code,
+                IncomingClassifiedData.ingestion_status,
+                IncomingClassifiedData.ingestion_date_time,
+                IncomingClassifiedData.ingestion_number_of_attempts,
+                IncomingClassifiedData.ingestion_latest_error_code,
+            )
+            .outerjoin(
+                IncomingClassifiedData,
+                IncomingClassifiedData.ingest_id == IncomingRawData.ingest_id,
+            )
+            .where(
+                IncomingRawData.ingest_id.in_(ingest_ids)
+            )
+        )
+        result = await session.execute(stmt)
+        rows = result.all()
+
+        ingestion_data_search_result_data_list: list[IngestionDataSearchResultData] = []
+
+        for row in rows:
+            ingestion_data_search_result_data_list.append(
+                IngestionDataSearchResultData(
+                    ingest_id=row.ingest_id,
+                    partner_id=row.partner_id,
+                    data_model_id=row.data_model_id,
+                    ingest_message_id=row.ingest_message_id,
+                    ingest_correlation_id=row.ingest_correlation_id,
+                    receipt_date_time=row.receipt_date_time,
+                    classification_status=row.classification_status,
+                    classification_date_time=row.classification_date_time,
+                    classification_number_of_attempts=row.classification_number_of_attempts,
+                    classification_latest_error_code=row.classification_latest_error_code,
+
+                    change_request_id=row.change_request_id,
+                    register_id=row.register_id,
+                    section_id=row.section_id,
+                    semantic_pattern_id=row.semantic_pattern_id,
+                    transformation_status=row.transformation_status,
+                    transformation_date_time=row.transformation_date_time,
+                    transformation_number_of_attempts=row.transformation_number_of_attempts,
+                    transformation_latest_error_code=row.transformation_latest_error_code,
+                    ingestion_status=row.ingestion_status,
+                    ingestion_date_time=row.ingestion_date_time,
+                    ingestion_number_of_attempts=row.ingestion_number_of_attempts,
+                    ingestion_latest_error_code=row.ingestion_latest_error_code,
+                )
+            )
+
+        return ingestion_data_search_result_data_list, total_items
+
