@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 class IncomingPartner(BaseORMModel):
 
-    __tablename__ = "incoming_partners"
+    __tablename__ = "g2p_partners"
 
     partner_id: Mapped[str] = mapped_column(String, primary_key=True)
     partner_mnemonic: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
