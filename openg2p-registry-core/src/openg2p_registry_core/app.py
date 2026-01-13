@@ -93,7 +93,7 @@ class Initializer(BaseInitializer):
         G2PRegisterHierarchicalService()
         G2PRegisterDomainService()
         G2PIngestionConfigurationService()
-        G2PIngestionDataService
+        G2PIngestionDataService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
         G2PAttributeService()
