@@ -18,7 +18,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration
+    G2PRegistryConfiguration, G2PRegistryDocument
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
@@ -2426,6 +2426,14 @@ class G2PRegisterService(BaseService):
                 # Generate presigned URL for the uploaded document
                 document_url = minio_client.get_url(object_name=document_store_id)
 
+                # Persist document metadata (without URL, which is regenerated when needed)
+                session.add(G2PRegistryDocument(
+                    document_store_id=document_store_id,
+                    document_label_id=document_label_id,
+                    document_label=document_label.document_label,
+                    filename=file.filename,
+                ))
+
                 uploaded_documents.append(UploadedDocumentData(
                     document_store_id=document_store_id,
                     document_label_id=document_label_id,
@@ -2433,6 +2441,8 @@ class G2PRegisterService(BaseService):
                     filename=file.filename,
                     document_url=document_url
                 ))
+
+            await session.commit()
 
             return UploadDocumentsResponseData(uploaded_documents=uploaded_documents)
 
