@@ -11,9 +11,9 @@ class G2PRegister(BaseORMModel):
     __abstract__ = True
 
     internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    functional_record_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to internal_record_id of the parent
-    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    foundational_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)

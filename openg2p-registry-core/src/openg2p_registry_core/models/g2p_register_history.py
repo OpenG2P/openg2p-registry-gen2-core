@@ -14,8 +14,8 @@ class G2PRegisterHistory(BaseORMModel):
     __abstract__ = True
 
     history_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    functional_record_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    functional_record_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)

@@ -221,7 +221,7 @@ class ChangeRequestSearchResultData(BaseModel):
         from_attributes: bool = True
 
 class BaseChangePayload(BaseModel):
-    internal_record_id: str
+    internal_record_id: Optional[str] = None
 
 class ChangePayload(BaseChangePayload):
     class Config:
