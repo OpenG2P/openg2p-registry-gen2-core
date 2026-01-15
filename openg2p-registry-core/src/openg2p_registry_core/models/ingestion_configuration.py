@@ -46,6 +46,7 @@ class IncomingTemplate(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     template_file_id: Mapped[str] = mapped_column(String, nullable=False)
+    jsonld_expansion_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', name='uix_dro_2'),
