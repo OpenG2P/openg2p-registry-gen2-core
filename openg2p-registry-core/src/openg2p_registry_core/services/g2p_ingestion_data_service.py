@@ -26,14 +26,22 @@ class G2PIngestionDataService(BaseService):
 
         async with session_maker() as session:
             no_of_messages: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData))
-            ).scalar()
+                await session.execute(
+                    select(func.count()).select_from(IncomingRawData)
+                )
+            ).scalar() or 0
+
             no_of_partners: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.partner_id))
-            ).scalar()
+                await session.execute(
+                    select(func.count(func.distinct(IncomingRawData.partner_id)))
+                )
+            ).scalar() or 0
+
             no_of_data_models: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.data_model_id))
-            ).scalar()
+                await session.execute(
+                    select(func.count(func.distinct(IncomingRawData.data_model_id)))
+                )
+            ).scalar() or 0
             
             ingestion_summary_data = IngestionSummaryData(
                 no_of_messages = no_of_messages,
@@ -77,7 +85,7 @@ class G2PIngestionDataService(BaseService):
                 transformed_data_json = incoming_enriched_and_transformed_data_payload.transformed_data_json or None,
             )
     
-    async def _search_in_ingestion_data(search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[IngestionDataSearchResultData], int]:
+    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[IngestionDataSearchResultData], int]:
         """Helper method to search in ingestion data with pagination"""
         search_query = f"%{search_text}%"
 
@@ -85,9 +93,11 @@ class G2PIngestionDataService(BaseService):
         base_query = select(IncomingRawDataPayload.ingest_id).where(IncomingRawDataPayload.raw_data_text.ilike(search_query)).order_by(IncomingRawDataPayload.ingest_id)
 
         # Get total count
-        count_result = await session.execute(select(func.count()).select_from(IncomingRawDataPayload.ingest_id).where(
-            IncomingRawDataPayload.raw_data_text.ilike(search_query)
-        ))
+        count_result = await session.execute(
+            select(func.count())
+            .select_from(IncomingRawDataPayload)
+            .where(IncomingRawDataPayload.raw_data_text.ilike(search_query))
+        )
         total_items = count_result.scalar() or 0
 
         # Apply pagination
