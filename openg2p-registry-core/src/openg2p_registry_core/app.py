@@ -61,6 +61,7 @@ from .models import (
     DeduplicationChangerequestResult,
     G2PAttribute,
     G2PAttributeValue,
+    G2PRegistryDocument,
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
@@ -133,6 +134,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterSectionDocumentLabel.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
             await G2PRegisterChangeRequestDocument.create_migrate()
+            await G2PRegistryDocument.create_migrate()
 
             # Deduplication Models
             await DeduplicationRegisterResult.create_migrate()
