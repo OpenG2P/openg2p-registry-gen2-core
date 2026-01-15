@@ -1,7 +1,6 @@
 import logging
 import uuid
 import importlib
-import inspect
 from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
@@ -9,7 +8,7 @@ from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select
+from sqlalchemy import func, insert, select, inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
@@ -1574,6 +1573,14 @@ class G2PRegisterService(BaseService):
         except Exception as error:
             _logger.warning(f"Error fetching old register data for change request {change_request_id}: {str(error)}")
 
+        g2p_register_section: G2PRegisterSection = (
+            await session.execute(
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.section_id == change_request.section_id
+                )
+            )
+        ).scalar()
+
         # Create ChangeRequestData object
         change_request_data: ChangeRequestData = ChangeRequestData(
             change_request_id=change_request.change_request_id,
@@ -1581,7 +1588,7 @@ class G2PRegisterService(BaseService):
             tab_id=change_request.tab_id,
             internal_record_id=change_request.internal_record_id,
             section_id=change_request.section_id,
-            section_mnemonic=change_request.section_mnemonic,
+            section_mnemonic=g2p_register_section.section_mnemonic,
             source_partner_id=change_request.source_partner_id,
             created_by=change_request.created_by,
             created_at=created_at_str,

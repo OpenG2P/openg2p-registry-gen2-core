@@ -215,7 +215,8 @@ class ChangeRequestSearchResultData(BaseModel):
     approval_status: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
-    change_payload: Optional[dict] = None
+    # Stored in DB as JSON; historically dict, now typically a list of dict payloads
+    change_payload: Optional[dict | List[dict]] = None
 
     class Config:
         from_attributes: bool = True
@@ -362,7 +363,7 @@ class ChangeRequestData(BaseModel):
     approval_status: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
-    change_payload: Optional[dict] = None
+    change_payload: Optional[dict | List[dict]] = None
     current_register_data: Optional[dict] = None
 
     class Config:
