@@ -130,7 +130,7 @@ class G2PIngestService(BaseService):
     def _match_message_id_pattern(self, ingest_data: Dict, incoming_model_key_path: IncomingModelKeyPath) -> str:
         pattern_matcher = PatternMatcher().get_component()
 
-        message_id: str = pattern_matcher.get_message_id_pattern_match(ingest_data, incoming_model_key_path)
+        message_id: str = pattern_matcher.get_message_id_pattern_match(incoming_model_key_path, ingest_data)
         return message_id
     
     def _match_data_model_pattern(
@@ -155,7 +155,7 @@ class G2PIngestService(BaseService):
                 )
             )
         ).scalar_one_or_none()
-        partner_mnemonic, signature, signature_payload, incoming_model_key_path = pattern_matcher.get_signature_pattern_path(
+        partner_mnemonic, signature, signature_payload = pattern_matcher.get_signature_pattern_path(
             incoming_model_key_path, ingest_data
         )
         if not partner_mnemonic or not signature or not signature_payload:
