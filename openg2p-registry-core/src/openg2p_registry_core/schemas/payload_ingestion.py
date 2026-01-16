@@ -12,7 +12,9 @@ class IngestionSummaryData(BaseModel):
 class IngestionDataSearchResultData(BaseModel):
     ingest_id: str
     partner_id: str
+    partner_mnemonic: str
     data_model_id: str
+    data_model_mnemonic: str
     ingest_message_id: str
     ingest_correlation_id: str
     receipt_date_time: datetime
@@ -23,8 +25,12 @@ class IngestionDataSearchResultData(BaseModel):
 
     change_request_id: Optional[str] = None
     register_id: Optional[str] = None
+    register_mnemonic: Optional[str] = None
     section_id: Optional[str] = None
+    section_mnemonic: Optional[str] = None
     semantic_pattern_id: Optional[str] = None
+    template_id: Optional[str] = None
+    template_file_id: Optional[str] = None
     transformation_status: Optional[str] = None
     transformation_date_time: Optional[datetime] = None
     transformation_number_of_attempts: Optional[int] = None
