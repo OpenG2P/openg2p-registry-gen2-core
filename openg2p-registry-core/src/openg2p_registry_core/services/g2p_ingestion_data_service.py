@@ -3,19 +3,25 @@ import logging
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from ..models import (
+    DataModel,
+    IncomingPartner,
     IncomingRawData,
     IncomingClassifiedData,
     IncomingRawDataPayload,
-    IncomingEnrichedTransformedData
+    IncomingTemplate,
+    IncomingEnrichedTransformedData,
+    G2PRegisterDefinition,
+    G2PRegisterSection
 )
 from ..schemas import (
     IngestionSummaryData,
     IngestionDataPayload,
     IngestionDataSearchResultData,
 )
+from ..engine import get_engines
 
 _logger = logging.getLogger("g2p-ingestion-data-service")
 
@@ -46,10 +52,12 @@ class G2PIngestionDataService(BaseService):
             self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None
         ) -> tuple[list[IngestionDataSearchResultData], int, int]:
         _logger.info("Searching in ingestion data through service")
+        master_data_engine = get_engines().get("db_engine_master_data")
+        master_data_session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
-        async with session_maker() as session:
-            search_results, total_items = await self._search_in_ingestion_data(search_text, current_page, page_size, sort_by, filter_by, session)
+        async with session_maker() as session, master_data_session_maker() as master_data_session:
+            search_results, total_items = await self._search_in_ingestion_data(search_text, current_page, page_size, sort_by, filter_by, session, master_data_session)
             return search_results, total_items
     
     async def get_raw_data_payload(self, ingest_id: int) -> IngestionDataPayload:
@@ -77,32 +85,39 @@ class G2PIngestionDataService(BaseService):
                 transformed_data_json = incoming_enriched_and_transformed_data_payload.transformed_data_json or None,
             )
     
-    async def _search_in_ingestion_data(search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[IngestionDataSearchResultData], int]:
+    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session, master_data_session) -> tuple[list[IngestionDataSearchResultData], int]:
         """Helper method to search in ingestion data with pagination"""
         search_query = f"%{search_text}%"
 
         # Build base query
-        base_query = select(IncomingRawDataPayload.ingest_id).where(IncomingRawDataPayload.raw_data_text.ilike(search_query)).order_by(IncomingRawDataPayload.ingest_id)
+        base_query = (
+            select(IncomingRawDataPayload.ingest_id)
+            .where(IncomingRawDataPayload.raw_data_text.ilike(search_query))
+            .order_by(IncomingRawDataPayload.ingest_id)
+        )
 
-        # Get total count
-        count_result = await session.execute(select(func.count()).select_from(IncomingRawDataPayload.ingest_id).where(
-            IncomingRawDataPayload.raw_data_text.ilike(search_query)
-        ))
-        total_items = count_result.scalar() or 0
+        count_stmt = (
+            select(func.count())
+            .select_from(IncomingRawDataPayload)
+            .where(IncomingRawDataPayload.raw_data_text.ilike(search_query))
+        )
 
-        # Apply pagination
+        total_items = (await session.execute(count_stmt)).scalar() or 0
+
         offset = (current_page - 1) * page_size
         query = base_query.offset(offset).limit(page_size)
 
-        result = await session.execute(query)
-        search_results = result.all()
-        ingest_ids = [row.ingest_id for row in search_results]
+        ingest_ids = (await session.execute(query)).scalars().all()
+
+        if not ingest_ids:
+            return [], total_items
 
         stmt = (
             select(
                 IncomingRawData.ingest_id,
                 IncomingRawData.partner_id,
                 IncomingRawData.data_model_id,
+                DataModel.data_model_mnemonic,
                 IncomingRawData.ingest_message_id,
                 IncomingRawData.ingest_correlation_id,
                 IncomingRawData.receipt_date_time,
@@ -113,8 +128,14 @@ class G2PIngestionDataService(BaseService):
 
                 IncomingClassifiedData.change_request_id,
                 IncomingClassifiedData.register_id,
+                G2PRegisterDefinition.register_mnemonic,
                 IncomingClassifiedData.section_id,
+                G2PRegisterSection.section_mnemonic,
                 IncomingClassifiedData.semantic_pattern_id,
+
+                IncomingTemplate.template_id,
+                IncomingTemplate.template_file_id,
+
                 IncomingClassifiedData.transformation_status,
                 IncomingClassifiedData.transformation_date_time,
                 IncomingClassifiedData.transformation_number_of_attempts,
@@ -124,25 +145,63 @@ class G2PIngestionDataService(BaseService):
                 IncomingClassifiedData.ingestion_number_of_attempts,
                 IncomingClassifiedData.ingestion_latest_error_code,
             )
+            .select_from(IncomingRawData)
+
+            # needed for data_model_mnemonic
+            .outerjoin(
+                DataModel,
+                DataModel.data_model_id == IncomingRawData.data_model_id,
+            )
+
+            # needed for classified data
             .outerjoin(
                 IncomingClassifiedData,
                 IncomingClassifiedData.ingest_id == IncomingRawData.ingest_id,
             )
-            .where(
-                IncomingRawData.ingest_id.in_(ingest_ids)
+
+            # needed for register_mnemonic
+            .outerjoin(
+                G2PRegisterDefinition,
+                G2PRegisterDefinition.register_id == IncomingClassifiedData.register_id,
             )
+
+            # needed for section_mnemonic
+            .outerjoin(
+                G2PRegisterSection,
+                G2PRegisterSection.section_id == IncomingClassifiedData.section_id,
+            )
+
+            # needed for template
+            .outerjoin(
+                IncomingTemplate,
+                and_(
+                    IncomingTemplate.data_model_id == IncomingRawData.data_model_id,
+                    IncomingTemplate.register_id == IncomingClassifiedData.register_id,
+                )
+            )
+
+            .where(IncomingRawData.ingest_id.in_(ingest_ids))
         )
+
         result = await session.execute(stmt)
         rows = result.all()
 
         ingestion_data_search_result_data_list: list[IngestionDataSearchResultData] = []
 
         for row in rows:
+            partner_mnemonic = None
+            if row.partner_id:
+                partner_mnemonic: str | None = (
+                    await master_data_session.execute(select(IncomingPartner.partner_mnemonic).where(IncomingPartner.partner_id == row.partner_id))
+                ).scalar_one_or_none()
+
             ingestion_data_search_result_data_list.append(
                 IngestionDataSearchResultData(
                     ingest_id=row.ingest_id,
                     partner_id=row.partner_id,
+                    partner_mnemonic=partner_mnemonic,
                     data_model_id=row.data_model_id,
+                    data_model_mnemonic=row.data_model_mnemonic,
                     ingest_message_id=row.ingest_message_id,
                     ingest_correlation_id=row.ingest_correlation_id,
                     receipt_date_time=row.receipt_date_time,
@@ -153,8 +212,12 @@ class G2PIngestionDataService(BaseService):
 
                     change_request_id=row.change_request_id,
                     register_id=row.register_id,
+                    register_mnemonic=row.register_mnemonic,
                     section_id=row.section_id,
+                    section_mnemonic=row.section_mnemonic,
                     semantic_pattern_id=row.semantic_pattern_id,
+                    template_id=row.template_id,
+                    template_file_id=row.template_file_id,
                     transformation_status=row.transformation_status,
                     transformation_date_time=row.transformation_date_time,
                     transformation_number_of_attempts=row.transformation_number_of_attempts,
