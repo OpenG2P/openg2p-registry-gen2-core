@@ -47,7 +47,8 @@ from .request import (
     GetEarliestPendingChangeRequestRequest, GetEarliestPendingChangeRequestRequestBody,
     GetDocumentLabelsForSectionRequest, GetDocumentLabelsForSectionRequestBody, GetDocumentLabelsForSectionRequestPayload,
     GetSectionDocumentsRequest, GetSectionDocumentsRequestBody, GetSectionDocumentsRequestPayload,
-    GetSectionDocumentsForChangeRequestRequest, GetSectionDocumentsForChangeRequestRequestBody, GetSectionDocumentsForChangeRequestRequestPayload
+    GetSectionDocumentsForChangeRequestRequest, GetSectionDocumentsForChangeRequestRequestBody, GetSectionDocumentsForChangeRequestRequestPayload,
+    FileUrlRequestPayload, FileUrlRequestBody, FileUrlRequest
 )
 from .response import (
     ChangeRequestResponse, ChangeRequestResponseBody,
@@ -86,7 +87,8 @@ from .response import (
     EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody,
     DocumentLabelsForSectionResponse, DocumentLabelsForSectionResponseBody,
     SectionDocumentsResponse, SectionDocumentsResponseBody,
-    ChangeRequestDocumentsResponse, ChangeRequestDocumentsResponseBody
+    ChangeRequestDocumentsResponse, ChangeRequestDocumentsResponseBody,
+    FileUrlResponseBody, FileUrlResponse,
 )
 from .payload import (
     ChangeRequestRequestPayload, ChangeRequestResponsePayload,
@@ -104,7 +106,7 @@ from .payload import (
     RegisterTabRecordData,
     RegistryConfigurationData, RegistryConfigurationPayload, RegistryConfigurationUpdatePayload,
     NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    DocumentLabelData, DocumentLabelsForSectionData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData
+    DocumentLabelData, DocumentLabelsForSectionData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema
