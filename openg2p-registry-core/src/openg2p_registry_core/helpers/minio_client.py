@@ -4,8 +4,15 @@ from minio.error import S3Error
 from minio.helpers import ObjectWriteResult
 from typing import Optional, BinaryIO
 from datetime import timedelta
+from enum import Enum
 
 from openg2p_fastapi_common.service import BaseService
+
+class MinioBucketEnum(Enum):
+    DEFAULT = "default"
+    TEMPLATES = "templates"
+    DOCUMENTS = "documents"
+    RECORD_IMAGES = "record_images"
 
 class MinioClient(BaseService):
     """

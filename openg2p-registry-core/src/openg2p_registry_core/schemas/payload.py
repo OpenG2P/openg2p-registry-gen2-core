@@ -542,6 +542,10 @@ class UploadRecordImageData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+class FileUrlData(BaseModel):
+    """Response data for get_file_url endpoint"""
+    file_url: Optional[str] = None
+
 
 class DocumentLabelData(BaseModel):
     """Data for a document label"""
