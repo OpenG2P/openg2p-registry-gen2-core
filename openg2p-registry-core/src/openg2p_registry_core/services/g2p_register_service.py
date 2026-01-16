@@ -857,7 +857,7 @@ class G2PRegisterService(BaseService):
 
     async def _fetch_all_registers(self, session) -> list[RegisterData]:
         register_definitions: list[G2PRegisterDefinition] = (
-            await session.execute(select(G2PRegisterDefinition))
+            await session.execute(select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value))
         ).scalars().all()
 
         all_registers_list: list[RegisterData] = []
