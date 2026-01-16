@@ -32,14 +32,22 @@ class G2PIngestionDataService(BaseService):
 
         async with session_maker() as session:
             no_of_messages: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData))
-            ).scalar()
+                await session.execute(
+                    select(func.count()).select_from(IncomingRawData)
+                )
+            ).scalar() or 0
+
             no_of_partners: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.partner_id))
-            ).scalar()
+                await session.execute(
+                    select(func.count(func.distinct(IncomingRawData.partner_id)))
+                )
+            ).scalar() or 0
+
             no_of_data_models: int = (
-                await session.execute(select(func.count()).select_from(IncomingRawData).distinct(IncomingRawData.data_model_id))
-            ).scalar()
+                await session.execute(
+                    select(func.count(func.distinct(IncomingRawData.data_model_id)))
+                )
+            ).scalar() or 0
             
             ingestion_summary_data = IngestionSummaryData(
                 no_of_messages = no_of_messages,

@@ -1,7 +1,6 @@
 import logging
 import uuid
 import importlib
-import inspect
 from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
@@ -9,7 +8,7 @@ from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select
+from sqlalchemy import func, insert, select, inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import (
@@ -18,7 +17,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration
+    G2PRegistryConfiguration, G2PRegistryDocument
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
@@ -1574,6 +1573,14 @@ class G2PRegisterService(BaseService):
         except Exception as error:
             _logger.warning(f"Error fetching old register data for change request {change_request_id}: {str(error)}")
 
+        g2p_register_section: G2PRegisterSection = (
+            await session.execute(
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.section_id == change_request.section_id
+                )
+            )
+        ).scalar()
+
         # Create ChangeRequestData object
         change_request_data: ChangeRequestData = ChangeRequestData(
             change_request_id=change_request.change_request_id,
@@ -1581,7 +1588,7 @@ class G2PRegisterService(BaseService):
             tab_id=change_request.tab_id,
             internal_record_id=change_request.internal_record_id,
             section_id=change_request.section_id,
-            section_mnemonic=change_request.section_mnemonic,
+            section_mnemonic=g2p_register_section.section_mnemonic,
             source_partner_id=change_request.source_partner_id,
             created_by=change_request.created_by,
             created_at=created_at_str,
@@ -2426,6 +2433,14 @@ class G2PRegisterService(BaseService):
                 # Generate presigned URL for the uploaded document
                 document_url = minio_client.get_url(object_name=document_store_id)
 
+                # Persist document metadata (without URL, which is regenerated when needed)
+                session.add(G2PRegistryDocument(
+                    document_store_id=document_store_id,
+                    document_label_id=document_label_id,
+                    document_label=document_label.document_label,
+                    filename=file.filename,
+                ))
+
                 uploaded_documents.append(UploadedDocumentData(
                     document_store_id=document_store_id,
                     document_label_id=document_label_id,
@@ -2433,6 +2448,8 @@ class G2PRegisterService(BaseService):
                     filename=file.filename,
                     document_url=document_url
                 ))
+
+            await session.commit()
 
             return UploadDocumentsResponseData(uploaded_documents=uploaded_documents)
 
