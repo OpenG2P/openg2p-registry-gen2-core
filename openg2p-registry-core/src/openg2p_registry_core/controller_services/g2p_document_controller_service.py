@@ -1,6 +1,7 @@
 import logging
 from openg2p_fastapi_common.service import BaseService
 
+from .. helpers import MinioClient
 from ..services import G2PRegisterService
 from ..schemas import (
     UploadDocumentsResponseData,
@@ -10,7 +11,8 @@ from ..schemas import (
     ChangeRequestDocumentsData,
     GetDocumentLabelsForSectionRequest,
     GetSectionDocumentsRequest,
-    GetSectionDocumentsForChangeRequestRequest
+    GetSectionDocumentsForChangeRequestRequest,
+    FileUrlRequest, FileUrlData
 )
 
 _logger = logging.getLogger('g2p-document-controller-service')
@@ -129,3 +131,22 @@ class G2PDocumentControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         return await g2p_register_service.get_section_documents_for_change_request(change_request_id)
 
+    async def get_file_url(
+        self,
+        request: FileUrlRequest
+    ) -> FileUrlData:
+        """
+        Get the URL for a file.
+
+        Args:
+            request: Request containing file_name and bucket_name
+
+        Returns:
+            FileUrlData with URL for the specified file
+        """
+        payload = request.request_body.request_payload
+        _logger.info(f"Getting file URL for file_name: {payload.file_name}, bucket_name: {payload.bucket_name}")
+
+        minio_client = MinioClient.get_component()
+        file_url = minio_client.get_url(payload.file_name, payload.bucket_name)
+        return FileUrlData(file_url=file_url)
