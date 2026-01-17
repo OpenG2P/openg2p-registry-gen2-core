@@ -65,6 +65,7 @@ from .models import (
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
+from .cache import init_cache
 
 from .config import Settings
 
@@ -75,6 +76,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
         super().initialize()
+
+        # Cache
+        init_cache()
 
         # Helpers
         MinioClient(
