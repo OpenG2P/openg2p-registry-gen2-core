@@ -2,6 +2,7 @@ import logging
 import uuid
 import importlib
 from datetime import datetime
+from fastapi_cache.decorator import cache
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -10,6 +11,8 @@ from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from ..cache import metadata_key_builder
 
 from ..models import (
     G2PRegisterChangeRequest, G2PRegisterChangeRequestPayload, G2PRegisterChangeRequestDocument,
@@ -33,13 +36,28 @@ from ..schemas import (
     UploadedDocumentData, UploadDocumentsResponseData,
     RegistryConfigurationData, EarliestPendingChangeRequestData
 )
+from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder
 
 _logger = logging.getLogger('g2p-register-service')
 _engine = dbengine.get()
+_config = Settings.get_config(strict=False)
 
 class G2PRegisterService(BaseService):
+
+
+    @cache(expire=_config.cache_expires_in_seconds, key_builder=metadata_key_builder)
+    async def _get_register_definition(self, register_id: str, session):
+        return await session.get(G2PRegisterDefinition, register_id)
+
+    @cache(expire=_config.cache_expires_in_seconds, key_builder=metadata_key_builder)
+    async def _get_section(self, section_id: str, session):
+        return await session.get(G2PRegisterSection, section_id)
+
+    @cache(expire=_config.cache_expires_in_seconds, key_builder=metadata_key_builder)
+    async def _get_tab(self, tab_id: str, session):
+        return await session.get(G2PRegisterUITab, tab_id)
 
     async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, application_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -497,8 +515,6 @@ class G2PRegisterService(BaseService):
         # Note: internal_record_id is already set during change request creation in construct_change_request
         # Do not generate a new one here during approval
         return g2p_register_section
-        
-
 
         
     async def validate_change_request_exists(self, change_request_id: str, session) -> G2PRegisterChangeRequest:
@@ -688,8 +704,6 @@ class G2PRegisterService(BaseService):
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
                 
-            
-
     async def validate_register_definition(self, register_id: str, session) -> G2PRegisterDefinition:
         g2p_register_definition: G2PRegisterDefinition = (
             await session.execute(
@@ -705,6 +719,22 @@ class G2PRegisterService(BaseService):
             )
 
         return g2p_register_definition
+
+    async def validate_tab(self, tab_id: str, session) -> G2PRegisterUITab:
+        g2p_register_tab: G2PRegisterUITab = (
+            await session.execute(
+                select(G2PRegisterUITab).where(
+                    G2PRegisterUITab.tab_id == tab_id
+                )
+            )
+        ).scalar()
+        if not g2p_register_tab:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.TAB_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.TAB_NOT_FOUND.value[0]
+            )
+
+        return g2p_register_tab
 
     async def validate_section(self, section_id: str, session) -> G2PRegisterSection:
 
@@ -1112,13 +1142,28 @@ class G2PRegisterService(BaseService):
             # Get change_payload from the payload object
             change_payload = payload.change_payload if payload else None
 
+            # Get register mnemonic from the register object
+            register_metadata = await self._get_register_definition(change_request.register_id, session)
+            section_metadata = await self._get_section(change_request.section_id, session)
+            tab_metadata = await self._get_tab(change_request.tab_id, session)
+
+            if isinstance(register_metadata, dict):
+                register_metadata = G2PRegisterDefinition(**register_metadata)
+            if isinstance(section_metadata, dict):
+                section_metadata = G2PRegisterSection(**section_metadata)
+            if isinstance(tab_metadata, dict):
+                tab_metadata = G2PRegisterUITab(**tab_metadata)
+
             # Create ChangeRequestSearchResultData object
             change_request_search_result: ChangeRequestSearchResultData = ChangeRequestSearchResultData(
                 change_request_id=change_request.change_request_id,
                 register_id=change_request.register_id,
+                register_mnemonic=register_metadata.register_mnemonic,
                 tab_id=change_request.tab_id,
+                tab_label=tab_metadata.tab_label,
                 internal_record_id=change_request.internal_record_id,
                 section_id=change_request.section_id,
+                section_mnemonic=section_metadata.section_mnemonic,
                 source_partner_id=change_request.source_partner_id,
                 created_by=change_request.created_by,
                 created_at=created_at_str,
