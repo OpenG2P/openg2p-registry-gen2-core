@@ -204,9 +204,12 @@ class RecordData(BaseModel):
 class ChangeRequestSearchResultData(BaseModel):
     change_request_id: str
     register_id: str
+    register_mnemonic: str
     tab_id: str
+    tab_label: str
     internal_record_id: str
     section_id: str
+    section_mnemonic: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
