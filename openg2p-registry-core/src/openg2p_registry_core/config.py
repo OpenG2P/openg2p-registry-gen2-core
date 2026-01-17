@@ -32,3 +32,6 @@ class Settings(BaseSettings):
     master_data_db_hostname: str = "localhost"
     master_data_db_port: int = 5432
     master_data_db_dbname: str = "openg2p_gen2_master_data_db"
+
+    # Cache Configuration
+    cache_expires_in_seconds: int = 60 * 5
