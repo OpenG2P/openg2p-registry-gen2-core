@@ -58,6 +58,7 @@ class G2PRegisterHierarchicalService(BaseService):
             )
 
             # Build hierarchy path and determine direction
+            path: list[G2PRegisterDefinition] = []
             path, direction = await self._build_register_hierarchy_path(
                 subject_register_id, section_register_id, session
             )
@@ -67,12 +68,23 @@ class G2PRegisterHierarchicalService(BaseService):
                 return await self._traverse_down_hierarchy(
                     subject_register, subject_record_id, path, session
                 )
-            else:
+            elif direction == "UP":
                 # Subject is descendant, traverse UP to get section record
                 return await self._traverse_up_hierarchy(
                     subject_register, subject_record_id, path, session
                 )
+            elif direction == "PEER":
+                # Subject and section are peers, traverse both directions
+                return await self._traverse_peer_hierarchy(
+                    subject_register, subject_record_id, path, session
+                )
 
+            else:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=f"Register with id {section_register_id} not found"
+                )
+    
     async def _get_same_register_record(
         self,
         register: G2PRegisterDefinition,
@@ -156,10 +168,35 @@ class G2PRegisterHierarchicalService(BaseService):
         if path_from_subject:
             return (path_from_subject, "UP")
 
+        # If no path found, try peers
+        path_from_peer: list[G2PRegisterDefinition] | None = await self._find_path_to_peer(
+            subject_register_id, section_register_id, session
+        )
+        if path_from_peer:
+            return (path_from_peer, "PEER")
+
         raise G2PRegistryException(
             code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
             message=f"No hierarchy path found between registers {subject_register_id} and {section_register_id}"
         )
+    async def _find_path_to_peer(
+        self,
+        subject_register_id: str,
+        section_register_id: str,
+        session,
+    ) -> list[G2PRegisterDefinition] | None:
+        """
+        Find path from start_register up to target_register via master_register_id.
+        In case of DOWN, start_register is section_register_id, target_register_id is subject_register_id.
+        In case of UP, start_register is subject_register_id, target_register_id is section_register_id.
+        """
+        subject_register: G2PRegisterDefinition | None = await session.get(G2PRegisterDefinition, subject_register_id)
+        section_register: G2PRegisterDefinition | None = await session.get(G2PRegisterDefinition, section_register_id)
+
+        if subject_register.master_register_id == section_register.master_register_id:
+            return [section_register]
+
+        return None
 
     async def _find_path_to_ancestor(
         self,
@@ -283,6 +320,36 @@ class G2PRegisterHierarchicalService(BaseService):
         )
 
         return record_data
+    
+    async def _traverse_peer_hierarchy(
+        self,
+        subject_register: G2PRegisterDefinition,
+        subject_record_id: str,
+        path: list[G2PRegisterDefinition],
+        session
+    ) -> list[RecordData]:
+        
+        # Get subject record from subject register
+        subject_impl_class = self._get_implementation_class(subject_register.register_mnemonic)
+        subject_record = await session.get(subject_impl_class, subject_record_id)
+        
+        if not subject_record:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                message=f"Subject record {subject_record_id} not found"
+            )
+
+        # Get records from section register where section records link_internal_record_id = subject records internal_record_id
+        peer_record_impl_class = self._get_implementation_class(path[0].register_mnemonic)
+        peer_records = await session.execute(
+            select(peer_record_impl_class).where(
+                peer_record_impl_class.link_internal_record_id == subject_record.link_internal_record_id
+            )
+        )
+        peer_records = peer_records.scalars().all()
+
+        return [self._convert_record_to_record_data(record) for record in peer_records]
+
 
     async def _traverse_down_hierarchy(
         self,
