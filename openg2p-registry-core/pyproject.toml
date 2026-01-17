@@ -22,7 +22,8 @@ dependencies = [
   "jinja2",
   "minio",
   "pyld",
-  "uuid"
+  "uuid",
+  "fastapi-cache2"
 ]
 dynamic = ["version"]
 
