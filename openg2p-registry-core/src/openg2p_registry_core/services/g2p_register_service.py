@@ -1686,6 +1686,15 @@ class G2PRegisterService(BaseService):
             # Get change_payload from the payload object
             change_payload = payload.change_payload if payload else {}
 
+            # Get section to retrieve section_mnemonic
+            g2p_register_section: G2PRegisterSection = (
+                await session.execute(
+                    select(G2PRegisterSection).where(
+                        G2PRegisterSection.section_id == change_request.section_id
+                    )
+                )
+            ).scalar()
+
             # Create base ChangeRequestFlattenedData object
             change_request_data_dict = {
                 "change_request_id": change_request.change_request_id,
@@ -1693,7 +1702,7 @@ class G2PRegisterService(BaseService):
                 "tab_id": change_request.tab_id,
                 "internal_record_id": change_request.internal_record_id,
                 "section_id": change_request.section_id,
-                "section_mnemonic": change_request.section_mnemonic,
+                "section_mnemonic": g2p_register_section.section_mnemonic,
                 "source_partner_id": change_request.source_partner_id,
                 "created_by": change_request.created_by,
                 "created_at": created_at_str,
