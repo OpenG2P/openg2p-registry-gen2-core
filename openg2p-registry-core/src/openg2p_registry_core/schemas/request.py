@@ -136,6 +136,35 @@ class GetRecordHistoryRequest(G2PRequest):
     request_body: GetRecordHistoryRequestBody
 
 
+class GetVersionDatesRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+
+
+class GetVersionDatesRequestBody(G2PRequestBody):
+    request_payload: GetVersionDatesRequestPayload
+
+
+class GetVersionDatesRequest(G2PRequest):
+    request_body: GetVersionDatesRequestBody
+
+
+class GetChangesForDateRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+    truncated_created_date: str
+
+
+class GetChangesForDateRequestBody(G2PRequestBody):
+    request_payload: GetChangesForDateRequestPayload
+
+
+class GetChangesForDateRequest(G2PRequest):
+    request_body: GetChangesForDateRequestBody
+
+
 class GetNumberOfPendingChangeRequestsRequestPayload(BaseModel):
     subject_register_id: str
     subject_record_id: str

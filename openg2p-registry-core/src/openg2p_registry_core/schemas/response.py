@@ -15,7 +15,7 @@ from .payload import (
     RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
     SectionDocumentsData, ChangeRequestDocumentsData,
-    RecordHistoryData, RecordHistoryListData, FileUrlData
+    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData
 )
 
 
@@ -87,6 +87,22 @@ class RecordHistoryDataResponseBody(G2PResponseBody):
 
 class RecordHistoryDataResponse(G2PResponse):
     response_body: Optional[RecordHistoryDataResponseBody] = None
+
+
+class VersionDatesDataResponseBody(G2PResponseBody):
+    response_payload: Optional["VersionDatesData"] = None
+
+
+class VersionDatesDataResponse(G2PResponse):
+    response_body: Optional[VersionDatesDataResponseBody] = None
+
+
+class ChangesForDateDataResponseBody(G2PResponseBody):
+    response_payload: Optional["VersionsForDateData"] = None
+
+
+class ChangesForDateDataResponse(G2PResponse):
+    response_body: Optional[ChangesForDateDataResponseBody] = None
 
 
 class NumberOfPendingChangeRequestsResponseBody(G2PResponseBody):

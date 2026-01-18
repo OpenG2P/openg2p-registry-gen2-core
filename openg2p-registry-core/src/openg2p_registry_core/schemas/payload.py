@@ -313,6 +313,31 @@ class RecordHistoryListData(BaseModel):
     history_records: List["RecordHistoryData"] = []
 
 
+class VersionDatesData(BaseModel):
+    """Container for a list of unique version dates"""
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+    version_dates: List[str] = []
+
+
+class VersionForDateData(BaseModel):
+    """Individual change record for a specific date"""
+    change_request_id: str
+    section_id: str
+    section_mnemonic: str
+    created_at: str
+
+
+class VersionsForDateData(BaseModel):
+    """Container for a list of changes for a specific date"""
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+    truncated_created_date: str
+    changes: List[VersionForDateData] = []
+
+
 class NumberOfPendingChangeRequestsData(BaseModel):
     subject_register_id: str
     subject_record_id: str

@@ -25,7 +25,7 @@ from ..models import (
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
-    RecordHistoryData, RecordHistoryListData,
+    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData,
@@ -1344,6 +1344,118 @@ class G2PRegisterService(BaseService):
                 internal_record_id=internal_record_id,
                 tab_id=tab_id,
                 history_records=history_data_list
+            )
+
+    async def get_version_dates(self, register_id: str, internal_record_id: str, tab_id: str) -> VersionDatesData:
+        """Get unique truncated dates from history records for a given register, internal_record_id and tab_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, history_class_name)
+
+            # Fetch all history records for the given internal_record_id and tab_id
+            history_records_result = await session.execute(
+                select(history_class).where(
+                    (history_class.internal_record_id == internal_record_id) &
+                    (history_class.tab_id == tab_id)
+                ).order_by(history_class.created_at.desc())
+            )
+            history_records = history_records_result.scalars().all()
+
+            # Extract unique truncated dates (date only, no time) from created_at
+            unique_dates = set()
+            for history_record in history_records:
+                if history_record.created_at:
+                    # Truncate to date only (YYYY-MM-DD format)
+                    truncated_date = history_record.created_at.date().isoformat()
+                    unique_dates.add(truncated_date)
+
+            # Sort dates in descending order (most recent first)
+            sorted_dates = sorted(list(unique_dates), reverse=True)
+
+            return VersionDatesData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                tab_id=tab_id,
+                version_dates=sorted_dates
+            )
+
+    async def get_versions_for_a_date(self, register_id: str, internal_record_id: str, tab_id: str, truncated_created_date: str) -> VersionsForDateData:
+        """Get changes from history records for a given register, internal_record_id, tab_id and specific date"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, history_class_name)
+
+            # Fetch all history records for the given internal_record_id and tab_id
+            history_records_result = await session.execute(
+                select(history_class).where(
+                    (history_class.internal_record_id == internal_record_id) &
+                    (history_class.tab_id == tab_id)
+                ).order_by(history_class.created_at.desc())
+            )
+            history_records = history_records_result.scalars().all()
+
+            # Filter records by truncated date and build the changes list
+            changes = []
+            for history_record in history_records:
+                if history_record.created_at:
+                    # Truncate to date only (YYYY-MM-DD format) and compare
+                    record_date = history_record.created_at.date().isoformat()
+                    if record_date == truncated_created_date:
+                        # Get section_mnemonic from G2PRegisterSection
+                        section: G2PRegisterSection = await self._get_section(history_record.section_id, session)
+                        if isinstance(section, dict):
+                            section = G2PRegisterSection(**section)
+                        section_mnemonic = section.section_mnemonic if section else ""
+
+                        changes.append(VersionForDateData(
+                            change_request_id=history_record.change_request_id,
+                            section_id=history_record.section_id,
+                            section_mnemonic=section_mnemonic,
+                            created_at=history_record.created_at.isoformat()
+                        ))
+
+            return VersionsForDateData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                tab_id=tab_id,
+                truncated_created_date=truncated_created_date,
+                changes=changes
             )
 
     async def get_number_of_pending_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeRequestsData:
