@@ -112,7 +112,7 @@ class G2PRegisterDataControllerService(BaseService):
         )
         return section_records
 
-    async def get_register_tab_records(
+    async def get_tab_records(
         self,
         get_register_tab_records_request: GetRegisterTabRecordsRequest
     ) -> list[RegisterTabRecordData]:
@@ -130,7 +130,7 @@ class G2PRegisterDataControllerService(BaseService):
             f"through controller service"
         )
         g2p_register_hierarchical_service = G2PRegisterHierarchicalService.get_component()
-        tab_records: list[RegisterTabRecordData] = await g2p_register_hierarchical_service.get_register_tab_records(
+        tab_records: list[RegisterTabRecordData] = await g2p_register_hierarchical_service.get_tab_records(
             subject_register_id, subject_record_id, tab_id
         )
         return tab_records

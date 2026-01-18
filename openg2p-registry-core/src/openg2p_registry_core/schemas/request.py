@@ -635,8 +635,7 @@ class GetSectionDocumentsForChangeRequestRequest(G2PRequest):
     request_body: GetSectionDocumentsForChangeRequestRequestBody
 
 class FileUrlRequestPayload(BaseModel):
-    file_name: str
-    bucket_name: str
+    document_store_id: str
 
 class FileUrlRequestBody(G2PRequestBody):
     request_payload: FileUrlRequestPayload

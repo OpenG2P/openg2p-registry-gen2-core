@@ -53,7 +53,6 @@ from .models import (
     OutgoingRawDataPayload,
     OutgoingTransformedDataPayload,
     G2PRegisterSectionDocument,
-    G2PRegisterSectionDocumentLabel,
     SubscriptionActivityLog,
     G2PApplication,
     G2PApplicationSectionPayload,
@@ -135,7 +134,6 @@ class Initializer(BaseInitializer):
             await G2PRegisterDocumentHistory.create_migrate()
             await G2PRegisterSectionDocument.create_migrate()
             await G2PApplicationSectionPayload.create_migrate()
-            await G2PRegisterSectionDocumentLabel.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
             await G2PRegisterChangeRequestDocument.create_migrate()
             await G2PRegistryDocument.create_migrate()

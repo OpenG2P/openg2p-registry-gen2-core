@@ -85,7 +85,6 @@ from .response import (
     RegistryConfigurationDataResponse, RegistryConfigurationDataResponseBody,
     NumberOfRequestsPendingResponse, NumberOfRequestsPendingResponseBody,
     EarliestPendingChangeRequestResponse, EarliestPendingChangeRequestResponseBody,
-    DocumentLabelsForSectionResponse, DocumentLabelsForSectionResponseBody,
     SectionDocumentsResponse, SectionDocumentsResponseBody,
     ChangeRequestDocumentsResponse, ChangeRequestDocumentsResponseBody,
     FileUrlResponseBody, FileUrlResponse,
@@ -106,7 +105,7 @@ from .payload import (
     RegisterTabRecordData,
     RegistryConfigurationData, RegistryConfigurationPayload, RegistryConfigurationUpdatePayload,
     NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    DocumentLabelData, DocumentLabelsForSectionData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData
+    DocumentLabelData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema

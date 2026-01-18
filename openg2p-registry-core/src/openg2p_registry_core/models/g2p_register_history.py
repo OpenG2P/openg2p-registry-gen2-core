@@ -43,7 +43,7 @@ class G2PRegisterDocumentHistory(BaseORMModel):
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    document_label_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    document_label: Mapped[str] = mapped_column(String, nullable=False, index=True)
     document_store_id: Mapped[str] = mapped_column(String, nullable=False)
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)

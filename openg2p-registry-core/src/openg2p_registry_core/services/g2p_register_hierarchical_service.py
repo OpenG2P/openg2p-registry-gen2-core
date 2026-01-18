@@ -477,7 +477,7 @@ class G2PRegisterHierarchicalService(BaseService):
 
         return []
 
-    async def get_register_tab_records(
+    async def get_tab_records(
         self,
         subject_register_id: str,
         subject_record_id: str,

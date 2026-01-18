@@ -21,11 +21,6 @@ class G2PRegistryDocument(BaseORMModel):
         index=True,
         unique=True
     )
-    document_label_id: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-        index=True
-    )
     document_label: Mapped[str] = mapped_column(
         String,
         nullable=False

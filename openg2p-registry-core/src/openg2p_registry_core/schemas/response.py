@@ -14,7 +14,7 @@ from .payload import (
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
     RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    DocumentLabelsForSectionData, SectionDocumentsData, ChangeRequestDocumentsData,
+    SectionDocumentsData, ChangeRequestDocumentsData,
     RecordHistoryData, RecordHistoryListData, FileUrlData
 )
 
@@ -255,14 +255,6 @@ class FileUrlResponseBody(G2PResponseBody):
 
 class FileUrlResponse(G2PResponse):
     response_body: Optional[FileUrlResponseBody] = None
-
-# Document Labels and Section Documents Responses
-class DocumentLabelsForSectionResponseBody(G2PResponseBody):
-    response_payload: Optional["DocumentLabelsForSectionData"] = None
-
-
-class DocumentLabelsForSectionResponse(G2PResponse):
-    response_body: Optional[DocumentLabelsForSectionResponseBody] = None
 
 
 class SectionDocumentsResponseBody(G2PResponseBody):

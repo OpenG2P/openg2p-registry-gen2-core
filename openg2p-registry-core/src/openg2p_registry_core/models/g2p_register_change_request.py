@@ -93,5 +93,5 @@ class G2PRegisterChangeRequestDocument(BaseORMModel):
 
     document_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    document_label_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    document_label: Mapped[str] = mapped_column(String, nullable=False, index=True)
     document_store_id: Mapped[str] = mapped_column(String, nullable=False)

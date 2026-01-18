@@ -235,7 +235,7 @@ class ChangePayload(BaseChangePayload):
 
 class ChangeRequestDocumentPayload(BaseModel):
     """Document reference to attach to a change request"""
-    document_label_id: str
+    document_label: str
     document_store_id: str
 
 
@@ -247,7 +247,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
     change_payload: Optional[List[ChangePayload]] = None
-    # Document references (list of document_label_id + document_store_id)
+    # Document references (list of document_label + document_store_id)
     documents: Optional[List[ChangeRequestDocumentPayload]] = None
     # For approve/reject operations
     change_request_id: Optional[str] = None
@@ -500,6 +500,7 @@ class RegisterSectionData(BaseModel):
     auto_approval: bool = False
     is_list: bool = False
     is_primary_section: bool = False
+    section_order: int = 0
     section_ui_schema: Optional[dict] = None
 
     class Config:
@@ -522,7 +523,6 @@ class RegisterTabRecordData(BaseModel):
 class UploadedDocumentData(BaseModel):
     """Response data for a single uploaded document"""
     document_store_id: str
-    document_label_id: str
     document_label: str
     filename: str
     document_url: Optional[str] = None
@@ -552,23 +552,14 @@ class FileUrlData(BaseModel):
 
 class DocumentLabelData(BaseModel):
     """Data for a document label"""
-    document_label_id: str
+    document_label: str
     document_label: str
 
     class Config:
         from_attributes: bool = True
 
-
-class DocumentLabelsForSectionData(BaseModel):
-    """Response data for get_document_labels_for_section endpoint"""
-    register_id: str
-    section_id: str
-    document_labels: List[DocumentLabelData]
-
-
 class SectionDocumentData(BaseModel):
     """Data for a section document (label + document_store_id)"""
-    document_label_id: str
     document_label: str
     document_store_id: str
     document_url: Optional[str] = None

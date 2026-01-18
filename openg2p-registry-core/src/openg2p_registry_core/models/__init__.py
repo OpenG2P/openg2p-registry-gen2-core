@@ -14,7 +14,6 @@ from .g2p_register_schema import G2PRegisterSchema
 from .g2p_register_sections import (
     G2PRegisterSection,
     G2PRegisterSectionDocument,
-    G2PRegisterSectionDocumentLabel
 )
 from .g2p_register_verifications import G2PRegisterVerification
 from .deduplication_results import DeduplicationRegisterResult, DeduplicationChangerequestResult
