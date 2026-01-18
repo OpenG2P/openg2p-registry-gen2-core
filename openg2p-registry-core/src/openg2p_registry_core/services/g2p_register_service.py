@@ -457,7 +457,13 @@ class G2PRegisterService(BaseService):
     async def approve_single_change_request(self, change_request_id: str, session):
         # Validate change request exists and is pending approval
         change_request = await self.validate_change_request_exists(change_request_id, session)
-        _logger.info(f"Validated change request for approval: {change_request}")
+        # Mark change request as approved
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_at = datetime.now()
+        session.add(change_request)
+        
+        _logger.info(f"Validating change request for approval: {change_request}")
         g2p_register_section = await self.validate_change_request_section(change_request, session)
         # Validate whether verifications are done
         await self.validate_change_request_verifications(change_request, session)
@@ -470,10 +476,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        # Mark change request as approved
-        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system"
-        change_request.approved_at = func.now()
+        
         return change_request
             
     async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
@@ -493,7 +496,7 @@ class G2PRegisterService(BaseService):
             # Mark change request as rejected
             change_request.approval_status = ApprovalStatusEnum.REJECTED.value
             change_request.approved_by = "system" # TODO: Replace with actual user info
-            change_request.approved_at = func.now()
+            change_request.approved_at = datetime.now()
             change_request.rejection_reason = reason
             await session.commit()
             await session.refresh(change_request)
@@ -624,12 +627,18 @@ class G2PRegisterService(BaseService):
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
+        history_dict["internal_record_id"] = change_request.internal_record_id
+        history_dict["tab_id"] = change_request.tab_id
+        history_dict["section_id"] = change_request.section_id
+        history_dict["application_id"] = change_request.application_id
+        history_dict["change_request_source"] = change_request.change_request_source
+        history_dict["is_primary_section"] = change_request.is_primary_section
+
         history_dict["change_request_id"] = change_request.change_request_id
-        history_dict["created_at"] = datetime.now()
-        history_dict["created_by"] = "system"  # TODO: Replace with actual user info
-        history_dict["approved_at"] = datetime.now()
-        history_dict["approved_by"] = "system"  # TODO: Replace with actual user info
+        history_dict["created_at"] = change_request.created_at
+        history_dict["created_by"] = change_request.created_by
+        history_dict["approved_at"] = change_request.approved_at
+        history_dict["approved_by"] = change_request.approved_by
         history_instance = history_class(**history_dict)
         session.add(history_instance)
 
@@ -665,17 +674,18 @@ class G2PRegisterService(BaseService):
         if payload.change_payload:
             for change_payload in payload.change_payload:
                 await self._create_or_update_register_record(
+                    change_request=change_request,
                     change_payload=change_payload,
                     schema_class=schema_class,
                     register_class=register_class,
                     session=session
                 )
 
-    async def _create_or_update_register_record(self, change_payload: dict, schema_class, register_class, session) -> None:
+    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: G2PRegisterChangeRequestPayload,  schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
         # Serialize change request payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
-        internal_record_id = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
+        internal_record_id = change_request.internal_record_id
 
         existing = (
             await session.execute(
@@ -697,9 +707,9 @@ class G2PRegisterService(BaseService):
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
             schema_dict["internal_record_id"] = internal_record_id
             schema_dict["functional_record_id"] = internal_record_id  # Use internal_record_id as functional_record_id
-            schema_dict["created_by"] = "system"  # TODO: Replace with actual user info
-            schema_dict["created_at"] = datetime.now()
-            schema_dict["last_approved_at"] = datetime.now()
+            schema_dict["created_by"] = change_request.created_by
+            schema_dict["created_at"] = change_request.created_at
+            schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
@@ -804,7 +814,7 @@ class G2PRegisterService(BaseService):
             change_request_source=change_request_source,
             application_id=application_id,
             created_by="system",  # TODO: Replace with actual user info
-            created_at=func.now(),
+            created_at=datetime.now(),
             no_of_verifications_required=g2p_register_section.no_of_verifications_required,
             no_of_verifications_done=0,
             approval_status=ApprovalStatusEnum.PENDING.value,
@@ -2515,12 +2525,12 @@ class G2PRegisterService(BaseService):
                 internal_record_id=change_request.internal_record_id,
                 change_request_id=change_request.change_request_id,
                 section_id=section.section_id,
-                document_label=existing_doc.document_label,
-                document_store_id=existing_doc.document_store_id,
+                document_label=cr_doc.document_label,
+                document_store_id=cr_doc.document_store_id,
                 created_by=change_request.created_by,
                 created_at=change_request.created_at,
                 approved_by="system",
-                approved_at=func.now()
+                approved_at=datetime.now()
             )
             session.add(history_entry)
             # Check if a document with the same label already exists for this section/record

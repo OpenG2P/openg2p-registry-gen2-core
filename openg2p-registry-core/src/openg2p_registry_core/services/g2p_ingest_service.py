@@ -1,4 +1,5 @@
 import logging
+import datetime
 from typing import Dict, Tuple, Optional, List
 import uuid
 from copy import deepcopy
@@ -56,7 +57,7 @@ class G2PIngestService(BaseService):
                     data_model_id=data_model.data_model_id,
                     ingest_message_id=message_id,
                     ingest_correlation_id=correlation_id,
-                    receipt_date_time=func.now(),
+                    receipt_date_time=datetime.now(),
                 )
                 incoming_raw_data_payload = IncomingRawDataPayload(
                     ingest_id=ingest_id,

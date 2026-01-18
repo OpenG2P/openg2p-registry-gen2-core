@@ -14,7 +14,15 @@ class G2PRegisterHistory(BaseORMModel):
     __abstract__ = True
 
     history_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    application_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    change_request_source: Mapped[ChangeRequestSourceEnum] = mapped_column(String, nullable=False)
+    is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # This will come from change payload 
     functional_record_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
@@ -23,13 +31,6 @@ class G2PRegisterHistory(BaseORMModel):
     record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
     administrative_area_large_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     administrative_area_small_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    change_request_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
-    tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    
-    is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    application_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    change_request_source: Mapped[ChangeRequestSourceEnum] = mapped_column(String, nullable=False)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
