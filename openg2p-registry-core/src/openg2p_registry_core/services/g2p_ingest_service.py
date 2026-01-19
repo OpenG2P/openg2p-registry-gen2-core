@@ -1,5 +1,5 @@
 import logging
-import datetime
+from datetime import datetime
 from typing import Dict, Tuple, Optional, List
 import uuid
 from copy import deepcopy
