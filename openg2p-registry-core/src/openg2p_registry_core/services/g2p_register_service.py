@@ -1,7 +1,7 @@
 import logging
 import uuid
 import importlib
-from datetime import datetime
+from datetime import datetime, date
 from fastapi_cache.decorator import cache
 
 from openg2p_fastapi_common.service import BaseService
@@ -9,7 +9,7 @@ from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select, inspect
+from sqlalchemy import func, insert, select, inspect, Date as SQLDate
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..cache import metadata_key_builder
@@ -34,7 +34,8 @@ from ..schemas import (
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
-    RegistryConfigurationData, EarliestPendingChangeRequestData
+    RegistryConfigurationData, EarliestPendingChangeRequestData,
+    ChangePayload, EditActionEnum
 )
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -476,7 +477,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        
+
         return change_request
             
     async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
@@ -619,7 +620,34 @@ class G2PRegisterService(BaseService):
                     session=session
                 )
 
-    def _create_history_record(self, change_payload: dict, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
+    def _convert_date_strings_to_objects(self, data_dict: dict, model_class) -> dict:
+        """Helper method to convert date strings to date objects for SQLAlchemy Date columns"""
+        # Get the model's column information
+        mapper = inspect(model_class)
+        converted_dict = data_dict.copy()
+        
+        for key, value in converted_dict.items():
+            if value is None:
+                continue
+            # Check if the column is a Date type
+            if key in mapper.columns:
+                column = mapper.columns[key]
+                # Check if column type is SQLAlchemy Date type
+                if isinstance(column.type, SQLDate):
+                    # If value is a string, try to convert it to a date object
+                    if isinstance(value, str):
+                        try:
+                            converted_dict[key] = datetime.strptime(value, '%Y-%m-%d').date()
+                        except (ValueError, TypeError):
+                            # If parsing fails, keep the original value
+                            pass
+                    elif isinstance(value, datetime):
+                        # If it's a datetime, convert to date
+                        converted_dict[key] = value.date()
+        
+        return converted_dict
+
+    def _create_history_record(self, change_payload: ChangePayload, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""
         # Serialize change request payload to history schema
         history_schema_instance = history_schema_class(**(change_payload or {}))
@@ -627,7 +655,7 @@ class G2PRegisterService(BaseService):
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_request.internal_record_id
+        history_dict["internal_record_id"] = change_payload.get("internal_record_id")
         history_dict["tab_id"] = change_request.tab_id
         history_dict["section_id"] = change_request.section_id
         history_dict["application_id"] = change_request.application_id
@@ -639,6 +667,10 @@ class G2PRegisterService(BaseService):
         history_dict["created_by"] = change_request.created_by
         history_dict["approved_at"] = change_request.approved_at
         history_dict["approved_by"] = change_request.approved_by
+        
+        # Convert date strings to date objects before creating the instance
+        history_dict = self._convert_date_strings_to_objects(history_dict, history_class)
+        
         history_instance = history_class(**history_dict)
         session.add(history_instance)
 
@@ -681,38 +713,60 @@ class G2PRegisterService(BaseService):
                     session=session
                 )
 
-    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: G2PRegisterChangeRequestPayload,  schema_class, register_class, session) -> None:
+    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: ChangePayload,  schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
         # Serialize change request payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
-        internal_record_id = change_request.internal_record_id
-
+        
         existing = (
             await session.execute(
                 select(register_class).where(
-                    register_class.internal_record_id == internal_record_id
+                    register_class.internal_record_id == change_payload.get("internal_record_id")
                 )
             )
         ).scalar()
 
-        if existing:
+        if change_payload.get("edit_action") == EditActionEnum.UPDATE.value and existing:
+            mapper = inspect(register_class)
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change request payload
                 if key in change_payload:
+                    # Convert date strings to date objects if needed
+                    if value is not None and key in mapper.columns:
+                        column = mapper.columns[key]
+                        if isinstance(column.type, SQLDate):
+                            if isinstance(value, str):
+                                try:
+                                    value = datetime.strptime(value, '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    pass
+                            elif isinstance(value, datetime):
+                                value = value.date()
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
-        else:
+        elif change_payload.get("edit_action") == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["internal_record_id"] = internal_record_id
-            schema_dict["functional_record_id"] = internal_record_id  # Use internal_record_id as functional_record_id
+            schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
+            
+            # Convert date strings to date objects before creating the instance
+            schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
+            
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
+        elif change_payload.get("edit_action") == EditActionEnum.DELETE.value and existing:
+            await session.delete(existing)
+        else:
+            _logger.error(f"Unknown edit action '{change_payload.get('edit_action')}' for change request '{change_request.change_request_id}'")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
+                message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
+            )
                 
     async def validate_register_definition(self, register_id: str, session) -> G2PRegisterDefinition:
         g2p_register_definition: G2PRegisterDefinition = (
@@ -792,6 +846,12 @@ class G2PRegisterService(BaseService):
         if change_request_request_payload.change_payload and len(change_request_request_payload.change_payload) > 0:
             internal_record_id = change_request_request_payload.internal_record_id
         internal_record_id = internal_record_id or str(uuid.uuid4())
+
+        # Loop through change_payload to set internal_record_id for each item if not already set only if edit_action is ADD
+        if change_request_request_payload.change_payload:
+            for item in change_request_request_payload.change_payload:
+                if not item.internal_record_id and item.edit_action == EditActionEnum.ADD:
+                    item.internal_record_id = str(uuid.uuid4())
 
         # Create the payload object - change_payload is now always a list
         change_request_payload_obj = G2PRegisterChangeRequestPayload(
@@ -1678,17 +1738,18 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
             )
 
-        change_request, payload = change_request_row
+        change_request, change_request_payload = change_request_row
 
         # Convert datetime objects to strings
         created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
         approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
 
         # Get change_payload from the payload object
-        change_payload = payload.change_payload if payload else None
+        change_payloads: list[ChangePayload] = change_request_payload.change_payload if change_request_payload else None
 
         # Fetch existing register data (old values) for current_register_data
         current_register_data = None
+        current_register_data_list = []
         try:
             # Get the register definition to find the implementation class
             g2p_register_definition: G2PRegisterDefinition = (
@@ -1707,33 +1768,36 @@ class G2PRegisterService(BaseService):
                     implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
                     implementation_class = getattr(module, implementation_class_name)
 
+                    internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
                     # Fetch the existing record by internal_record_id
-                    existing_record = (
+                    existing_records = (
                         await session.execute(
                             select(implementation_class).where(
-                                implementation_class.internal_record_id == change_request.internal_record_id
+                                implementation_class.internal_record_id.in_(internal_record_ids)
                             )
                         )
-                    ).scalar()
+                    ).scalars().all()
 
-                    if existing_record:
-                        # Convert ORM object to dict for current_register_data
-                        mapper = inspect(existing_record.__class__)
-                        current_register_data = {}
+                    for existing_record in existing_records:
+                        if existing_record:
+                            # Convert ORM object to dict for current_register_data
+                            mapper = inspect(existing_record.__class__)
+                            current_register_data = {}
 
-                        # Base fields to exclude from current_register_data
-                        base_fields: set = {'search_text'}
+                            # Base fields to exclude from current_register_data
+                            base_fields: set = {'search_text'}
 
-                        for column in mapper.columns:
-                            column_name: str = column.name
-                            if column_name not in base_fields:
-                                value = getattr(existing_record, column_name, None)
+                            for column in mapper.columns:
+                                column_name: str = column.name
+                                if column_name not in base_fields:
+                                    value = getattr(existing_record, column_name, None)
 
-                                # Convert datetime objects to strings
-                                if value is not None and hasattr(value, 'isoformat'):
-                                    value = value.isoformat()
+                                    # Convert datetime objects to strings
+                                    if value is not None and hasattr(value, 'isoformat'):
+                                        value = value.isoformat()
 
-                                current_register_data[column_name] = value
+                                    current_register_data[column_name] = value
+                            current_register_data_list.append(current_register_data)
 
                 except (AttributeError, ModuleNotFoundError) as error:
                     _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
@@ -1756,6 +1820,7 @@ class G2PRegisterService(BaseService):
             internal_record_id=change_request.internal_record_id,
             section_id=change_request.section_id,
             section_mnemonic=g2p_register_section.section_mnemonic,
+            section_register_id=change_request.section_register_id,
             source_partner_id=change_request.source_partner_id,
             created_by=change_request.created_by,
             created_at=created_at_str,
@@ -1764,8 +1829,8 @@ class G2PRegisterService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
-            change_payload=change_payload,
-            current_register_data=current_register_data
+            change_payload=change_payloads,
+            current_register_data=current_register_data_list
         )
 
         return change_request_data

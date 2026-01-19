@@ -31,7 +31,6 @@ class G2PRegisterChangerequestControllerService(BaseService):
         domain_factory_class_name = "G2PRegisterDomainFactory"
         g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(change_request_request_payload.register_mnemonic)
-        print(f"Validating domain attributes for register mnemonic: {change_request_request_payload.register_mnemonic}")
         await domain_service.validate_domain_attributes(change_request_request_payload)
 
         g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.create_change_request(
