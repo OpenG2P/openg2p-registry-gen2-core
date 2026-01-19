@@ -34,7 +34,8 @@ from ..schemas import (
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
-    RegistryConfigurationData, EarliestPendingChangeRequestData
+    RegistryConfigurationData, EarliestPendingChangeRequestData,
+    ChangePayload, EditActionEnum
 )
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -646,7 +647,7 @@ class G2PRegisterService(BaseService):
         
         return converted_dict
 
-    def _create_history_record(self, change_payload: dict, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
+    def _create_history_record(self, change_payload: ChangePayload, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""
         # Serialize change request payload to history schema
         history_schema_instance = history_schema_class(**(change_payload or {}))
@@ -654,7 +655,7 @@ class G2PRegisterService(BaseService):
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_request.internal_record_id
+        history_dict["internal_record_id"] = change_payload.internal_record_id
         history_dict["tab_id"] = change_request.tab_id
         history_dict["section_id"] = change_request.section_id
         history_dict["application_id"] = change_request.application_id
@@ -712,21 +713,20 @@ class G2PRegisterService(BaseService):
                     session=session
                 )
 
-    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: G2PRegisterChangeRequestPayload,  schema_class, register_class, session) -> None:
+    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: ChangePayload,  schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
         # Serialize change request payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
-        internal_record_id = change_request.internal_record_id
-
+        
         existing = (
             await session.execute(
                 select(register_class).where(
-                    register_class.internal_record_id == internal_record_id
+                    register_class.internal_record_id == change_payload.internal_record_id
                 )
             )
         ).scalar()
 
-        if existing:
+        if change_payload.edit_action == EditActionEnum.UPDATE.value and existing:
             mapper = inspect(register_class)
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change request payload
@@ -745,11 +745,11 @@ class G2PRegisterService(BaseService):
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
-        else:
+        elif change_payload.edit_action == EditActionEnum.CREATE.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["internal_record_id"] = internal_record_id
-            schema_dict["functional_record_id"] = internal_record_id  # Use internal_record_id as functional_record_id
+            schema_dict["internal_record_id"] = change_payload.internal_record_id
+            schema_dict["functional_record_id"] = change_payload.internal_record_id  # Use internal_record_id as functional_record_id
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
@@ -760,6 +760,14 @@ class G2PRegisterService(BaseService):
             
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
+        elif change_payload.edit_action == EditActionEnum.DELETE.value and existing:
+            await session.delete(existing)
+        else:
+            _logger.error(f"Unknown edit action '{change_payload.edit_action}' for change request '{change_request.change_request_id}'")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
+                message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
+            )
                 
     async def validate_register_definition(self, register_id: str, session) -> G2PRegisterDefinition:
         g2p_register_definition: G2PRegisterDefinition = (

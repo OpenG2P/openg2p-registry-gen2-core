@@ -228,7 +228,14 @@ class BaseChangePayload(BaseModel):
     """Base change payload with dynamic fields."""
     pass
 
+class EditActionEnum(str, Enum):
+    ADD = "ADD"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
 class ChangePayload(BaseChangePayload):
+    internal_record_id: str
+    edit_action: EditActionEnum
     class Config:
         from_attributes: bool = True
         extra = "allow"  # Allow extra fields to be preserved and accessible

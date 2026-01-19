@@ -109,7 +109,8 @@ from .payload import (
     RegisterTabRecordData,
     RegistryConfigurationData, RegistryConfigurationPayload, RegistryConfigurationUpdatePayload,
     NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    DocumentLabelData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData
+    DocumentLabelData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData,
+    ChangePayload, EditActionEnum
 )
 from .g2p_register import G2PRegisterSchema
 from .g2p_register_history import G2PRegisterHistorySchema
