@@ -401,7 +401,7 @@ class ChangeRequestData(BaseModel):
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
     change_payload: Optional[dict | List[dict]] = None
-    current_register_data: Optional[dict] = None
+    current_register_data: Optional[dict | List[dict]] = None
 
     class Config:
         from_attributes: bool = True

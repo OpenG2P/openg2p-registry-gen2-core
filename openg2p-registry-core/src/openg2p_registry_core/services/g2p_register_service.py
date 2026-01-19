@@ -1733,14 +1733,14 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
             )
 
-        change_request, payload = change_request_row
+        change_request, change_request_payload = change_request_row
 
         # Convert datetime objects to strings
         created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
         approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
 
         # Get change_payload from the payload object
-        change_payload = payload.change_payload if payload else None
+        change_payloads: list[ChangePayload] = change_request_payload.change_payload if change_request_payload else None
 
         # Fetch existing register data (old values) for current_register_data
         current_register_data = None
@@ -1763,32 +1763,35 @@ class G2PRegisterService(BaseService):
                     implementation_class = getattr(module, implementation_class_name)
 
                     # Fetch the existing record by internal_record_id
-                    existing_record = (
+                    existing_records = (
                         await session.execute(
                             select(implementation_class).where(
-                                implementation_class.internal_record_id == change_request.internal_record_id
+                                implementation_class.internal_record_id in [change_payload.internal_record_id for change_payload in change_payloads if change_payload.internal_record_id]
                             )
                         )
-                    ).scalar()
+                    ).scalars().all()
 
-                    if existing_record:
-                        # Convert ORM object to dict for current_register_data
-                        mapper = inspect(existing_record.__class__)
-                        current_register_data = {}
+                    current_register_data_list = []
+                    for existing_record in existing_records:
+                        if existing_record:
+                            # Convert ORM object to dict for current_register_data
+                            mapper = inspect(existing_record.__class__)
+                            current_register_data = {}
 
-                        # Base fields to exclude from current_register_data
-                        base_fields: set = {'search_text'}
+                            # Base fields to exclude from current_register_data
+                            base_fields: set = {'search_text'}
 
-                        for column in mapper.columns:
-                            column_name: str = column.name
-                            if column_name not in base_fields:
-                                value = getattr(existing_record, column_name, None)
+                            for column in mapper.columns:
+                                column_name: str = column.name
+                                if column_name not in base_fields:
+                                    value = getattr(existing_record, column_name, None)
 
-                                # Convert datetime objects to strings
-                                if value is not None and hasattr(value, 'isoformat'):
-                                    value = value.isoformat()
+                                    # Convert datetime objects to strings
+                                    if value is not None and hasattr(value, 'isoformat'):
+                                        value = value.isoformat()
 
-                                current_register_data[column_name] = value
+                                    current_register_data[column_name] = value
+                            current_register_data_list.append(current_register_data)
 
                 except (AttributeError, ModuleNotFoundError) as error:
                     _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
@@ -1819,8 +1822,8 @@ class G2PRegisterService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
-            change_payload=change_payload,
-            current_register_data=current_register_data
+            change_payload=change_payloads,
+            current_register_data=current_register_data_list
         )
 
         return change_request_data
