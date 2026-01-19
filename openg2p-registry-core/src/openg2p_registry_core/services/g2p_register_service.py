@@ -477,7 +477,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        
+
         return change_request
             
     async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
@@ -655,7 +655,7 @@ class G2PRegisterService(BaseService):
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_payload.internal_record_id
+        history_dict["internal_record_id"] = change_payload.get("internal_record_id")
         history_dict["tab_id"] = change_request.tab_id
         history_dict["section_id"] = change_request.section_id
         history_dict["application_id"] = change_request.application_id
@@ -721,12 +721,12 @@ class G2PRegisterService(BaseService):
         existing = (
             await session.execute(
                 select(register_class).where(
-                    register_class.internal_record_id == change_payload.internal_record_id
+                    register_class.internal_record_id == change_payload.get("internal_record_id")
                 )
             )
         ).scalar()
 
-        if change_payload.edit_action == EditActionEnum.UPDATE.value and existing:
+        if change_payload.get("edit_action") == EditActionEnum.UPDATE.value and existing:
             mapper = inspect(register_class)
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change request payload
@@ -745,11 +745,10 @@ class G2PRegisterService(BaseService):
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
-        elif change_payload.edit_action == EditActionEnum.CREATE.value:
+        elif change_payload.get("edit_action") == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["internal_record_id"] = change_payload.internal_record_id
-            schema_dict["functional_record_id"] = change_payload.internal_record_id  # Use internal_record_id as functional_record_id
+            schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
@@ -760,10 +759,10 @@ class G2PRegisterService(BaseService):
             
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
-        elif change_payload.edit_action == EditActionEnum.DELETE.value and existing:
+        elif change_payload.get("edit_action") == EditActionEnum.DELETE.value and existing:
             await session.delete(existing)
         else:
-            _logger.error(f"Unknown edit action '{change_payload.edit_action}' for change request '{change_request.change_request_id}'")
+            _logger.error(f"Unknown edit action '{change_payload.get('edit_action')}' for change request '{change_request.change_request_id}'")
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
                 message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
@@ -847,6 +846,12 @@ class G2PRegisterService(BaseService):
         if change_request_request_payload.change_payload and len(change_request_request_payload.change_payload) > 0:
             internal_record_id = change_request_request_payload.internal_record_id
         internal_record_id = internal_record_id or str(uuid.uuid4())
+
+        # Loop through change_payload to set internal_record_id for each item if not already set only if edit_action is ADD
+        if change_request_request_payload.change_payload:
+            for item in change_request_request_payload.change_payload:
+                if not item.internal_record_id and item.edit_action == EditActionEnum.ADD:
+                    item.internal_record_id = str(uuid.uuid4())
 
         # Create the payload object - change_payload is now always a list
         change_request_payload_obj = G2PRegisterChangeRequestPayload(
@@ -1744,6 +1749,7 @@ class G2PRegisterService(BaseService):
 
         # Fetch existing register data (old values) for current_register_data
         current_register_data = None
+        current_register_data_list = []
         try:
             # Get the register definition to find the implementation class
             g2p_register_definition: G2PRegisterDefinition = (
@@ -1762,16 +1768,16 @@ class G2PRegisterService(BaseService):
                     implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
                     implementation_class = getattr(module, implementation_class_name)
 
+                    internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
                     # Fetch the existing record by internal_record_id
                     existing_records = (
                         await session.execute(
                             select(implementation_class).where(
-                                implementation_class.internal_record_id in [change_payload.internal_record_id for change_payload in change_payloads if change_payload.internal_record_id]
+                                implementation_class.internal_record_id.in_(internal_record_ids)
                             )
                         )
                     ).scalars().all()
 
-                    current_register_data_list = []
                     for existing_record in existing_records:
                         if existing_record:
                             # Convert ORM object to dict for current_register_data
