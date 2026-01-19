@@ -225,7 +225,8 @@ class ChangeRequestSearchResultData(BaseModel):
         from_attributes: bool = True
 
 class BaseChangePayload(BaseModel):
-    internal_record_id: Optional[str] = None
+    """Base change payload with dynamic fields."""
+    pass
 
 class ChangePayload(BaseChangePayload):
     class Config:
@@ -246,6 +247,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
+    internal_record_id: Optional[str] = None
     change_payload: Optional[List[ChangePayload]] = None
     # Document references (list of document_label + document_store_id)
     documents: Optional[List[ChangeRequestDocumentPayload]] = None

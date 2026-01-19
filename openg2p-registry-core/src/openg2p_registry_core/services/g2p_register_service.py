@@ -787,10 +787,10 @@ class G2PRegisterService(BaseService):
 
     async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, application_id: str = None) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
-        # Extract internal_record_id from change_payload if present, otherwise generate new UUID
+        # Extract internal_record_id if present, otherwise generate new UUID
         internal_record_id: str = None
         if change_request_request_payload.change_payload and len(change_request_request_payload.change_payload) > 0:
-            internal_record_id = change_request_request_payload.change_payload[0].internal_record_id
+            internal_record_id = change_request_request_payload.internal_record_id
         internal_record_id = internal_record_id or str(uuid.uuid4())
 
         # Create the payload object - change_payload is now always a list
@@ -2025,12 +2025,13 @@ class G2PRegisterService(BaseService):
                 section_id=change_request.section_id,
                 change_request_id=payload.change_request_id,
                 verified_by="system",  # Will be set by controller with actual user
-                verified_at=datetime.utcnow(),
+                verified_at=datetime.now(),
                 verification_observations=payload.verification_observations,
                 is_approved=payload.is_approved
             )
-
             session.add(verification)
+            change_request.no_of_verifications_done += 1
+            session.add(change_request)
             await session.commit()
             await session.refresh(verification)
 
