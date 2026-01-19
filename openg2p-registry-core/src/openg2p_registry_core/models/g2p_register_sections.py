@@ -35,6 +35,7 @@ class G2PRegisterSection(BaseORMModel):
         index=True,
     )
     is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    section_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     section_mnemonic: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_description: Mapped[Text] = mapped_column(Text, nullable=True)
@@ -46,32 +47,6 @@ class G2PRegisterSection(BaseORMModel):
     # Section UI schema configuration (JSONB for PostgreSQL)
     # JSON structure to define UI rendering for this section
     section_ui_schema: Mapped[dict] = mapped_column(JSONB, nullable=True)
-
-
-class G2PRegisterSectionDocumentLabel(BaseORMModel):
-    """
-    Stores document labels for each section.
-    Composite primary key: register_id + section_id + document_label_id
-    """
-    __tablename__ = "g2p_register_section_document_labels"
-    document_label_id: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-        primary_key=True,
-        index=True,
-        default=lambda: str(uuid.uuid4())
-    )
-    register_id: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-        index=True
-    )
-    section_id: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-        index=True
-    )
-    document_label: Mapped[str] = mapped_column(String, nullable=False)
 
     
 class G2PRegisterSectionDocument(BaseORMModel):
@@ -99,7 +74,7 @@ class G2PRegisterSectionDocument(BaseORMModel):
         nullable=False,
         index=True
     )
-    document_label_id: Mapped[str] = mapped_column(
+    document_label: Mapped[str] = mapped_column(
         String,
         nullable=False,
         index=True

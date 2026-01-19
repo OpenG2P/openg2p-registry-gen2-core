@@ -19,13 +19,13 @@ from ..models import (
     G2PRegisterDefinition, G2PRegisterSection, G2PRegisterVerification, ApprovalStatusEnum,
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
-    G2PRegisterSectionDocument, G2PRegisterSectionDocumentLabel, G2PRegisterDocumentHistory,
+    G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
     G2PRegistryConfiguration, G2PRegistryDocument
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
-    RecordHistoryData, RecordHistoryListData,
+    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData,
@@ -82,7 +82,7 @@ class G2PRegisterService(BaseService):
                 for doc in change_request_request_payload.documents:
                     change_request_doc = G2PRegisterChangeRequestDocument(
                         change_request_id=g2p_register_change_request.change_request_id,
-                        document_label_id=doc.document_label_id,
+                        document_label=doc.document_label,
                         document_store_id=doc.document_store_id
                     )
                     session.add(change_request_doc)
@@ -457,7 +457,13 @@ class G2PRegisterService(BaseService):
     async def approve_single_change_request(self, change_request_id: str, session):
         # Validate change request exists and is pending approval
         change_request = await self.validate_change_request_exists(change_request_id, session)
-        _logger.info(f"Validated change request for approval: {change_request}")
+        # Mark change request as approved
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_at = datetime.now()
+        session.add(change_request)
+        
+        _logger.info(f"Validating change request for approval: {change_request}")
         g2p_register_section = await self.validate_change_request_section(change_request, session)
         # Validate whether verifications are done
         await self.validate_change_request_verifications(change_request, session)
@@ -470,10 +476,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        # Mark change request as approved
-        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system"
-        change_request.approved_at = func.now()
+        
         return change_request
             
     async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
@@ -493,7 +496,7 @@ class G2PRegisterService(BaseService):
             # Mark change request as rejected
             change_request.approval_status = ApprovalStatusEnum.REJECTED.value
             change_request.approved_by = "system" # TODO: Replace with actual user info
-            change_request.approved_at = func.now()
+            change_request.approved_at = datetime.now()
             change_request.rejection_reason = reason
             await session.commit()
             await session.refresh(change_request)
@@ -624,12 +627,18 @@ class G2PRegisterService(BaseService):
         # Build the history dict excluding None values from schema, then add base fields
         history_dict = {k: v for k, v in history_schema_instance.dict().items() if v is not None}
         history_dict["history_record_id"] = str(uuid.uuid4())
-        history_dict["internal_record_id"] = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
+        history_dict["internal_record_id"] = change_request.internal_record_id
+        history_dict["tab_id"] = change_request.tab_id
+        history_dict["section_id"] = change_request.section_id
+        history_dict["application_id"] = change_request.application_id
+        history_dict["change_request_source"] = change_request.change_request_source
+        history_dict["is_primary_section"] = change_request.is_primary_section
+
         history_dict["change_request_id"] = change_request.change_request_id
-        history_dict["created_at"] = datetime.now()
-        history_dict["created_by"] = "system"  # TODO: Replace with actual user info
-        history_dict["approved_at"] = datetime.now()
-        history_dict["approved_by"] = "system"  # TODO: Replace with actual user info
+        history_dict["created_at"] = change_request.created_at
+        history_dict["created_by"] = change_request.created_by
+        history_dict["approved_at"] = change_request.approved_at
+        history_dict["approved_by"] = change_request.approved_by
         history_instance = history_class(**history_dict)
         session.add(history_instance)
 
@@ -665,17 +674,18 @@ class G2PRegisterService(BaseService):
         if payload.change_payload:
             for change_payload in payload.change_payload:
                 await self._create_or_update_register_record(
+                    change_request=change_request,
                     change_payload=change_payload,
                     schema_class=schema_class,
                     register_class=register_class,
                     session=session
                 )
 
-    async def _create_or_update_register_record(self, change_payload: dict, schema_class, register_class, session) -> None:
+    async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: G2PRegisterChangeRequestPayload,  schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
         # Serialize change request payload to register schema for validation
         register_schema_instance = schema_class(**(change_payload or {}))
-        internal_record_id = change_payload.get("internal_record_id") if isinstance(change_payload, dict) else change_payload.internal_record_id
+        internal_record_id = change_request.internal_record_id
 
         existing = (
             await session.execute(
@@ -697,9 +707,9 @@ class G2PRegisterService(BaseService):
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
             schema_dict["internal_record_id"] = internal_record_id
             schema_dict["functional_record_id"] = internal_record_id  # Use internal_record_id as functional_record_id
-            schema_dict["created_by"] = "system"  # TODO: Replace with actual user info
-            schema_dict["created_at"] = datetime.now()
-            schema_dict["last_approved_at"] = datetime.now()
+            schema_dict["created_by"] = change_request.created_by
+            schema_dict["created_at"] = change_request.created_at
+            schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
@@ -804,7 +814,7 @@ class G2PRegisterService(BaseService):
             change_request_source=change_request_source,
             application_id=application_id,
             created_by="system",  # TODO: Replace with actual user info
-            created_at=func.now(),
+            created_at=datetime.now(),
             no_of_verifications_required=g2p_register_section.no_of_verifications_required,
             no_of_verifications_done=0,
             approval_status=ApprovalStatusEnum.PENDING.value,
@@ -1336,6 +1346,118 @@ class G2PRegisterService(BaseService):
                 history_records=history_data_list
             )
 
+    async def get_version_dates(self, register_id: str, internal_record_id: str, tab_id: str) -> VersionDatesData:
+        """Get unique truncated dates from history records for a given register, internal_record_id and tab_id"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, history_class_name)
+
+            # Fetch all history records for the given internal_record_id and tab_id
+            history_records_result = await session.execute(
+                select(history_class).where(
+                    (history_class.internal_record_id == internal_record_id) &
+                    (history_class.tab_id == tab_id)
+                ).order_by(history_class.created_at.desc())
+            )
+            history_records = history_records_result.scalars().all()
+
+            # Extract unique truncated dates (date only, no time) from created_at
+            unique_dates = set()
+            for history_record in history_records:
+                if history_record.created_at:
+                    # Truncate to date only (YYYY-MM-DD format)
+                    truncated_date = history_record.created_at.date().isoformat()
+                    unique_dates.add(truncated_date)
+
+            # Sort dates in descending order (most recent first)
+            sorted_dates = sorted(list(unique_dates), reverse=True)
+
+            return VersionDatesData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                tab_id=tab_id,
+                version_dates=sorted_dates
+            )
+
+    async def get_versions_for_a_date(self, register_id: str, internal_record_id: str, tab_id: str, truncated_created_date: str) -> VersionsForDateData:
+        """Get changes from history records for a given register, internal_record_id, tab_id and specific date"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == register_id
+                    )
+                )
+            ).scalar()
+            if not register_definition:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+                )
+
+            # Dynamically resolve history model class based on register mnemonic
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
+            history_class = getattr(module, history_class_name)
+
+            # Fetch all history records for the given internal_record_id and tab_id
+            history_records_result = await session.execute(
+                select(history_class).where(
+                    (history_class.internal_record_id == internal_record_id) &
+                    (history_class.tab_id == tab_id)
+                ).order_by(history_class.created_at.desc())
+            )
+            history_records = history_records_result.scalars().all()
+
+            # Filter records by truncated date and build the changes list
+            changes = []
+            for history_record in history_records:
+                if history_record.created_at:
+                    # Truncate to date only (YYYY-MM-DD format) and compare
+                    record_date = history_record.created_at.date().isoformat()
+                    if record_date == truncated_created_date:
+                        # Get section_mnemonic from G2PRegisterSection
+                        section: G2PRegisterSection = await self._get_section(history_record.section_id, session)
+                        if isinstance(section, dict):
+                            section = G2PRegisterSection(**section)
+                        section_mnemonic = section.section_mnemonic if section else ""
+
+                        changes.append(VersionForDateData(
+                            change_request_id=history_record.change_request_id,
+                            section_id=history_record.section_id,
+                            section_mnemonic=section_mnemonic,
+                            created_at=history_record.created_at.isoformat()
+                        ))
+
+            return VersionsForDateData(
+                register_id=register_id,
+                internal_record_id=internal_record_id,
+                tab_id=tab_id,
+                truncated_created_date=truncated_created_date,
+                changes=changes
+            )
+
     async def get_number_of_pending_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str) -> NumberOfPendingChangeRequestsData:
         """Get the number of pending change requests for a given register, internal_record_id and tab_id"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -1686,6 +1808,15 @@ class G2PRegisterService(BaseService):
             # Get change_payload from the payload object
             change_payload = payload.change_payload if payload else {}
 
+            # Get section to retrieve section_mnemonic
+            g2p_register_section: G2PRegisterSection = (
+                await session.execute(
+                    select(G2PRegisterSection).where(
+                        G2PRegisterSection.section_id == change_request.section_id
+                    )
+                )
+            ).scalar()
+
             # Create base ChangeRequestFlattenedData object
             change_request_data_dict = {
                 "change_request_id": change_request.change_request_id,
@@ -1693,7 +1824,7 @@ class G2PRegisterService(BaseService):
                 "tab_id": change_request.tab_id,
                 "internal_record_id": change_request.internal_record_id,
                 "section_id": change_request.section_id,
-                "section_mnemonic": change_request.section_mnemonic,
+                "section_mnemonic": g2p_register_section.section_mnemonic,
                 "source_partner_id": change_request.source_partner_id,
                 "created_by": change_request.created_by,
                 "created_at": created_at_str,
@@ -2121,6 +2252,7 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
                 is_list=section.is_list,
+                section_order=section.section_order,
                 section_ui_schema=section.section_ui_schema
             )
             sections_list.append(section_data)
@@ -2416,15 +2548,15 @@ class G2PRegisterService(BaseService):
 
     async def upload_documents(
         self,
-        section_id: str,
-        files: list,  # List of (document_label_id, file) tuples
+        document_label: str,
+        documents: list,  # List of documents
     ) -> UploadDocumentsResponseData:
         """
-        Upload documents to MinIO and return document store IDs with labels.
+        Upload documents to MinIO and return document store IDs with label.
 
         Args:
-            section_id: The section ID to validate document labels against
-            files: List of tuples containing (document_label_id, UploadFile)
+            document_label: The label for the documents being uploaded
+            documents: List of UploadFile objects (documents) to upload
 
         Returns:
             UploadDocumentsResponseData with list of uploaded document info
@@ -2433,46 +2565,26 @@ class G2PRegisterService(BaseService):
 
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Validate section exists
-            section = await self.validate_section(section_id, session)
-            if not section.documents_required:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                    message="Section does not require documents"
-                )
-
+           
             minio_client: MinioClient = MinioClient.get_component()
             uploaded_documents: list[UploadedDocumentData] = []
 
-            for document_label_id, file in files:
-                # Validate document label exists for this section
-                label_result = await session.execute(
-                    select(G2PRegisterSectionDocumentLabel).where(
-                        (G2PRegisterSectionDocumentLabel.section_id == section_id) &
-                        (G2PRegisterSectionDocumentLabel.document_label_id == document_label_id)
-                    )
-                )
-                document_label = label_result.scalar()
-                if not document_label:
-                    raise G2PRegistryException(
-                        code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                        message=f"Document label {document_label_id} not found for section {section_id}"
-                    )
-
+            for document in documents:
+                
                 # Read file content
-                file_content = await file.read()
+                document_content = await document.read()
 
                 # Generate unique object name
-                object_name = f"documents/{section_id}/{document_label_id}/{uuid.uuid4().hex}_{file.filename}"
+                object_name = f"{uuid.uuid4().hex}_{document.filename}"
 
                 # Upload to MinIO
                 import io
                 document_store_id = minio_client.put_object(
                     object_name=object_name,
-                    data=io.BytesIO(file_content),
-                    length=len(file_content),
-                    content_type=file.content_type or "application/octet-stream",
-                    bucket_name="documents" #TODO: Make configurable
+                    data=io.BytesIO(document_content),
+                    length=len(document_content),
+                    content_type=document.content_type or "application/octet-stream",
+                    bucket_name=f"{document_label.lower()}"
                 )
 
                 # Generate presigned URL for the uploaded document
@@ -2481,72 +2593,20 @@ class G2PRegisterService(BaseService):
                 # Persist document metadata (without URL, which is regenerated when needed)
                 session.add(G2PRegistryDocument(
                     document_store_id=document_store_id,
-                    document_label_id=document_label_id,
-                    document_label=document_label.document_label,
-                    filename=file.filename,
+                    document_label=document_label,
+                    filename=document.filename,
                 ))
 
                 uploaded_documents.append(UploadedDocumentData(
                     document_store_id=document_store_id,
-                    document_label_id=document_label_id,
-                    document_label=document_label.document_label,
-                    filename=file.filename,
+                    document_label=document_label,
+                    filename=document.filename,
                     document_url=document_url
                 ))
 
             await session.commit()
 
             return UploadDocumentsResponseData(uploaded_documents=uploaded_documents)
-
-    # Hardcoded label ID for record images
-    RECORD_IMAGE_LABEL_ID = "RECORD_IMAGE"
-
-    async def upload_record_image(
-        self,
-        section_id: str,
-        file  # UploadFile
-    ) -> "UploadRecordImageData":
-        """
-        Upload a record image to MinIO storage.
-
-        Args:
-            section_id: The section ID (for organizing storage path)
-            file: The image file to upload
-
-        Returns:
-            UploadRecordImageData with document_store_id and filename
-        """
-        from ..helpers import MinioClient
-        from ..schemas import UploadRecordImageData
-
-        minio_client: MinioClient = MinioClient.get_component()
-
-        # Read file content
-        file_content = await file.read()
-
-        # Generate unique object name using hardcoded RECORD_IMAGE label
-        object_name = f"record_images/{section_id}/{self.RECORD_IMAGE_LABEL_ID}/{uuid.uuid4().hex}_{file.filename}"
-
-        # Upload to MinIO
-        import io
-        document_store_id = minio_client.put_object(
-            object_name=object_name,
-            data=io.BytesIO(file_content),
-            length=len(file_content),
-            content_type=file.content_type or "image/jpeg",
-            bucket_name="record_images" #TODO: Make configurable
-        )
-
-        # Generate presigned URL for the uploaded image
-        document_url = minio_client.get_url(object_name=document_store_id)
-
-        _logger.info(f"Uploaded record image: {document_store_id} for section_id: {section_id}")
-
-        return UploadRecordImageData(
-            document_store_id=document_store_id,
-            filename=file.filename,
-            document_url=document_url
-        )
 
     async def _handle_documents_on_approval(
         self,
@@ -2577,12 +2637,12 @@ class G2PRegisterService(BaseService):
                 internal_record_id=change_request.internal_record_id,
                 change_request_id=change_request.change_request_id,
                 section_id=section.section_id,
-                document_label_id=existing_doc.document_label_id,
-                document_store_id=existing_doc.document_store_id,
+                document_label=cr_doc.document_label,
+                document_store_id=cr_doc.document_store_id,
                 created_by=change_request.created_by,
                 created_at=change_request.created_at,
                 approved_by="system",
-                approved_at=func.now()
+                approved_at=datetime.now()
             )
             session.add(history_entry)
             # Check if a document with the same label already exists for this section/record
@@ -2590,7 +2650,7 @@ class G2PRegisterService(BaseService):
                 select(G2PRegisterSectionDocument).where(
                     (G2PRegisterSectionDocument.internal_record_id == change_request.internal_record_id) &
                     (G2PRegisterSectionDocument.section_id == section.section_id) &
-                    (G2PRegisterSectionDocument.document_label_id == cr_doc.document_label_id)
+                    (G2PRegisterSectionDocument.document_label == cr_doc.document_label)
                 )
             )
             existing_doc = existing_doc_result.scalar()
@@ -2598,64 +2658,18 @@ class G2PRegisterService(BaseService):
             if existing_doc:
                 # Update existing document with new store ID
                 existing_doc.document_store_id = cr_doc.document_store_id
-                _logger.info(f"Replaced document {cr_doc.document_label_id} for record {change_request.internal_record_id}")
+                _logger.info(f"Replaced document {cr_doc.document_label} for record {change_request.internal_record_id}")
             else:
                 # Create new section document
                 new_section_doc = G2PRegisterSectionDocument(
                     internal_record_id=change_request.internal_record_id,
                     register_id=section.register_id,
                     section_id=section.section_id,
-                    document_label_id=cr_doc.document_label_id,
+                    document_label=cr_doc.document_label,
                     document_store_id=cr_doc.document_store_id
                 )
                 session.add(new_section_doc)
-                _logger.info(f"Created new document {cr_doc.document_label_id} for record {change_request.internal_record_id}")
-
-    async def get_document_labels_for_section(
-        self,
-        register_id: str,
-        section_id: str
-    ) -> "DocumentLabelsForSectionData":
-        """
-        Get document labels for a section.
-
-        Args:
-            register_id: The register ID
-            section_id: The section ID
-
-        Returns:
-            DocumentLabelsForSectionData with list of document labels
-        """
-        from ..schemas import DocumentLabelsForSectionData, DocumentLabelData
-
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            # Validate register and section exist
-            await self.validate_register_definition(register_id, session)
-            await self.validate_section(section_id, session)
-
-            # Get all document labels for this section
-            labels_result = await session.execute(
-                select(G2PRegisterSectionDocumentLabel).where(
-                    (G2PRegisterSectionDocumentLabel.register_id == register_id) &
-                    (G2PRegisterSectionDocumentLabel.section_id == section_id)
-                )
-            )
-            labels = labels_result.scalars().all()
-
-            document_labels = [
-                DocumentLabelData(
-                    document_label_id=label.document_label_id,
-                    document_label=label.document_label
-                )
-                for label in labels
-            ]
-
-            return DocumentLabelsForSectionData(
-                register_id=register_id,
-                section_id=section_id,
-                document_labels=document_labels
-            )
+                _logger.info(f"Created new document {cr_doc.document_label} for record {change_request.internal_record_id}")
 
     async def get_section_documents(
         self,
@@ -2690,30 +2704,21 @@ class G2PRegisterService(BaseService):
                     (G2PRegisterSectionDocument.section_id == section_id)
                 )
             )
-            docs = docs_result.scalars().all()
+            g2p_register_section_documents = docs_result.scalars().all()
 
             minio_client: MinioClient = MinioClient.get_component()
 
             # Get document labels for each document
             documents = []
-            for doc in docs:
-                # Get the label for this document
-                label_result = await session.execute(
-                    select(G2PRegisterSectionDocumentLabel).where(
-                        G2PRegisterSectionDocumentLabel.document_label_id == doc.document_label_id
-                    )
-                )
-                label = label_result.scalar()
-                label_name = label.document_label if label else ""
+            for g2p_register_section_document in g2p_register_section_documents:    
 
                 # Generate presigned URL for the document
-                document_url = minio_client.get_url(object_name=doc.document_store_id)
+                document_url = minio_client.get_url(object_name=g2p_register_section_document.document_store_id)
 
                 documents.append(
                     SectionDocumentData(
-                        document_label_id=doc.document_label_id,
-                        document_label=label_name,
-                        document_store_id=doc.document_store_id,
+                        document_label=g2p_register_section_document.document_label,
+                        document_store_id=g2p_register_section_document.document_store_id,
                         document_url=document_url
                     )
                 )
@@ -2725,7 +2730,7 @@ class G2PRegisterService(BaseService):
                 documents=documents
             )
 
-    async def get_section_documents_for_change_request(
+    async def get_change_request_documents(
         self,
         change_request_id: str
     ) -> "ChangeRequestDocumentsData":
@@ -2762,30 +2767,21 @@ class G2PRegisterService(BaseService):
                     G2PRegisterChangeRequestDocument.change_request_id == change_request_id
                 )
             )
-            docs = docs_result.scalars().all()
+            g2p_register_change_request_documents = docs_result.scalars().all()
 
             minio_client: MinioClient = MinioClient.get_component()
 
             # Get document labels for each document
             documents = []
-            for doc in docs:
-                # Get the label for this document
-                label_result = await session.execute(
-                    select(G2PRegisterSectionDocumentLabel).where(
-                        G2PRegisterSectionDocumentLabel.document_label_id == doc.document_label_id
-                    )
-                )
-                label = label_result.scalar()
-                label_name = label.document_label if label else ""
+            for g2p_register_change_request_document in g2p_register_change_request_documents:
 
                 # Generate presigned URL for the document
-                document_url = minio_client.get_url(object_name=doc.document_store_id)
+                document_url = minio_client.get_url(object_name=g2p_register_change_request_document.document_store_id)
 
                 documents.append(
                     SectionDocumentData(
-                        document_label_id=doc.document_label_id,
-                        document_label=label_name,
-                        document_store_id=doc.document_store_id,
+                        document_label=g2p_register_change_request_document.document_label,
+                        document_store_id=g2p_register_change_request_document.document_store_id,
                         document_url=document_url
                     )
                 )

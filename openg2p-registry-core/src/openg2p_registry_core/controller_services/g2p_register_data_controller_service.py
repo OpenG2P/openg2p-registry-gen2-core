@@ -4,10 +4,10 @@ from openg2p_fastapi_common.service import BaseService
 from ..services import G2PRegisterService, G2PRegisterHierarchicalService
 from ..schemas import (
     NumberOfVersionsData, RecordData, RegisterTabRecordData,
-    RecordHistoryListData,
+    RecordHistoryListData, VersionDatesData, VersionsForDateData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     GetNumberOfVersionsRequest, GetSubjectRecordRequest,
-    GetRecordHistoryRequest,
+    GetRecordHistoryRequest, GetVersionDatesRequest, GetChangesForDateRequest,
     GetDeduplicationRegisterResultsRequest,
     GetDeduplicationChangerequestResultsRequest,
     GetRegisterSectionRequest, RegisterSectionData,
@@ -37,6 +37,27 @@ class G2PRegisterDataControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         record_history_data: RecordHistoryListData = await g2p_register_service.get_record_history(register_id, internal_record_id, tab_id)
         return record_history_data
+
+    async def get_version_dates(self, get_version_dates_request: GetVersionDatesRequest) -> VersionDatesData:
+        """Get unique truncated dates from history records for a given register, internal_record_id and tab_id"""
+        register_id = get_version_dates_request.request_body.request_payload.register_id
+        internal_record_id = get_version_dates_request.request_body.request_payload.internal_record_id
+        tab_id = get_version_dates_request.request_body.request_payload.tab_id
+        _logger.info(f"Getting version dates for register_id: {register_id}, internal_record_id: {internal_record_id}, tab_id: {tab_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        version_dates_data: VersionDatesData = await g2p_register_service.get_version_dates(register_id, internal_record_id, tab_id)
+        return version_dates_data
+
+    async def get_versions_for_a_date(self, get_changes_for_date_request: GetChangesForDateRequest) -> VersionsForDateData:
+        """Get changes from history records for a given register, internal_record_id, tab_id and specific date"""
+        register_id = get_changes_for_date_request.request_body.request_payload.register_id
+        internal_record_id = get_changes_for_date_request.request_body.request_payload.internal_record_id
+        tab_id = get_changes_for_date_request.request_body.request_payload.tab_id
+        truncated_created_date = get_changes_for_date_request.request_body.request_payload.truncated_created_date
+        _logger.info(f"Getting changes for date for register_id: {register_id}, internal_record_id: {internal_record_id}, tab_id: {tab_id}, truncated_created_date: {truncated_created_date} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        changes_for_date_data: VersionsForDateData = await g2p_register_service.get_versions_for_a_date(register_id, internal_record_id, tab_id, truncated_created_date)
+        return changes_for_date_data
 
     async def get_subject_record(self, get_subject_record_request: GetSubjectRecordRequest) -> RecordData:
         subject_register_id = get_subject_record_request.request_body.request_payload.subject_register_id
@@ -112,7 +133,7 @@ class G2PRegisterDataControllerService(BaseService):
         )
         return section_records
 
-    async def get_register_tab_records(
+    async def get_tab_records(
         self,
         get_register_tab_records_request: GetRegisterTabRecordsRequest
     ) -> list[RegisterTabRecordData]:
@@ -130,7 +151,7 @@ class G2PRegisterDataControllerService(BaseService):
             f"through controller service"
         )
         g2p_register_hierarchical_service = G2PRegisterHierarchicalService.get_component()
-        tab_records: list[RegisterTabRecordData] = await g2p_register_hierarchical_service.get_register_tab_records(
+        tab_records: list[RegisterTabRecordData] = await g2p_register_hierarchical_service.get_tab_records(
             subject_register_id, subject_record_id, tab_id
         )
         return tab_records
