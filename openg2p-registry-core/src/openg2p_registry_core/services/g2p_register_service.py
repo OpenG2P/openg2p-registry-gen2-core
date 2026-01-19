@@ -1,7 +1,7 @@
 import logging
 import uuid
 import importlib
-from datetime import datetime
+from datetime import datetime, date
 from fastapi_cache.decorator import cache
 
 from openg2p_fastapi_common.service import BaseService
@@ -9,7 +9,7 @@ from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select, inspect
+from sqlalchemy import func, insert, select, inspect, Date as SQLDate
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..cache import metadata_key_builder
@@ -619,6 +619,33 @@ class G2PRegisterService(BaseService):
                     session=session
                 )
 
+    def _convert_date_strings_to_objects(self, data_dict: dict, model_class) -> dict:
+        """Helper method to convert date strings to date objects for SQLAlchemy Date columns"""
+        # Get the model's column information
+        mapper = inspect(model_class)
+        converted_dict = data_dict.copy()
+        
+        for key, value in converted_dict.items():
+            if value is None:
+                continue
+            # Check if the column is a Date type
+            if key in mapper.columns:
+                column = mapper.columns[key]
+                # Check if column type is SQLAlchemy Date type
+                if isinstance(column.type, SQLDate):
+                    # If value is a string, try to convert it to a date object
+                    if isinstance(value, str):
+                        try:
+                            converted_dict[key] = datetime.strptime(value, '%Y-%m-%d').date()
+                        except (ValueError, TypeError):
+                            # If parsing fails, keep the original value
+                            pass
+                    elif isinstance(value, datetime):
+                        # If it's a datetime, convert to date
+                        converted_dict[key] = value.date()
+        
+        return converted_dict
+
     def _create_history_record(self, change_payload: dict, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""
         # Serialize change request payload to history schema
@@ -639,6 +666,10 @@ class G2PRegisterService(BaseService):
         history_dict["created_by"] = change_request.created_by
         history_dict["approved_at"] = change_request.approved_at
         history_dict["approved_by"] = change_request.approved_by
+        
+        # Convert date strings to date objects before creating the instance
+        history_dict = self._convert_date_strings_to_objects(history_dict, history_class)
+        
         history_instance = history_class(**history_dict)
         session.add(history_instance)
 
@@ -696,9 +727,21 @@ class G2PRegisterService(BaseService):
         ).scalar()
 
         if existing:
+            mapper = inspect(register_class)
             for key, value in register_schema_instance.dict().items():
                 # Only update values in change request payload
                 if key in change_payload:
+                    # Convert date strings to date objects if needed
+                    if value is not None and key in mapper.columns:
+                        column = mapper.columns[key]
+                        if isinstance(column.type, SQLDate):
+                            if isinstance(value, str):
+                                try:
+                                    value = datetime.strptime(value, '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    pass
+                            elif isinstance(value, datetime):
+                                value = value.date()
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
             setattr(existing, "last_approved_by", "system")
@@ -711,6 +754,10 @@ class G2PRegisterService(BaseService):
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
+            
+            # Convert date strings to date objects before creating the instance
+            schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
+            
             new_instance = register_class(**schema_dict)
             session.add(new_instance)
                 
