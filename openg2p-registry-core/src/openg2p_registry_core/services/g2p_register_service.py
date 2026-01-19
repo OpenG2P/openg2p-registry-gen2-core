@@ -1814,6 +1814,7 @@ class G2PRegisterService(BaseService):
             internal_record_id=change_request.internal_record_id,
             section_id=change_request.section_id,
             section_mnemonic=g2p_register_section.section_mnemonic,
+            section_register_id=change_request.section_register_id,
             source_partner_id=change_request.source_partner_id,
             created_by=change_request.created_by,
             created_at=created_at_str,

@@ -392,6 +392,7 @@ class ChangeRequestData(BaseModel):
     internal_record_id: str
     section_id: str
     section_mnemonic: str
+    section_register_id: str
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
