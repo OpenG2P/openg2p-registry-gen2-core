@@ -2575,7 +2575,7 @@ class G2PRegisterService(BaseService):
                 document_content = await document.read()
 
                 # Generate unique object name
-                object_name = f"{uuid.uuid4().hex}_{document.filename}"
+                object_name = f"{document_label.lower()}/{uuid.uuid4().hex}_{document.filename}"
 
                 # Upload to MinIO
                 import io
@@ -2584,7 +2584,6 @@ class G2PRegisterService(BaseService):
                     data=io.BytesIO(document_content),
                     length=len(document_content),
                     content_type=document.content_type or "application/octet-stream",
-                    bucket_name=f"{document_label.lower()}"
                 )
 
                 # Generate presigned URL for the uploaded document
