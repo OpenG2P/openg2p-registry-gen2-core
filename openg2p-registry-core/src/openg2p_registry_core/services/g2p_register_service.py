@@ -761,6 +761,8 @@ class G2PRegisterService(BaseService):
             session.add(new_instance)
         elif change_payload.get("edit_action") == EditActionEnum.DELETE.value and existing:
             await session.delete(existing)
+        elif change_payload.get("edit_action") == EditActionEnum.NO_CHANGE.value and existing:
+            _logger.info(f"No change action for change request '{change_request.change_request_id}', skipping register update.")
         else:
             _logger.error(f"Unknown edit action '{change_payload.get('edit_action')}' for change request '{change_request.change_request_id}'")
             raise G2PRegistryException(
