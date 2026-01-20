@@ -393,6 +393,7 @@ class ChangeRequestData(BaseModel):
     internal_record_id: str
     section_id: str
     section_mnemonic: str
+    is_list: bool = False
     section_register_id: str
     source_partner_id: str
     created_by: str
@@ -549,6 +550,7 @@ class RegisterTabRecordData(BaseModel):
     Multiple sections with the same section_register_id are deduplicated.
     """
     section_register_id: str
+    is_list: bool = False
     records: List[RecordData]
 
 
