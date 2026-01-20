@@ -4,14 +4,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
+from fastapi_cache.decorator import cache
 
 from ..models import G2PAttributeValue
 from ..schemas import G2PAttributeValueData
+from ..config import Settings
 
 _logger = logging.getLogger('g2p-attribute-service')
+_config = Settings.get_config()
 
 
 class G2PAttributeService(BaseService):
+    @cache(expire=_config.cache_expires_in_seconds)
     async def get_attribute_values(
         self,
         attribute_id: str,
@@ -38,11 +42,8 @@ class G2PAttributeService(BaseService):
             )
             
             # Filter by parent_value_id if provided
-            if parent_value_id is not None:
+            if parent_value_id:
                 query = query.where(G2PAttributeValue.parent_value_id == parent_value_id)
-            else:
-                # If parent_value_id is None, get top-level values (where parent_value_id is NULL)
-                query = query.where(G2PAttributeValue.parent_value_id.is_(None))
             
             # Order by sort_order
             query = query.order_by(G2PAttributeValue.sort_order)
