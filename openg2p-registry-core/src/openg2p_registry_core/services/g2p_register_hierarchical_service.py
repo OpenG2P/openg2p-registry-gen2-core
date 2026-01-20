@@ -513,9 +513,9 @@ class G2PRegisterHierarchicalService(BaseService):
                 return []
 
             # Extract unique section_register_ids to avoid duplicate fetches
-            unique_section_register_ids: set[str] = set()
+            unique_section_register_ids: set[tuple[str, bool]] = set()
             for section in sections:
-                unique_section_register_ids.add(section.section_register_id)
+                unique_section_register_ids.add((section.section_register_id, section.is_list))
 
             # Fetch records for each unique section_register_id
             tab_records: list[RegisterTabRecordData] = []
@@ -523,10 +523,11 @@ class G2PRegisterHierarchicalService(BaseService):
                 records: list[RecordData] = await self.get_section_records(
                     subject_register_id=subject_register_id,
                     subject_record_id=subject_record_id,
-                    section_register_id=section_register_id
+                    section_register_id=section_register_id[0]
                 )
                 tab_records.append(RegisterTabRecordData(
-                    section_register_id=section_register_id,
+                    section_register_id=section_register_id[0],
+                    is_list=section_register_id[1],
                     records=records
                 ))
 

@@ -19,6 +19,7 @@ class G2PRegisterDefinition(BaseORMModel):
     register_subject: Mapped[str] = mapped_column(String, nullable=True)
     register_description: Mapped[Text] = mapped_column(Text, nullable=True)
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    register_rank: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # Register type flags
     register_purpose: Mapped[RegisterPurposeEnum] = mapped_column(String, nullable=False)
