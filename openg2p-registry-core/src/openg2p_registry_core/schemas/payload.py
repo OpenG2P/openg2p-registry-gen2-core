@@ -232,6 +232,7 @@ class EditActionEnum(str, Enum):
     ADD = "ADD"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
+    NO_CHANGE = "NO_CHANGE"
 
 class ChangePayload(BaseChangePayload):
     internal_record_id: str
