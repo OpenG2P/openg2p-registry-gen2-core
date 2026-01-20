@@ -889,7 +889,10 @@ class G2PRegisterService(BaseService):
 
     async def _fetch_register_summary_data(self, session) -> list[RegisterSummaryData]:
         register_definitions: list[G2PRegisterDefinition] = (
-            await session.execute(select(G2PRegisterDefinition))
+            await session.execute(
+                select(G2PRegisterDefinition)
+                .where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value)
+            )
         ).scalars().all()
 
         register_summary_data_list: list[RegisterSummaryData] = []
@@ -959,7 +962,11 @@ class G2PRegisterService(BaseService):
 
     async def _fetch_all_registers(self, session) -> list[RegisterData]:
         register_definitions: list[G2PRegisterDefinition] = (
-            await session.execute(select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value))
+            await session.execute(
+                select(G2PRegisterDefinition)
+                .where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value)
+                .order_by(G2PRegisterDefinition.register_rank)
+            )
         ).scalars().all()
 
         all_registers_list: list[RegisterData] = []
