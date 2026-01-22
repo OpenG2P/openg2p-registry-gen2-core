@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, inspect, Date as SQLDate
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from ..helpers import MinioClient
+
 from ..cache import metadata_key_builder
 
 from ..models import (
@@ -35,7 +37,7 @@ from ..schemas import (
     RegisterSchemaData, RegisterSectionData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
     RegistryConfigurationData, EarliestPendingChangeRequestData,
-    ChangePayload, EditActionEnum
+    ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData
 )
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -2751,7 +2753,7 @@ class G2PRegisterService(BaseService):
         register_id: str,
         record_id: str,
         section_id: str
-    ) -> "SectionDocumentsData":
+    ) -> SectionDocumentsData:
         """
         Get documents for a section record.
 
@@ -2763,8 +2765,6 @@ class G2PRegisterService(BaseService):
         Returns:
             SectionDocumentsData with list of documents (label, document_store_id, document_url)
         """
-        from ..schemas import SectionDocumentsData, SectionDocumentData
-        from ..helpers import MinioClient
 
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -2808,7 +2808,7 @@ class G2PRegisterService(BaseService):
     async def get_change_request_documents(
         self,
         change_request_id: str
-    ) -> "ChangeRequestDocumentsData":
+    ) -> ChangeRequestDocumentsData:
         """
         Get documents for a change request.
 
@@ -2818,8 +2818,6 @@ class G2PRegisterService(BaseService):
         Returns:
             ChangeRequestDocumentsData with list of documents (label, document_store_id, document_url)
         """
-        from ..schemas import ChangeRequestDocumentsData, SectionDocumentData
-        from ..helpers import MinioClient
 
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:

@@ -81,11 +81,13 @@ class G2PPerson(BaseORMModel):
     middle_name: Mapped[str] = mapped_column(String, nullable=True)
     last_name: Mapped[str] = mapped_column(String, nullable=True)
     given_name: Mapped[str] = mapped_column(String, nullable=True)
-    gender: Mapped[str] = mapped_column(GenderEnum, nullable=True)
+    prefix: Mapped[str] = mapped_column(String, nullable=True)
+    suffix: Mapped[str] = mapped_column(String, nullable=True)
+    gender: Mapped[GenderEnum] = mapped_column(String, nullable=True)
     birth_date: Mapped[str] = mapped_column(Date, nullable=True)
-    phone_number: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    email_address: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    marital_status: Mapped[str] = mapped_column(MaritalStatusEnum, nullable=True)
+    phone_numbers: Mapped[list] = mapped_column(JSONB, nullable=True)
+    emails: Mapped[list] = mapped_column(JSONB, nullable=True)
+    marital_status: Mapped[MaritalStatusEnum] = mapped_column(String, nullable=True)
     occupation: Mapped[str] = mapped_column(String, nullable=True)
     income_level: Mapped[str] = mapped_column(String, nullable=True)
     language_code: Mapped[str] = mapped_column(String, nullable=True)
@@ -102,8 +104,8 @@ class G2PPerson(BaseORMModel):
             self.given_name or "",
             self.gender.value if self.gender else "",
             str(self.birth_date) if self.birth_date else "",
-            self.phone_number or "",
-            self.email_address or "",
+            self.phone_numbers or "",
+            self.emails or "",
             self.marital_status.value if self.marital_status else "",
             self.occupation or "",
             self.education_level or "",
@@ -117,6 +119,8 @@ class G2PGeo(BaseORMModel):
     longitude: Mapped[float] = mapped_column(String, nullable=True)
     altitude: Mapped[float] = mapped_column(String, nullable=True)
     plus_code: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    address_line_1: Mapped[str] = mapped_column(String, nullable=True)
+    address_line_2: Mapped[str] = mapped_column(String, nullable=True)
     postal_code: Mapped[str] = mapped_column(String, nullable=True, index=True)
     country_code: Mapped[str] = mapped_column(String, nullable=True, index=True)
     geo_lowest_level_value_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
