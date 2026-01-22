@@ -14,6 +14,7 @@ from .services import (
     G2PTemplateService,
     G2PAttributeService,
     G2PIngestionDataService,
+    G2PVcConfigurationService
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
@@ -27,6 +28,7 @@ from .controller_services import (
     G2PRegistryControllerService,
     G2PAttributeControllerService,
     G2PIngestionDataControllerService,
+    G2PVcConfigurationControllerService
 )
 from .models import (
     DataModel,
@@ -61,6 +63,7 @@ from .models import (
     G2PAttribute,
     G2PAttributeValue,
     G2PRegistryDocument,
+    G2PRegistryVcConfiguration,
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
@@ -101,6 +104,7 @@ class Initializer(BaseInitializer):
         G2POutgestionConfigurationService()
         G2PTemplateService()
         G2PAttributeService()
+        G2PVcConfigurationService()
 
         # Controller Services
         G2PIngestControllerService()
@@ -114,6 +118,7 @@ class Initializer(BaseInitializer):
         G2PDocumentControllerService()
         G2PRegistryControllerService()
         G2PAttributeControllerService()
+        G2PVcConfigurationControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -162,5 +167,8 @@ class Initializer(BaseInitializer):
             # Attribute Models
             await G2PAttribute.create_migrate()
             await G2PAttributeValue.create_migrate()
+
+            # VC Configuration Models
+            await G2PRegistryVcConfiguration.create_migrate()
 
         asyncio.run(migrate())
