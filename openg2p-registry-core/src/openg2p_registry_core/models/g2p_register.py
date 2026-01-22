@@ -67,6 +67,7 @@ class MaritalStatusEnum(enum.Enum):
     DIVORCED = "DIVORCED"
     WIDOWED = "WIDOWED"
     SEPARATED = "SEPARATED"
+    UNKNOWN = "UNKNOWN"
 
 class GenderEnum(enum.Enum):
     MALE = "MALE"
