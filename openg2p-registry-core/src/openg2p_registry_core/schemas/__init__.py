@@ -264,3 +264,11 @@ from .g2p_attributes import (
     GetG2PAttributeValuesResponseBody,
     GetG2PAttributeValuesResponse,
 )
+from .g2p_vc_configuration import (
+    VcConfigurationData,
+    VcConfigurationRequestPayload,
+    VcConfigurationRequestBody,
+    VcConfigurationRequest,
+    VcConfigurationResponseBody,
+    VcConfigurationResponse
+)
