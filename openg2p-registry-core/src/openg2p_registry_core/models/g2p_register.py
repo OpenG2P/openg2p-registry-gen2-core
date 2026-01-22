@@ -72,6 +72,7 @@ class GenderEnum(enum.Enum):
     MALE = "MALE"
     FEMALE = "FEMALE"
     OTHERS = "OTHERS"
+    UNKNOWN = "UNKNOWN"
 
 class G2PPerson(BaseORMModel):
     __abstract__ = True
