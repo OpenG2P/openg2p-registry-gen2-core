@@ -112,7 +112,7 @@ from .payload import (
     DocumentLabelData, SectionDocumentData, SectionDocumentsData, ChangeRequestDocumentsData, FileUrlData,
     ChangePayload, EditActionEnum
 )
-from .g2p_register import G2PRegisterSchema
+from .g2p_register import G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PGeoShapeSchema
 from .g2p_register_history import G2PRegisterHistorySchema
 from .deduplication import DeduplicationFieldConfig
 from .ingestion_configuration import (
