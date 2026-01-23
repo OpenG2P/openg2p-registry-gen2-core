@@ -284,12 +284,6 @@ class G2PRegisterHierarchicalService(BaseService):
         mapper = sa_inspect(record.__class__)
         extra_fields: dict = {}
 
-        base_fields: set = {
-            'internal_record_id', 'functional_record_id', 'link_internal_record_id',
-            'foundational_id', 'link_foundational_id',
-            'created_by', 'created_at', 'last_approved_at', 'last_approved_by', 'search_text'
-        }
-
         # Get MinIO client for generating presigned URLs
         minio_client: MinioClient = MinioClient.get_component()
 
@@ -303,19 +297,10 @@ class G2PRegisterHierarchicalService(BaseService):
             # Convert image field to record_image_url with presigned URL
             if column_name == 'image' and value:
                 extra_fields['record_image_url'] = minio_client.get_url(object_name=value)
-            elif column_name not in base_fields:
+            else:
                 extra_fields[column_name] = value
 
         record_data: RecordData = RecordData(
-            internal_record_id=record.internal_record_id,
-            functional_record_id=record.functional_record_id,
-            link_internal_record_id=record.link_internal_record_id,
-            foundational_id=record.foundational_id,
-            link_foundational_id=record.link_foundational_id,
-            created_by=record.created_by,
-            created_at=str(record.created_at.isoformat()) if record.created_at and hasattr(record.created_at, 'isoformat') else None,
-            last_approved_at=str(record.last_approved_at.isoformat()) if record.last_approved_at and hasattr(record.last_approved_at, 'isoformat') else None,
-            last_approved_by=record.last_approved_by,
             **extra_fields
         )
 
