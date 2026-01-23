@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy import select
 
 from ..models import (
-    IncomingPartner,
     IncomingModelKeyPath,
     IncomingModelSemanticPattern,
     IncomingTemplate,
@@ -20,11 +19,7 @@ from ..models import (
     SubscriptionActivityLog,
 )
 from ..schemas import (
-    IncomingPartnerPayload,
-    IncomingPartnerUpdatePayload,
-    IncomingPartnerData,
     IncomingModelKeyPathPayload,
-    IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
     IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
@@ -48,111 +43,6 @@ _logger = logging.getLogger("g2p-ingestion-configuration-service")
 
 
 class G2PIngestionConfigurationService(BaseService):
-
-    async def create_incoming_partner(
-        self, incoming_partner_payload: IncomingPartnerPayload
-    ) -> IncomingPartnerData:
-        """Create a new incoming partner"""
-        master_data_engine = get_engines().get("db_engine_master_data")
-        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        async with session_maker() as session:
-            # Check if partner mnemonic already exists
-            existing = await session.execute(
-                select(IncomingPartner).where(
-                    IncomingPartner.partner_mnemonic == incoming_partner_payload.partner_mnemonic
-                )
-            )
-            if existing.scalar_one_or_none():
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PARTNER_ALREADY_EXISTS.value[1],
-                    message=G2PRegistryErrorCodes.PARTNER_ALREADY_EXISTS.value[0],
-                )
-
-            partner_id = incoming_partner_payload.partner_id or str(uuid.uuid4())
-            incoming_partner = IncomingPartner(
-                partner_id=partner_id,
-                partner_mnemonic=incoming_partner_payload.partner_mnemonic,
-                keymanager_reference_id=incoming_partner_payload.keymanager_reference_id,
-                is_active=incoming_partner_payload.is_active,
-            )
-            session.add(incoming_partner)
-            await session.commit()
-            await session.refresh(incoming_partner)
-            return IncomingPartnerData.model_validate(incoming_partner)
-
-    async def get_incoming_partner(self, partner_id: str) -> IncomingPartnerData:
-        """Get incoming partner by ID"""
-        master_data_engine = get_engines().get("db_engine_master_data")
-        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        async with session_maker() as session:
-            partner = await session.execute(
-                select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
-            )
-            partner_obj = partner.scalar_one_or_none()
-            if not partner_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
-                )
-            return IncomingPartnerData.model_validate(partner_obj)
-
-    async def update_incoming_partner(
-        self, partner_id: str, incoming_partner_payload: IncomingPartnerUpdatePayload
-    ) -> IncomingPartnerData:
-        """Update incoming partner - only updates provided fields"""
-        master_data_engine = get_engines().get("db_engine_master_data")
-        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        async with session_maker() as session:
-            partner = await session.execute(
-                select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
-            )
-            partner_obj = partner.scalar_one_or_none()
-            if not partner_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
-                )
-
-            # Only update fields that are provided (not None)
-            if incoming_partner_payload.partner_mnemonic is not None:
-                partner_obj.partner_mnemonic = incoming_partner_payload.partner_mnemonic
-            if incoming_partner_payload.keymanager_reference_id is not None:
-                partner_obj.keymanager_reference_id = incoming_partner_payload.keymanager_reference_id
-            if incoming_partner_payload.is_active is not None:
-                partner_obj.is_active = incoming_partner_payload.is_active
-
-            await session.commit()
-            await session.refresh(partner_obj)
-            return IncomingPartnerData.model_validate(partner_obj)
-
-    async def delete_incoming_partner(self, partner_id: str) -> None:
-        """Soft delete incoming partner"""
-        master_data_engine = get_engines().get("db_engine_master_data")
-        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        async with session_maker() as session:
-            partner = await session.execute(
-                select(IncomingPartner).where(IncomingPartner.partner_id == partner_id)
-            )
-            partner_obj = partner.scalar_one_or_none()
-            if not partner_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PARTNER_NOT_FOUND.value[0],
-                )
-
-            partner_obj.is_active = False
-            await session.commit()
-
-    async def get_all_incoming_partners(self) -> list[IncomingPartnerData]:
-        """Get all incoming partners"""
-        master_data_engine = get_engines().get("db_engine_master_data")
-        session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        async with session_maker() as session:
-            result = await session.execute(
-                select(IncomingPartner).order_by(IncomingPartner.partner_mnemonic)
-            )
-            partners = result.scalars().all()
-            return [IncomingPartnerData.model_validate(partner) for partner in partners]
 
     # IncomingModelKeyPath Methods
     async def create_new_incoming_key_path(
