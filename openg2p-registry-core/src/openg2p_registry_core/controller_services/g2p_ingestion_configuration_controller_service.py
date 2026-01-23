@@ -5,11 +5,7 @@ from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PIngestionConfigurationService, G2PTemplateService
 from ..schemas import (
-    IncomingPartnerPayload,
-    IncomingPartnerUpdatePayload,
-    IncomingPartnerData,
     IncomingModelKeyPathPayload,
-    IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
     IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
@@ -34,34 +30,6 @@ class G2PIngestionConfigurationControllerService(BaseService):
         super().__init__(**kwargs)
         self.g2p_ingestion_configuration_service = G2PIngestionConfigurationService.get_component()
         self.g2p_template_service = G2PTemplateService.get_component()
-
-    async def create_incoming_partner(
-        self, incoming_partner_payload: IncomingPartnerPayload
-    ) -> IncomingPartnerData:
-        """Create a new incoming partner"""
-        return await self.g2p_ingestion_configuration_service.create_incoming_partner(
-            incoming_partner_payload
-        )
-
-    async def get_incoming_partner(self, partner_id: str) -> IncomingPartnerData:
-        """Get incoming partner by ID"""
-        return await self.g2p_ingestion_configuration_service.get_incoming_partner(partner_id)
-
-    async def update_incoming_partner(
-        self, partner_id: str, incoming_partner_payload: IncomingPartnerUpdatePayload
-    ) -> IncomingPartnerData:
-        """Update incoming partner"""
-        return await self.g2p_ingestion_configuration_service.update_incoming_partner(
-            partner_id, incoming_partner_payload
-        )
-
-    async def delete_incoming_partner(self, partner_id: str) -> None:
-        """Soft delete incoming partner"""
-        return await self.g2p_ingestion_configuration_service.delete_incoming_partner(partner_id)
-
-    async def get_all_incoming_partners(self) -> list[IncomingPartnerData]:
-        """Get all incoming partners"""
-        return await self.g2p_ingestion_configuration_service.get_all_incoming_partners()
 
     # IncomingModelKeyPath Methods
     async def create_new_incoming_key_path(

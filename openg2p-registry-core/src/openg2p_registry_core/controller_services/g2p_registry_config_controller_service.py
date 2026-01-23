@@ -16,7 +16,7 @@ from ..schemas import (
 _logger = logging.getLogger('g2p-registry-controller-service')
 
 
-class G2PRegistryControllerService(BaseService):
+class G2PRegistryConfigurationControllerService(BaseService):
 
     async def create_registry_configuration(
         self, 

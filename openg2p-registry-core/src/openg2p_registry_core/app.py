@@ -20,12 +20,11 @@ from .controller_services import (
     G2PRegisterDataControllerService,
     G2PRegisterChangerequestControllerService,
     G2PRegisterMetadataControllerService,
-    G2PRegisterSummaryControllerService,
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2POutgestionConfigurationControllerService,
     G2PDocumentControllerService,
-    G2PRegistryControllerService,
+    G2PRegistryConfigurationControllerService,
     G2PAttributeControllerService,
     G2PIngestionDataControllerService,
     G2PVcConfigurationControllerService
@@ -111,12 +110,11 @@ class Initializer(BaseInitializer):
         G2PRegisterDataControllerService()
         G2PRegisterChangerequestControllerService()
         G2PRegisterMetadataControllerService()
-        G2PRegisterSummaryControllerService()
         G2PIngestionConfigurationControllerService()
         G2PIngestionDataControllerService()
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
-        G2PRegistryControllerService()
+        G2PRegistryConfigurationControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
 

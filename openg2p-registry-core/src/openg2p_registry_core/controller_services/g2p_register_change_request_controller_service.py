@@ -14,7 +14,8 @@ from ..schemas import (
     GetCrossRegisterChangesRequest,
     GetChangeRequestsRequest, GetChangeRequestRequest,
     GetVerificationsRequest, AddVerificationRequest,
-    GetChangeRequestSummaryDataRequest, ChangeRequestSummaryData
+    GetChangeRequestSummaryDataRequest, ChangeRequestSummaryData,
+    SearchChangeRequestRequest, ChangeRequestSearchResultData
 )
 
 _logger = logging.getLogger('g2p-register-change_request-controller-service')
@@ -147,3 +148,13 @@ class G2PRegisterChangerequestControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         change_request_summary_data: ChangeRequestSummaryData = await g2p_register_service.get_change_request_summary_data()
         return change_request_summary_data
+    
+    async def search_in_change_request(self, search_change_request_request: SearchChangeRequestRequest) -> tuple[list[ChangeRequestSearchResultData], int, int]:
+        pagination = search_change_request_request.request_body.pagination_request
+        _logger.info(f"Searching in change requests with search_text: {pagination.search_text} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        search_results_list, total_items = await g2p_register_service.search_in_change_request(
+            pagination.search_text, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
+        )
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
+        return search_results_list, total_items, number_of_pages
