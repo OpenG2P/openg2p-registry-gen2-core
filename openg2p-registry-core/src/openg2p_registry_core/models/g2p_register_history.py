@@ -1,14 +1,18 @@
 import enum
 import uuid
 
-from sqlalchemy import Boolean, DateTime, String, Text
+from sqlalchemy import Boolean, DateTime, String, Text, Date, Float
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
+
+from .g2p_register import MaritalStatusEnum, GenderEnum, ShapeTypeEnum
 
 
 class ChangeRequestSourceEnum(enum.Enum):
     APPLICATION = "APPLICATION"
     DIRECT = "DIRECT"
+
 
 class G2PRegisterHistory(BaseORMModel):
     __abstract__ = True
@@ -25,17 +29,58 @@ class G2PRegisterHistory(BaseORMModel):
     # This will come from change payload 
     functional_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
-    administrative_area_large_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    administrative_area_small_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     approved_by: Mapped[str] = mapped_column(String, nullable=False)
     approved_at: Mapped[str] = mapped_column(DateTime, nullable=False)
+
+
+class G2PPersonHistory(BaseORMModel):
+    __abstract__ = True
+
+    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    first_name: Mapped[str] = mapped_column(String, nullable=True)
+    middle_name: Mapped[str] = mapped_column(String, nullable=True)
+    last_name: Mapped[str] = mapped_column(String, nullable=True)
+    given_name: Mapped[str] = mapped_column(String, nullable=True)
+    prefix: Mapped[str] = mapped_column(String, nullable=True)
+    suffix: Mapped[str] = mapped_column(String, nullable=True)
+    gender: Mapped[GenderEnum] = mapped_column(String, nullable=True)
+    birth_date: Mapped[str] = mapped_column(Date, nullable=True)
+    phone_numbers: Mapped[list] = mapped_column(JSONB, nullable=True)
+    emails: Mapped[list] = mapped_column(JSONB, nullable=True)
+    marital_status: Mapped[MaritalStatusEnum] = mapped_column(String, nullable=True)
+    occupation: Mapped[str] = mapped_column(String, nullable=True)
+    income_level: Mapped[str] = mapped_column(String, nullable=True)
+    language_code: Mapped[str] = mapped_column(String, nullable=True)
+    education_level: Mapped[str] = mapped_column(String, nullable=True)
+    registration_date: Mapped[str] = mapped_column(Date, nullable=True)
+
+
+class G2PGeoHistory(BaseORMModel):
+    __abstract__ = True
+
+    latitude: Mapped[float] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float] = mapped_column(Float, nullable=True)
+    altitude: Mapped[float] = mapped_column(Float, nullable=True)
+    plus_code: Mapped[str] = mapped_column(String, nullable=True)
+    address_line_1: Mapped[str] = mapped_column(String, nullable=True)
+    address_line_2: Mapped[str] = mapped_column(String, nullable=True)
+    postal_code: Mapped[str] = mapped_column(String, nullable=True)
+    country_code: Mapped[str] = mapped_column(String, nullable=True)
+    geo_lowest_level_value_id: Mapped[str] = mapped_column(String, nullable=True)
+    geo_code_hierarchy_json: Mapped[str] = mapped_column(JSONB, nullable=True)
+
+
+class G2PGeoShapeHistory(BaseORMModel):
+    __abstract__ = True
+
+    shape_type: Mapped[ShapeTypeEnum] = mapped_column(String, nullable=True)
+    shape_coordinates_json: Mapped[str] = mapped_column(JSONB, nullable=True)
 
 class G2PRegisterDocumentHistory(BaseORMModel):
     __tablename__ = "g2p_register_document_history"
