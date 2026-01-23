@@ -82,16 +82,16 @@ class G2PRegisterDataControllerService(BaseService):
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return dedup_results_list, total_items, number_of_pages
 
-    async def get_deduplication_changerequest_results(self, get_deduplication_changerequest_results_request: GetDeduplicationChangerequestResultsRequest) -> tuple[list[DeduplicationChangerequestResultData], int, int]:
+    async def get_deduplication_change_request_results(self, get_deduplication_change_request_results_request: GetDeduplicationChangerequestResultsRequest) -> tuple[list[DeduplicationChangerequestResultData], int, int]:
         """
         Get deduplication results for a change request against other change requests.
         """
-        payload = get_deduplication_changerequest_results_request.request_body.request_payload
-        pagination = get_deduplication_changerequest_results_request.request_body.pagination_request
+        payload = get_deduplication_change_request_results_request.request_body.request_payload
+        pagination = get_deduplication_change_request_results_request.request_body.pagination_request
         change_request_id = payload.change_request_id
-        _logger.info(f"Getting deduplication changerequest results for change_request_id: {change_request_id} through controller service")
+        _logger.info(f"Getting deduplication change_request results for change_request_id: {change_request_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        dedup_results_list, total_items = await g2p_register_service.get_deduplication_changerequest_results(
+        dedup_results_list, total_items = await g2p_register_service.get_deduplication_change_request_results(
             change_request_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0

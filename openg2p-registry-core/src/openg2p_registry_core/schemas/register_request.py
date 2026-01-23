@@ -1,23 +1,73 @@
-from typing import Optional
-from pydantic import BaseModel
-from fastapi import Request
 from openg2p_fastapi_common.schemas import (
     G2PRequest,
     G2PRequestBody
 )
-from .payload import ChangeRequestRequestPayload, AddVerificationPayload
+from .register_payload import (
+    ChangeRequestRequestPayload,
+    AddVerificationPayload,
+    EmptyRequestPayload,
+    ChildRegisterRequestPayload,
+    SearchRegisterRequestPayload,
+    SearchChangeRequestRequestPayload,
+    GetChildRegistersRequestPayload,
+    GetMasterRegisterRequestPayload,
+    GetNumberOfVersionsRequestPayload,
+    GetRecordHistoryRequestPayload,
+    GetVersionDatesRequestPayload,
+    GetChangesForDateRequestPayload,
+    GetNumberOfPendingChangeRequestsRequestPayload,
+    GetNumberOfCrossRegisterChangesRequestPayload,
+    GetCrossRegisterChangesRequestPayload,
+    GetChangeRequestsRequestPayload,
+    GetChangeRequestRequestPayload,
+    GetSubjectRecordRequestPayload,
+    GetVerificationsRequestPayload,
+    GetDeduplicationRegisterResultsRequestPayload,
+    GetDeduplicationChangerequestResultsRequestPayload,
+    GetRegisterSchemaRequestPayload,
+    GetRegisterSectionsRequestPayload,
+    GetRegisterTabSectionsRequestPayload,
+    GetRegisterTabsRequestPayload,
+    AddRegisterTabRequestPayload,
+    DeleteRegisterTabRequestPayload,
+    GetRegisterSectionRequestPayload,
+    AddRegisterSectionRequestPayload,
+    DeleteRegisterSectionRequestPayload,
+    UpdateRegisterSectionRequestPayload,
+    UpdateRegisterSectionUISchemaRequestPayload,
+    CreateRegisterRequestPayload,
+    UpdateRegisterSchemaRequestPayload,
+    UpdateDedupIsEnabledRequestPayload,
+    UpdateDedupThresholdScoreRequestPayload,
+    UpdateDeduplicationSchemaRequestPayload,
+    UpdateSearchResultSchemaRequestPayload,
+    GetSectionRecordsRequestPayload,
+    GetRegisterTabRecordsRequestPayload,
+    CreateRegistryConfigurationRequestPayload,
+    UpdateRegistryConfigurationRequestPayload,
+    GetDocumentLabelsForSectionRequestPayload,
+    GetSectionDocumentsRequestPayload,
+    GetSectionDocumentsForChangeRequestRequestPayload,
+    FileUrlRequestPayload,
+    GetG2PAttributeValuesRequestPayload,
+)
+
+
+# =============================================================================
+# Change Request Request Schemas
+# =============================================================================
 
 class ChangeRequestRequestBody(G2PRequestBody):
     request_payload: ChangeRequestRequestPayload
+
 
 class ChangeRequestRequest(G2PRequest):
     request_body: ChangeRequestRequestBody
 
 
-class EmptyRequestPayload(BaseModel):
-    """Empty payload for requests that don't require any parameters"""
-    pass
-
+# =============================================================================
+# Empty Request Schemas
+# =============================================================================
 
 class EmptyRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
@@ -27,19 +77,33 @@ class EmptyRequest(G2PRequest):
     request_body: EmptyRequestBody
 
 
+# =============================================================================
+# Register Summary Request Schemas
+# =============================================================================
+
 class GetRegisterSummaryDataRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
+
 
 class GetRegisterSummaryDataRequest(G2PRequest):
     request_body: GetRegisterSummaryDataRequestBody
 
 
+# =============================================================================
+# Change Request Summary Request Schemas
+# =============================================================================
+
 class GetChangeRequestSummaryDataRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
+
 
 class GetChangeRequestSummaryDataRequest(G2PRequest):
     request_body: GetChangeRequestSummaryDataRequestBody
 
+
+# =============================================================================
+# Get All Registers Request Schemas
+# =============================================================================
 
 class GetAllRegistersRequestBody(G2PRequestBody):
     request_payload: EmptyRequestPayload
@@ -49,20 +113,21 @@ class GetAllRegistersRequest(G2PRequest):
     request_body: GetAllRegistersRequestBody
 
 
-class ChildRegisterRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Child Register Request Schemas
+# =============================================================================
 
 class ChildRegisterRequestBody(G2PRequestBody):
     request_payload: ChildRegisterRequestPayload
+
 
 class ChildRegisterRequest(G2PRequest):
     request_body: ChildRegisterRequestBody
 
 
-class SearchRegisterRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Search Register Request Schemas
+# =============================================================================
 
 class SearchRegisterRequestBody(G2PRequestBody):
     request_payload: SearchRegisterRequestPayload
@@ -72,9 +137,9 @@ class SearchRegisterRequest(G2PRequest):
     request_body: SearchRegisterRequestBody
 
 
-class SearchChangeRequestRequestPayload(BaseModel):
-    pass
-
+# =============================================================================
+# Search Change Request Request Schemas
+# =============================================================================
 
 class SearchChangeRequestRequestBody(G2PRequestBody):
     request_payload: SearchChangeRequestRequestPayload
@@ -84,9 +149,9 @@ class SearchChangeRequestRequest(G2PRequest):
     request_body: SearchChangeRequestRequestBody
 
 
-class GetChildRegistersRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Get Child Registers Request Schemas
+# =============================================================================
 
 class GetChildRegistersRequestBody(G2PRequestBody):
     request_payload: GetChildRegistersRequestPayload
@@ -96,9 +161,9 @@ class GetChildRegistersRequest(G2PRequest):
     request_body: GetChildRegistersRequestBody
 
 
-class GetMasterRegisterRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Get Master Register Request Schemas
+# =============================================================================
 
 class GetMasterRegisterRequestBody(G2PRequestBody):
     request_payload: GetMasterRegisterRequestPayload
@@ -108,11 +173,9 @@ class GetMasterRegisterRequest(G2PRequest):
     request_body: GetMasterRegisterRequestBody
 
 
-class GetNumberOfVersionsRequestPayload(BaseModel):
-    register_id: str
-    internal_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Number Of Versions Request Schemas
+# =============================================================================
 
 class GetNumberOfVersionsRequestBody(G2PRequestBody):
     request_payload: GetNumberOfVersionsRequestPayload
@@ -122,11 +185,9 @@ class GetNumberOfVersionsRequest(G2PRequest):
     request_body: GetNumberOfVersionsRequestBody
 
 
-class GetRecordHistoryRequestPayload(BaseModel):
-    register_id: str
-    internal_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Record History Request Schemas
+# =============================================================================
 
 class GetRecordHistoryRequestBody(G2PRequestBody):
     request_payload: GetRecordHistoryRequestPayload
@@ -136,11 +197,9 @@ class GetRecordHistoryRequest(G2PRequest):
     request_body: GetRecordHistoryRequestBody
 
 
-class GetVersionDatesRequestPayload(BaseModel):
-    register_id: str
-    internal_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Version Dates Request Schemas
+# =============================================================================
 
 class GetVersionDatesRequestBody(G2PRequestBody):
     request_payload: GetVersionDatesRequestPayload
@@ -150,12 +209,9 @@ class GetVersionDatesRequest(G2PRequest):
     request_body: GetVersionDatesRequestBody
 
 
-class GetChangesForDateRequestPayload(BaseModel):
-    register_id: str
-    internal_record_id: str
-    tab_id: str
-    truncated_created_date: str
-
+# =============================================================================
+# Get Changes For Date Request Schemas
+# =============================================================================
 
 class GetChangesForDateRequestBody(G2PRequestBody):
     request_payload: GetChangesForDateRequestPayload
@@ -165,11 +221,9 @@ class GetChangesForDateRequest(G2PRequest):
     request_body: GetChangesForDateRequestBody
 
 
-class GetNumberOfPendingChangeRequestsRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Number Of Pending Change Requests Request Schemas
+# =============================================================================
 
 class GetNumberOfPendingChangeRequestsRequestBody(G2PRequestBody):
     request_payload: GetNumberOfPendingChangeRequestsRequestPayload
@@ -179,10 +233,9 @@ class GetNumberOfPendingChangeRequestsRequest(G2PRequest):
     request_body: GetNumberOfPendingChangeRequestsRequestBody
 
 
-class GetNumberOfCrossRegisterChangesRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-
+# =============================================================================
+# Get Number Of Cross Register Changes Request Schemas
+# =============================================================================
 
 class GetNumberOfCrossRegisterChangesRequestBody(G2PRequestBody):
     request_payload: GetNumberOfCrossRegisterChangesRequestPayload
@@ -192,10 +245,9 @@ class GetNumberOfCrossRegisterChangesRequest(G2PRequest):
     request_body: GetNumberOfCrossRegisterChangesRequestBody
 
 
-class GetCrossRegisterChangesRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-
+# =============================================================================
+# Get Cross Register Changes Request Schemas
+# =============================================================================
 
 class GetCrossRegisterChangesRequestBody(G2PRequestBody):
     request_payload: GetCrossRegisterChangesRequestPayload
@@ -205,11 +257,9 @@ class GetCrossRegisterChangesRequest(G2PRequest):
     request_body: GetCrossRegisterChangesRequestBody
 
 
-class GetChangeRequestsRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Change Requests Request Schemas
+# =============================================================================
 
 class GetChangeRequestsRequestBody(G2PRequestBody):
     request_payload: GetChangeRequestsRequestPayload
@@ -219,9 +269,9 @@ class GetChangeRequestsRequest(G2PRequest):
     request_body: GetChangeRequestsRequestBody
 
 
-class GetChangeRequestRequestPayload(BaseModel):
-    change_request_id: str
-
+# =============================================================================
+# Get Change Request Request Schemas
+# =============================================================================
 
 class GetChangeRequestRequestBody(G2PRequestBody):
     request_payload: GetChangeRequestRequestPayload
@@ -231,10 +281,9 @@ class GetChangeRequestRequest(G2PRequest):
     request_body: GetChangeRequestRequestBody
 
 
-class GetSubjectRecordRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-
+# =============================================================================
+# Get Subject Record Request Schemas
+# =============================================================================
 
 class GetSubjectRecordRequestBody(G2PRequestBody):
     request_payload: GetSubjectRecordRequestPayload
@@ -244,9 +293,9 @@ class GetSubjectRecordRequest(G2PRequest):
     request_body: GetSubjectRecordRequestBody
 
 
-class GetVerificationsRequestPayload(BaseModel):
-    change_request_id: str
-
+# =============================================================================
+# Get Verifications Request Schemas
+# =============================================================================
 
 class GetVerificationsRequestBody(G2PRequestBody):
     request_payload: GetVerificationsRequestPayload
@@ -256,9 +305,9 @@ class GetVerificationsRequest(G2PRequest):
     request_body: GetVerificationsRequestBody
 
 
-class GetDeduplicationRegisterResultsRequestPayload(BaseModel):
-    change_request_id: str
-
+# =============================================================================
+# Get Deduplication Register Results Request Schemas
+# =============================================================================
 
 class GetDeduplicationRegisterResultsRequestBody(G2PRequestBody):
     request_payload: GetDeduplicationRegisterResultsRequestPayload
@@ -268,9 +317,9 @@ class GetDeduplicationRegisterResultsRequest(G2PRequest):
     request_body: GetDeduplicationRegisterResultsRequestBody
 
 
-class GetDeduplicationChangerequestResultsRequestPayload(BaseModel):
-    change_request_id: str
-
+# =============================================================================
+# Get Deduplication Change Request Results Request Schemas
+# =============================================================================
 
 class GetDeduplicationChangerequestResultsRequestBody(G2PRequestBody):
     request_payload: GetDeduplicationChangerequestResultsRequestPayload
@@ -280,6 +329,10 @@ class GetDeduplicationChangerequestResultsRequest(G2PRequest):
     request_body: GetDeduplicationChangerequestResultsRequestBody
 
 
+# =============================================================================
+# Add Verification Request Schemas
+# =============================================================================
+
 class AddVerificationRequestBody(G2PRequestBody):
     request_payload: AddVerificationPayload
 
@@ -288,14 +341,9 @@ class AddVerificationRequest(G2PRequest):
     request_body: AddVerificationRequestBody
 
 
-class IngestDataRequest(Request):
-    # Request struture is internal to partners
-    pass
-
-
-class GetRegisterSchemaRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Get Register Schema Request Schemas
+# =============================================================================
 
 class GetRegisterSchemaRequestBody(G2PRequestBody):
     request_payload: GetRegisterSchemaRequestPayload
@@ -305,9 +353,9 @@ class GetRegisterSchemaRequest(G2PRequest):
     request_body: GetRegisterSchemaRequestBody
 
 
-class GetRegisterSectionsRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Get Register Sections Request Schemas
+# =============================================================================
 
 class GetRegisterSectionsRequestBody(G2PRequestBody):
     request_payload: GetRegisterSectionsRequestPayload
@@ -317,10 +365,9 @@ class GetRegisterSectionsRequest(G2PRequest):
     request_body: GetRegisterSectionsRequestBody
 
 
-class GetRegisterTabSectionsRequestPayload(BaseModel):
-    register_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Register Tab Sections Request Schemas
+# =============================================================================
 
 class GetRegisterTabSectionsRequestBody(G2PRequestBody):
     request_payload: GetRegisterTabSectionsRequestPayload
@@ -330,9 +377,9 @@ class GetRegisterTabSectionsRequest(G2PRequest):
     request_body: GetRegisterTabSectionsRequestBody
 
 
-class GetRegisterTabsRequestPayload(BaseModel):
-    register_id: str
-
+# =============================================================================
+# Get Register Tabs Request Schemas
+# =============================================================================
 
 class GetRegisterTabsRequestBody(G2PRequestBody):
     request_payload: GetRegisterTabsRequestPayload
@@ -342,11 +389,9 @@ class GetRegisterTabsRequest(G2PRequest):
     request_body: GetRegisterTabsRequestBody
 
 
-class AddRegisterTabRequestPayload(BaseModel):
-    register_id: str
-    tab_label: str
-    tab_order: int = 0
-
+# =============================================================================
+# Add Register Tab Request Schemas
+# =============================================================================
 
 class AddRegisterTabRequestBody(G2PRequestBody):
     request_payload: AddRegisterTabRequestPayload
@@ -356,9 +401,9 @@ class AddRegisterTabRequest(G2PRequest):
     request_body: AddRegisterTabRequestBody
 
 
-class DeleteRegisterTabRequestPayload(BaseModel):
-    tab_id: str
-
+# =============================================================================
+# Delete Register Tab Request Schemas
+# =============================================================================
 
 class DeleteRegisterTabRequestBody(G2PRequestBody):
     request_payload: DeleteRegisterTabRequestPayload
@@ -368,10 +413,9 @@ class DeleteRegisterTabRequest(G2PRequest):
     request_body: DeleteRegisterTabRequestBody
 
 
-class GetRegisterSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-
+# =============================================================================
+# Get Register Section Request Schemas
+# =============================================================================
 
 class GetRegisterSectionRequestBody(G2PRequestBody):
     request_payload: GetRegisterSectionRequestPayload
@@ -381,19 +425,9 @@ class GetRegisterSectionRequest(G2PRequest):
     request_body: GetRegisterSectionRequestBody
 
 
-class AddRegisterSectionRequestPayload(BaseModel):
-    section_register_id: str
-    register_id: str
-    tab_id: str
-    section_mnemonic: str
-    section_description: Optional[str] = None
-    documents_required: bool = False
-    no_of_verifications_required: int = 0
-    auto_approval: bool = False
-    is_list: bool = False
-    is_primary_section: bool = False
-    section_ui_schema: Optional[dict] = None
-
+# =============================================================================
+# Add Register Section Request Schemas
+# =============================================================================
 
 class AddRegisterSectionRequestBody(G2PRequestBody):
     request_payload: AddRegisterSectionRequestPayload
@@ -403,10 +437,9 @@ class AddRegisterSectionRequest(G2PRequest):
     request_body: AddRegisterSectionRequestBody
 
 
-class DeleteRegisterSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-
+# =============================================================================
+# Delete Register Section Request Schemas
+# =============================================================================
 
 class DeleteRegisterSectionRequestBody(G2PRequestBody):
     request_payload: DeleteRegisterSectionRequestPayload
@@ -416,17 +449,9 @@ class DeleteRegisterSectionRequest(G2PRequest):
     request_body: DeleteRegisterSectionRequestBody
 
 
-class UpdateRegisterSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-    tab_id: Optional[str] = None
-    section_mnemonic: Optional[str] = None
-    section_description: Optional[str] = None
-    documents_required: Optional[bool] = None
-    no_of_verifications_required: Optional[int] = None
-    auto_approval: Optional[bool] = None
-    is_list: Optional[bool] = None
-
+# =============================================================================
+# Update Register Section Request Schemas
+# =============================================================================
 
 class UpdateRegisterSectionRequestBody(G2PRequestBody):
     request_payload: UpdateRegisterSectionRequestPayload
@@ -436,11 +461,9 @@ class UpdateRegisterSectionRequest(G2PRequest):
     request_body: UpdateRegisterSectionRequestBody
 
 
-class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-    section_ui_schema: Optional[dict] = None
-
+# =============================================================================
+# Update Register Section UI Schema Request Schemas
+# =============================================================================
 
 class UpdateRegisterSectionUISchemaRequestBody(G2PRequestBody):
     request_payload: UpdateRegisterSectionUISchemaRequestPayload
@@ -450,13 +473,9 @@ class UpdateRegisterSectionUISchemaRequest(G2PRequest):
     request_body: UpdateRegisterSectionUISchemaRequestBody
 
 
-class CreateRegisterRequestPayload(BaseModel):
-    register_mnemonic: str
-    register_description: Optional[str] = None
-    master_register_id: Optional[str] = None
-    dedup_is_enabled: bool = False
-    dedup_threshold_score: Optional[float] = None
-
+# =============================================================================
+# Create Register Request Schemas
+# =============================================================================
 
 class CreateRegisterRequestBody(G2PRequestBody):
     request_payload: CreateRegisterRequestPayload
@@ -466,12 +485,9 @@ class CreateRegisterRequest(G2PRequest):
     request_body: CreateRegisterRequestBody
 
 
-class UpdateRegisterSchemaRequestPayload(BaseModel):
-    register_id: str
-    deduplicate_schema: Optional[list[dict]] = None
-    search_result_schema: Optional[list[dict]] = None
-    filter_schema: Optional[list[dict]] = None
-
+# =============================================================================
+# Update Register Schema Request Schemas
+# =============================================================================
 
 class UpdateRegisterSchemaRequestBody(G2PRequestBody):
     request_payload: UpdateRegisterSchemaRequestPayload
@@ -481,11 +497,9 @@ class UpdateRegisterSchemaRequest(G2PRequest):
     request_body: UpdateRegisterSchemaRequestBody
 
 
-# Deduplication Configuration APIs - split from UpdateRegisterSchema
-class UpdateDedupIsEnabledRequestPayload(BaseModel):
-    register_id: str
-    dedup_is_enabled: bool
-
+# =============================================================================
+# Deduplication Configuration Request Schemas
+# =============================================================================
 
 class UpdateDedupIsEnabledRequestBody(G2PRequestBody):
     request_payload: UpdateDedupIsEnabledRequestPayload
@@ -493,11 +507,6 @@ class UpdateDedupIsEnabledRequestBody(G2PRequestBody):
 
 class UpdateDedupIsEnabledRequest(G2PRequest):
     request_body: UpdateDedupIsEnabledRequestBody
-
-
-class UpdateDedupThresholdScoreRequestPayload(BaseModel):
-    register_id: str
-    dedup_threshold_score: float
 
 
 class UpdateDedupThresholdScoreRequestBody(G2PRequestBody):
@@ -508,22 +517,12 @@ class UpdateDedupThresholdScoreRequest(G2PRequest):
     request_body: UpdateDedupThresholdScoreRequestBody
 
 
-class UpdateDeduplicationSchemaRequestPayload(BaseModel):
-    register_id: str
-    deduplicate_schema: list[dict]
-
-
 class UpdateDeduplicationSchemaRequestBody(G2PRequestBody):
     request_payload: UpdateDeduplicationSchemaRequestPayload
 
 
 class UpdateDeduplicationSchemaRequest(G2PRequest):
     request_body: UpdateDeduplicationSchemaRequestBody
-
-
-class UpdateSearchResultSchemaRequestPayload(BaseModel):
-    register_id: str
-    search_result_schema: list[dict]
 
 
 class UpdateSearchResultSchemaRequestBody(G2PRequestBody):
@@ -534,11 +533,9 @@ class UpdateSearchResultSchemaRequest(G2PRequest):
     request_body: UpdateSearchResultSchemaRequestBody
 
 
-class GetSectionRecordsRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-    section_register_id: str
-
+# =============================================================================
+# Get Section Records Request Schemas
+# =============================================================================
 
 class GetSectionRecordsRequestBody(G2PRequestBody):
     request_payload: GetSectionRecordsRequestPayload
@@ -548,11 +545,9 @@ class GetSectionRecordsRequest(G2PRequest):
     request_body: GetSectionRecordsRequestBody
 
 
-class GetRegisterTabRecordsRequestPayload(BaseModel):
-    subject_register_id: str
-    subject_record_id: str
-    tab_id: str
-
+# =============================================================================
+# Get Register Tab Records Request Schemas
+# =============================================================================
 
 class GetRegisterTabRecordsRequestBody(G2PRequestBody):
     request_payload: GetRegisterTabRecordsRequestPayload
@@ -563,13 +558,8 @@ class GetRegisterTabRecordsRequest(G2PRequest):
 
 
 # =============================================================================
-# Registry Configuration Requests
+# Registry Configuration Request Schemas
 # =============================================================================
-
-class CreateRegistryConfigurationRequestPayload(BaseModel):
-    registry_name: str
-    registry_logo: Optional[str] = None  # BASE64 encoded image
-
 
 class CreateRegistryConfigurationRequestBody(G2PRequestBody):
     request_payload: CreateRegistryConfigurationRequestPayload
@@ -587,12 +577,6 @@ class GetRegistryConfigurationRequest(G2PRequest):
     request_body: GetRegistryConfigurationRequestBody
 
 
-class UpdateRegistryConfigurationRequestPayload(BaseModel):
-    configuration_id: str
-    registry_name: Optional[str] = None
-    registry_logo: Optional[str] = None  # BASE64 encoded image
-
-
 class UpdateRegistryConfigurationRequestBody(G2PRequestBody):
     request_payload: UpdateRegistryConfigurationRequestPayload
 
@@ -602,7 +586,7 @@ class UpdateRegistryConfigurationRequest(G2PRequest):
 
 
 # =============================================================================
-# Change Request Additional Requests
+# Change Request Additional Request Schemas
 # =============================================================================
 
 class GetNumberOfRequestsPendingRequestBody(G2PRequestBody):
@@ -622,13 +606,8 @@ class GetEarliestPendingChangeRequestRequest(G2PRequest):
 
 
 # =============================================================================
-# Document APIs Requests
+# Document APIs Request Schemas
 # =============================================================================
-
-class GetDocumentLabelsForSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-
 
 class GetDocumentLabelsForSectionRequestBody(G2PRequestBody):
     request_payload: GetDocumentLabelsForSectionRequestPayload
@@ -636,12 +615,6 @@ class GetDocumentLabelsForSectionRequestBody(G2PRequestBody):
 
 class GetDocumentLabelsForSectionRequest(G2PRequest):
     request_body: GetDocumentLabelsForSectionRequestBody
-
-
-class GetSectionDocumentsRequestPayload(BaseModel):
-    register_id: str
-    record_id: str
-    section_id: str
 
 
 class GetSectionDocumentsRequestBody(G2PRequestBody):
@@ -652,10 +625,6 @@ class GetSectionDocumentsRequest(G2PRequest):
     request_body: GetSectionDocumentsRequestBody
 
 
-class GetSectionDocumentsForChangeRequestRequestPayload(BaseModel):
-    change_request_id: str
-
-
 class GetSectionDocumentsForChangeRequestRequestBody(G2PRequestBody):
     request_payload: GetSectionDocumentsForChangeRequestRequestPayload
 
@@ -663,11 +632,22 @@ class GetSectionDocumentsForChangeRequestRequestBody(G2PRequestBody):
 class GetSectionDocumentsForChangeRequestRequest(G2PRequest):
     request_body: GetSectionDocumentsForChangeRequestRequestBody
 
-class FileUrlRequestPayload(BaseModel):
-    document_store_id: str
 
 class FileUrlRequestBody(G2PRequestBody):
     request_payload: FileUrlRequestPayload
 
+
 class FileUrlRequest(G2PRequest):
     request_body: FileUrlRequestBody
+
+
+# =============================================================================
+# G2P Attribute Request Schemas
+# =============================================================================
+
+class GetG2PAttributeValuesRequestBody(G2PRequestBody):
+    request_payload: GetG2PAttributeValuesRequestPayload
+
+
+class GetG2PAttributeValuesRequest(G2PRequest):
+    request_body: GetG2PAttributeValuesRequestBody

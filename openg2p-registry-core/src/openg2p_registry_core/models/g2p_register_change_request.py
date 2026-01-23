@@ -1,5 +1,4 @@
 import enum
-from operator import index
 import uuid
 import json
 
@@ -56,13 +55,13 @@ class G2PRegisterChangeRequest(BaseORMModel):
         index=True
     )
     deduplication_register_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
-    deduplication_changerequest_status: Mapped[str] = mapped_column(
+    deduplication_change_request_status: Mapped[str] = mapped_column(
         String,
         nullable=False,
         default=DeduplicationStatusEnum.PENDING.value,
         index=True
     )
-    deduplication_changerequest_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
+    deduplication_change_request_failure_reason: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class G2PRegisterChangeRequestPayload(BaseORMModel):
