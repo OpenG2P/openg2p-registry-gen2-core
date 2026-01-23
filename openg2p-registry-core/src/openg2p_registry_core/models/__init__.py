@@ -7,7 +7,7 @@ from .g2p_register_change_request import (
     ChangeRequestSourceEnum
 )
 from .g2p_register import G2PRegister, G2PPerson, G2PGeo, G2PGeoShape, GenderEnum, MaritalStatusEnum, ShapeTypeEnum
-from .g2p_register_history import G2PRegisterHistory, G2PRegisterDocumentHistory
+from .g2p_register_history import G2PRegisterHistory, G2PPersonHistory, G2PGeoHistory, G2PGeoShapeHistory, G2PRegisterDocumentHistory
 from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterUITab, RegisterPurposeEnum
 from .g2p_registry_configuration import G2PRegistryConfiguration
 from .g2p_register_schema import G2PRegisterSchema
