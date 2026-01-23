@@ -210,16 +210,6 @@ class RecordData(BaseModel):
     """
     model_config = ConfigDict(extra="allow", from_attributes=True)
 
-    internal_record_id: str
-    functional_record_id: Optional[str] = None
-    link_internal_record_id: Optional[str] = None
-    foundational_id: Optional[str] = None
-    link_foundational_id: Optional[str] = None
-    created_by: Optional[str] = None
-    created_at: Optional[str] = None
-    last_approved_at: Optional[str] = None
-    last_approved_by: Optional[str] = None
-
 
 # =============================================================================
 # Change Request Data
