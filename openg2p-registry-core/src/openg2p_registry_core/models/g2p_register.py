@@ -32,10 +32,15 @@ class G2PRegister(BaseORMModel):
     @classmethod
     def __declare_last__(cls):
         """Create table-specific index and register event listeners after table is declared"""
-        if not cls.__abstract__:
-            # Create a unique index name based on the table name
+        # Check if this is a concrete class by looking for __tablename__ in the class's own __dict__
+        is_abstract = cls.__dict__.get('__abstract__', False)
+        has_tablename = '__tablename__' in cls.__dict__
+        
+        if has_tablename and not is_abstract:
+            # Create trigram index for search_text (requires pg_trgm extension)
             index_name = f"idx_{cls.__tablename__}_search_text_trigram"
-            Index(index_name, cls.search_text, postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'}, table=cls.__table__)
+            idx = Index(index_name, cls.search_text, postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'})
+            idx._set_parent(cls.__table__, allow_replacements=True)
             
             # Register event listeners for automatic search_text population
             @event.listens_for(cls, "before_insert")
@@ -56,10 +61,21 @@ def _populate_search_text(target):
     # Collect fields from all classes in the MRO that have get_search_text_fields
     for base in target.__class__.__mro__:
         if hasattr(base, 'get_search_text_fields') and 'get_search_text_fields' in base.__dict__:
-            # Call the method defined in this specific class
-            fields = base.get_search_text_fields(target)
-            all_fields.extend(fields)
-    target.search_text = " ".join(filter(None, all_fields)).strip()
+            try:
+                # Call the method defined in this specific class
+                fields = base.get_search_text_fields(target)
+                # Ensure all fields are strings
+                for field in fields:
+                    if field is not None:
+                        if isinstance(field, str):
+                            all_fields.append(field)
+                        else:
+                            all_fields.append(str(field))
+            except Exception:
+                # Skip if there's an error getting fields from this class
+                pass
+    
+    target.search_text = " ".join(filter(None, all_fields)).strip() or None
 
 class MaritalStatusEnum(enum.Enum):
     SINGLE = "SINGLE"
@@ -98,20 +114,33 @@ class G2PPerson(BaseORMModel):
 
     def get_search_text_fields(self) -> list[str]:
         """Return G2PPerson fields for search text aggregation."""
-        return [
+        fields = [
             self.foundational_id or "",
             self.first_name or "",
             self.middle_name or "",
             self.last_name or "",
             self.given_name or "",
-            self.gender.value if self.gender else "",
+            self.gender if isinstance(self.gender, str) else (self.gender.value if self.gender else ""),
             str(self.birth_date) if self.birth_date else "",
-            self.phone_numbers or "",
-            self.emails or "",
-            self.marital_status.value if self.marital_status else "",
+            self.marital_status if isinstance(self.marital_status, str) else (self.marital_status.value if self.marital_status else ""),
             self.occupation or "",
             self.education_level or "",
         ]
+        # Extract phone numbers from JSONB
+        if self.phone_numbers and isinstance(self.phone_numbers, list):
+            for phone in self.phone_numbers:
+                if isinstance(phone, dict):
+                    fields.append(phone.get("number", ""))
+                elif isinstance(phone, str):
+                    fields.append(phone)
+        # Extract emails from JSONB
+        if self.emails and isinstance(self.emails, list):
+            for email in self.emails:
+                if isinstance(email, dict):
+                    fields.append(email.get("address", ""))
+                elif isinstance(email, str):
+                    fields.append(email)
+        return fields
 
 
 class G2PGeo(BaseORMModel):
