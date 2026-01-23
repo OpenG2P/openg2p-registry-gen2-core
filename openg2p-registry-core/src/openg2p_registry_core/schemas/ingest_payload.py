@@ -1,7 +1,63 @@
-from typing import Optional, Dict, Any
-from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 from datetime import datetime
+from pydantic import BaseModel
 
+
+# =============================================================================
+# Ingest Data Schemas (response payloads)
+# =============================================================================
+
+class IngestionSummaryData(BaseModel):
+    no_of_messages: int
+    no_of_partners: int
+    no_of_data_models: int
+
+
+class IngestionDataSearchResultData(BaseModel):
+    ingest_id: str
+    partner_id: str
+    partner_mnemonic: str
+    data_model_id: str
+    data_model_mnemonic: str
+    ingest_message_id: str
+    ingest_correlation_id: str
+    receipt_date_time: datetime
+    classification_status: str
+    classification_date_time: Optional[datetime] = None
+    classification_number_of_attempts: Optional[int] = None
+    classification_latest_error_code: Optional[str] = None
+
+    change_request_id: Optional[str] = None
+    register_id: Optional[str] = None
+    register_mnemonic: Optional[str] = None
+    section_id: Optional[str] = None
+    section_mnemonic: Optional[str] = None
+    semantic_pattern_id: Optional[str] = None
+    template_id: Optional[str] = None
+    template_file_id: Optional[str] = None
+    transformation_status: Optional[str] = None
+    transformation_date_time: Optional[datetime] = None
+    transformation_number_of_attempts: Optional[int] = None
+    transformation_latest_error_code: Optional[str] = None
+    ingestion_status: Optional[str] = None
+    ingestion_date_time: Optional[datetime] = None
+    ingestion_number_of_attempts: Optional[int] = None
+    ingestion_latest_error_code: Optional[str] = None
+
+
+class IngestionDataPayload(BaseModel):
+    raw_data_json: Optional[dict] = None
+    enriched_data_json: Optional[dict] = None
+    transformed_data_json: Optional[dict] = None
+
+
+class IngestDataPayload(BaseModel):
+    correlation_id: str
+
+
+# =============================================================================
+# IncomingPartner Schemas
+# =============================================================================
 
 class IncomingPartnerPayload(BaseModel):
     partner_id: Optional[str] = None
@@ -32,6 +88,10 @@ class IncomingPartnerData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+
+# =============================================================================
+# IncomingModelKeyPath Schemas
+# =============================================================================
 
 class IncomingModelKeyPathPayload(BaseModel):
     key_path_id: Optional[str] = None
@@ -149,7 +209,10 @@ class IncomingModelKeyPathListData(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
 # IncomingModelSemanticPattern Schemas
+# =============================================================================
+
 class IncomingModelSemanticPatternPayload(BaseModel):
     semantic_pattern_id: Optional[str] = None
     data_model_id: str
@@ -189,7 +252,10 @@ class IncomingModelSemanticPatternData(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
 # IncomingTemplate Schemas
+# =============================================================================
+
 class IncomingTemplatePayload(BaseModel):
     template_id: Optional[str] = None
     register_id: str
@@ -219,7 +285,10 @@ class IncomingTemplateData(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
 # DataModel Schemas
+# =============================================================================
+
 class DataModelPayload(BaseModel):
     data_model_id: Optional[str] = None
     data_model_mnemonic: str
@@ -268,7 +337,10 @@ class ChangeActiveStatusPayload(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
 # SubscriptionActivityLog Schemas
+# =============================================================================
+
 class SubscriptionActivityLogPayload(BaseModel):
     is_unsubscribe: bool = False
     description: Optional[str] = None
@@ -298,3 +370,15 @@ class SubscriptionActivityLogData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+
+# =============================================================================
+# Ingestion Request Payloads
+# =============================================================================
+
+class EmptyIngestionRequestPayload(BaseModel):
+    """Empty payload for requests that don't require any parameters"""
+    pass
+
+
+class GetIngestionDataRequestPayload(BaseModel):
+    ingest_id: str

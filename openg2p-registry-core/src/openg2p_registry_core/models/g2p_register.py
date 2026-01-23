@@ -173,6 +173,6 @@ class ShapeTypeEnum(enum.Enum):
 class G2PGeoShape(BaseORMModel):
     __abstract__ = True
     
-    shape_type: Mapped[str] = mapped_column(ShapeTypeEnum, nullable=True) 
+    shape_type: Mapped[ShapeTypeEnum] = mapped_column(String, nullable=True) 
     shape_coordinates_json: Mapped[str] = mapped_column(JSONB, nullable=True)
     

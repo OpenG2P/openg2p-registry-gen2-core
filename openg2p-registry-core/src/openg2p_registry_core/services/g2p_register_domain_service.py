@@ -10,8 +10,8 @@ from difflib import SequenceMatcher
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
-from openg2p_registry_core.schemas.deduplication import DeduplicationFieldConfig
+from openg2p_registry_core.schemas import ChangeRequestRequestPayload
+from openg2p_registry_core.schemas import DeduplicationFieldConfig
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -117,17 +117,17 @@ class G2PRegisterDomainService(BaseService):
             _logger.error(f"Error computing deduplication score for register: {str(e)}")
             raise
 
-    def compute_deduplication_score_for_changerequest(
+    def compute_deduplication_score_for_change_request(
         self,
         change_request_id: str,
         register_id: str,
         incoming_data: dict,
-        other_changerequests: List,
+        other_change_requests: List,
         session: Session
     ) -> List[Dict]:
         """
-        Compute deduplication scores for a change request against other pending changerequests.
-        Returns list of matching changerequest records with scores.
+        Compute deduplication scores for a change request against other pending change_requests.
+        Returns list of matching change_request records with scores.
         """
         try:
             # Get register definition with dedup config
@@ -157,9 +157,9 @@ class G2PRegisterDomainService(BaseService):
             ) or []
 
             results = []
-            for other_changerequest in other_changerequests:
+            for other_change_request in other_change_requests:
                 # Create a simple object from the other payload for field matching
-                other_obj = type('obj', (object,), other_changerequest.get('change_payload', {}))()
+                other_obj = type('obj', (object,), other_change_request.get('change_payload', {}))()
 
                 score = self._compute_score(
                     incoming_data,
@@ -174,7 +174,7 @@ class G2PRegisterDomainService(BaseService):
                         deduplicate_schema
                     )
                     results.append({
-                        "candidate_id": other_changerequest.get('change_request_id'),
+                        "candidate_id": other_change_request.get('change_request_id'),
                         "score": score,
                         "field_matches": field_matches
                     })
@@ -182,7 +182,7 @@ class G2PRegisterDomainService(BaseService):
             return results
 
         except Exception as e:
-            _logger.error(f"Error computing deduplication score for changerequest: {str(e)}")
+            _logger.error(f"Error computing deduplication score for change_request: {str(e)}")
             raise
 
     def _compute_score(

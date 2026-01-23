@@ -7,7 +7,7 @@ from fastapi_cache.decorator import cache
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from openg2p_registry_core.schemas.payload import ChangeRequestRequestPayload
+from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, inspect, Date as SQLDate
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -102,11 +102,11 @@ class G2PRegisterService(BaseService):
             register_summary_data_list: list[RegisterSummaryData] = await self._fetch_register_summary_data(session)
             return register_summary_data_list
 
-    async def get_changerequest_summary_data(self) -> ChangeRequestSummaryData:
+    async def get_change_request_summary_data(self) -> ChangeRequestSummaryData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            changerequest_summary_data: ChangeRequestSummaryData = await self._fetch_changerequest_summary_data(session)
-            return changerequest_summary_data
+            change_request_summary_data: ChangeRequestSummaryData = await self._fetch_change_request_summary_data(session)
+            return change_request_summary_data
 
     async def get_all_registers(self) -> list[RegisterData]:
         print("Fetching all registers for you", dbengine.get())
@@ -914,27 +914,27 @@ class G2PRegisterService(BaseService):
 
         return register_summary_data_list
 
-    async def _fetch_changerequest_summary_data(self, session) -> ChangeRequestSummaryData:
-        total_count: int = await self._count_all_changerequests(None, session)
-        approved_count: int = await self._count_all_changerequests(ApprovalStatusEnum.APPROVED.value, session)
-        pending_count: int = await self._count_all_changerequests(ApprovalStatusEnum.PENDING.value, session)
+    async def _fetch_change_request_summary_data(self, session) -> ChangeRequestSummaryData:
+        total_count: int = await self._count_all_change_requests(None, session)
+        approved_count: int = await self._count_all_change_requests(ApprovalStatusEnum.APPROVED.value, session)
+        pending_count: int = await self._count_all_change_requests(ApprovalStatusEnum.PENDING.value, session)
 
-        changerequest_summary_data: ChangeRequestSummaryData = ChangeRequestSummaryData(
+        change_request_summary_data: ChangeRequestSummaryData = ChangeRequestSummaryData(
             total_count=total_count,
             approved_count=approved_count,
             pending_count=pending_count
         )
 
-        return changerequest_summary_data
+        return change_request_summary_data
 
-    async def _count_all_changerequests(self, approval_status: str | None, session) -> int:
+    async def _count_all_change_requests(self, approval_status: str | None, session) -> int:
         query = select(func.count()).select_from(G2PRegisterChangeRequest)
         if approval_status is not None:
             query = query.where(G2PRegisterChangeRequest.approval_status == approval_status)
         result = await session.execute(query)
         return result.scalar_one()
 
-    async def _count_changerequests_for_register(self, register_id: str, approval_status: str | None, session) -> int:
+    async def _count_change_requests_for_register(self, register_id: str, approval_status: str | None, session) -> int:
         query = select(func.count()).select_from(G2PRegisterChangeRequest).where(
             G2PRegisterChangeRequest.register_id == register_id
         )
@@ -2164,7 +2164,7 @@ class G2PRegisterService(BaseService):
 
             return dedup_result_data_list, total_items
 
-    async def get_deduplication_changerequest_results(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationChangerequestResultData], int]:
+    async def get_deduplication_change_request_results(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationChangerequestResultData], int]:
         """
         Get deduplication results for a change request against other change requests with pagination.
         """

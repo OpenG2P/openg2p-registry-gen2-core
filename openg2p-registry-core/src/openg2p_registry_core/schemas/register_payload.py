@@ -1,4 +1,4 @@
-from typing import Optional, List, Any, Literal, Union
+from typing import Optional, List, Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from enum import Enum
@@ -118,9 +118,17 @@ class FilterSchemaField(BaseModel):
         }
 
 
+# =============================================================================
+# Base Register Payload
+# =============================================================================
+
 class RegisterPayload(BaseModel):
     pass
 
+
+# =============================================================================
+# Register Summary Data
+# =============================================================================
 
 class RegisterSummaryData(BaseModel):
     register_id: str
@@ -136,6 +144,10 @@ class ChangeRequestSummaryData(BaseModel):
     approved_count: int
     pending_count: int
 
+
+# =============================================================================
+# Register Data
+# =============================================================================
 
 class RegisterData(BaseModel):
     register_id: str
@@ -158,6 +170,10 @@ class RegisterUITabData(BaseModel):
     tab_label: str
     tab_order: int
 
+
+# =============================================================================
+# Display Field and Search Result Data
+# =============================================================================
 
 class DisplayField(BaseModel):
     field_name: str
@@ -183,6 +199,10 @@ class SearchResultData(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
+# Record Data
+# =============================================================================
+
 class RecordData(BaseModel):
     """
     Record data with flattened additional fields.
@@ -200,6 +220,10 @@ class RecordData(BaseModel):
     last_approved_at: Optional[str] = None
     last_approved_by: Optional[str] = None
 
+
+# =============================================================================
+# Change Request Data
+# =============================================================================
 
 class ChangeRequestSearchResultData(BaseModel):
     change_request_id: str
@@ -224,15 +248,18 @@ class ChangeRequestSearchResultData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+
 class BaseChangePayload(BaseModel):
     """Base change payload with dynamic fields."""
     pass
+
 
 class EditActionEnum(str, Enum):
     ADD = "ADD"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
     NO_CHANGE = "NO_CHANGE"
+
 
 class ChangePayload(BaseChangePayload):
     internal_record_id: str
@@ -282,6 +309,10 @@ class ChangeRequestResponsePayload(RegisterPayload):
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
 
+
+# =============================================================================
+# Version and History Data
+# =============================================================================
 
 class NumberOfVersionsData(BaseModel):
     register_id: str
@@ -347,6 +378,10 @@ class VersionsForDateData(BaseModel):
     truncated_created_date: str
     changes: List[VersionForDateData] = []
 
+
+# =============================================================================
+# Pending Change Requests Data
+# =============================================================================
 
 class NumberOfPendingChangeRequestsData(BaseModel):
     subject_register_id: str
@@ -439,6 +474,10 @@ class ChangeRequestsData(BaseModel):
         from_attributes: bool = True
 
 
+# =============================================================================
+# Verification Data
+# =============================================================================
+
 class VerificationData(BaseModel):
     verification_id: str
     register_id: str
@@ -466,6 +505,10 @@ class AddVerificationPayload(BaseModel):
     verification_observations: Optional[str] = None
     is_approved: bool
 
+
+# =============================================================================
+# Deduplication Data
+# =============================================================================
 
 class DeduplicationRegisterResultData(BaseModel):
     """Deduplication result for a change request against a register record."""
@@ -509,9 +552,9 @@ class DeduplicationChangerequestResultsData(BaseModel):
         from_attributes: bool = True
 
 
-class IngestDataPayload(BaseModel):
-    correlation_id: str
-
+# =============================================================================
+# Register Schema Data
+# =============================================================================
 
 class RegisterSchemaData(BaseModel):
     """Schema data for a register including deduplication, search result, and filter configurations."""
@@ -583,6 +626,7 @@ class UploadRecordImageData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+
 class FileUrlData(BaseModel):
     """Response data for get_file_url endpoint"""
     file_url: Optional[str] = None
@@ -595,6 +639,7 @@ class DocumentLabelData(BaseModel):
 
     class Config:
         from_attributes: bool = True
+
 
 class SectionDocumentData(BaseModel):
     """Data for a section document (label + document_store_id)"""
@@ -673,3 +718,264 @@ class EarliestPendingChangeRequestData(BaseModel):
 
     class Config:
         from_attributes: bool = True
+
+
+# =============================================================================
+# Register Request Payloads
+# =============================================================================
+
+class EmptyRequestPayload(BaseModel):
+    """Empty payload for requests that don't require any parameters"""
+    pass
+
+
+class ChildRegisterRequestPayload(BaseModel):
+    register_id: str
+
+
+class SearchRegisterRequestPayload(BaseModel):
+    register_id: str
+
+
+class SearchChangeRequestRequestPayload(BaseModel):
+    pass
+
+
+class GetChildRegistersRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetMasterRegisterRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetNumberOfVersionsRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+
+
+class GetRecordHistoryRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+
+
+class GetVersionDatesRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+
+
+class GetChangesForDateRequestPayload(BaseModel):
+    register_id: str
+    internal_record_id: str
+    tab_id: str
+    truncated_created_date: str
+
+
+class GetNumberOfPendingChangeRequestsRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+    tab_id: str
+
+
+class GetNumberOfCrossRegisterChangesRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+
+
+class GetCrossRegisterChangesRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+
+
+class GetChangeRequestsRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+    tab_id: str
+
+
+class GetChangeRequestRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class GetSubjectRecordRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+
+
+class GetVerificationsRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class GetDeduplicationRegisterResultsRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class GetDeduplicationChangerequestResultsRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class GetRegisterSchemaRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetRegisterSectionsRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetRegisterTabSectionsRequestPayload(BaseModel):
+    register_id: str
+    tab_id: str
+
+
+class GetRegisterTabsRequestPayload(BaseModel):
+    register_id: str
+
+
+class AddRegisterTabRequestPayload(BaseModel):
+    register_id: str
+    tab_label: str
+    tab_order: int = 0
+
+
+class DeleteRegisterTabRequestPayload(BaseModel):
+    tab_id: str
+
+
+class GetRegisterSectionRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+
+
+class AddRegisterSectionRequestPayload(BaseModel):
+    section_register_id: str
+    register_id: str
+    tab_id: str
+    section_mnemonic: str
+    section_description: Optional[str] = None
+    documents_required: bool = False
+    no_of_verifications_required: int = 0
+    auto_approval: bool = False
+    is_list: bool = False
+    is_primary_section: bool = False
+    section_ui_schema: Optional[dict] = None
+
+
+class DeleteRegisterSectionRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+
+
+class UpdateRegisterSectionRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+    tab_id: Optional[str] = None
+    section_mnemonic: Optional[str] = None
+    section_description: Optional[str] = None
+    documents_required: Optional[bool] = None
+    no_of_verifications_required: Optional[int] = None
+    auto_approval: Optional[bool] = None
+    is_list: Optional[bool] = None
+
+
+class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+    section_ui_schema: Optional[dict] = None
+
+
+class CreateRegisterRequestPayload(BaseModel):
+    register_mnemonic: str
+    register_description: Optional[str] = None
+    master_register_id: Optional[str] = None
+    dedup_is_enabled: bool = False
+    dedup_threshold_score: Optional[float] = None
+
+
+class UpdateRegisterSchemaRequestPayload(BaseModel):
+    register_id: str
+    deduplicate_schema: Optional[list[dict]] = None
+    search_result_schema: Optional[list[dict]] = None
+    filter_schema: Optional[list[dict]] = None
+
+
+class UpdateDedupIsEnabledRequestPayload(BaseModel):
+    register_id: str
+    dedup_is_enabled: bool
+
+
+class UpdateDedupThresholdScoreRequestPayload(BaseModel):
+    register_id: str
+    dedup_threshold_score: float
+
+
+class UpdateDeduplicationSchemaRequestPayload(BaseModel):
+    register_id: str
+    deduplicate_schema: list[dict]
+
+
+class UpdateSearchResultSchemaRequestPayload(BaseModel):
+    register_id: str
+    search_result_schema: list[dict]
+
+
+class GetSectionRecordsRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+    section_register_id: str
+
+
+class GetRegisterTabRecordsRequestPayload(BaseModel):
+    subject_register_id: str
+    subject_record_id: str
+    tab_id: str
+
+
+class CreateRegistryConfigurationRequestPayload(BaseModel):
+    registry_name: str
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+class UpdateRegistryConfigurationRequestPayload(BaseModel):
+    configuration_id: str
+    registry_name: Optional[str] = None
+    registry_logo: Optional[str] = None  # BASE64 encoded image
+
+
+class GetDocumentLabelsForSectionRequestPayload(BaseModel):
+    register_id: str
+    section_id: str
+
+
+class GetSectionDocumentsRequestPayload(BaseModel):
+    register_id: str
+    record_id: str
+    section_id: str
+
+
+class GetSectionDocumentsForChangeRequestRequestPayload(BaseModel):
+    change_request_id: str
+
+
+class FileUrlRequestPayload(BaseModel):
+    document_store_id: str
+
+
+# =============================================================================
+# G2P Attribute Schemas
+# =============================================================================
+
+class G2PAttributeValueData(BaseModel):
+    value_id: str
+    attribute_id: str
+    value_code: str
+    value_display: str
+    parent_value_id: Optional[str] = None
+    sort_order: int
+
+
+class GetG2PAttributeValuesRequestPayload(BaseModel):
+    attribute_id: str
+    parent_value_id: Optional[str] = None

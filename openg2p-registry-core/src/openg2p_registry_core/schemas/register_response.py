@@ -1,12 +1,12 @@
 from typing import Optional, List
-
 from openg2p_fastapi_common.schemas import (
     G2PResponse,
     G2PResponseBody,
+    G2PResponseHeader,
 )
-from .payload import (
+from .register_payload import (
     ChangeRequestResponsePayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
-    RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, IngestDataPayload,
+    RegisterUITabData, SearchResultData, ChangeRequestSearchResultData,
     NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
@@ -15,79 +15,122 @@ from .payload import (
     RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
     SectionDocumentsData, ChangeRequestDocumentsData,
-    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData
+    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
+    G2PAttributeValueData
 )
 
+
+# =============================================================================
+# Change Request Response Schemas
+# =============================================================================
 
 class ChangeRequestResponseBody(G2PResponseBody):
     response_payload: Optional[ChangeRequestResponsePayload] = None
 
+
 class ChangeRequestResponse(G2PResponse):
     response_body: Optional[ChangeRequestResponseBody] = None
 
-# Register Summary Data
+
+# =============================================================================
+# Register Summary Data Response Schemas
+# =============================================================================
+
 class RegisterSummaryDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterSummaryData]] = None
+
 
 class RegisterSummaryDataResponse(G2PResponse):
     response_body: Optional[RegisterSummaryDataResponseBody] = None
 
 
-# ChangeRequest Summary Data
+# =============================================================================
+# Change Request Summary Data Response Schemas
+# =============================================================================
+
 class ChangeRequestSummaryDataResponseBody(G2PResponseBody):
     response_payload: Optional[ChangeRequestSummaryData] = None
+
 
 class ChangeRequestSummaryDataResponse(G2PResponse):
     response_body: Optional[ChangeRequestSummaryDataResponseBody] = None
 
 
+# =============================================================================
+# All Registers Response Schemas
+# =============================================================================
+
 class AllRegistersResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterData]] = None
+
 
 class AllRegistersResponse(G2PResponse):
     response_body: Optional[AllRegistersResponseBody] = None
 
 
+# =============================================================================
+# Child Registers Response Schemas
+# =============================================================================
+
 class ChildRegistersResponseBody(G2PResponseBody):
     response_payload: Optional[List[ChildRegisterData]] = None
+
 
 class ChildRegistersResponse(G2PResponse):
     response_body: Optional[ChildRegistersResponseBody] = None
 
 
+# =============================================================================
+# Search Results Response Schemas
+# =============================================================================
+
 class SearchResultsResponseBody(G2PResponseBody):
     response_payload: Optional[List[SearchResultData]] = None
+
 
 class SearchResultsResponse(G2PResponse):
     response_body: Optional[SearchResultsResponseBody] = None
 
 
+# =============================================================================
+# Change Request Search Results Response Schemas
+# =============================================================================
+
 class ChangeRequestSearchResultsResponseBody(G2PResponseBody):
     response_payload: Optional[List[ChangeRequestSearchResultData]] = None
+
 
 class ChangeRequestSearchResultsResponse(G2PResponse):
     response_body: Optional[ChangeRequestSearchResultsResponseBody] = None
 
-class IngestDataResponseBody(G2PResponseBody):
-    response_payload: Optional[IngestDataPayload] = None
 
-class IngestDataResponse(G2PResponse):
-    response_body: Optional[IngestDataResponseBody] = None
-
+# =============================================================================
+# Number Of Versions Response Schemas
+# =============================================================================
 
 class NumberOfVersionsResponseBody(G2PResponseBody):
     response_payload: Optional[NumberOfVersionsData] = None
+
 
 class NumberOfVersionsResponse(G2PResponse):
     response_body: Optional[NumberOfVersionsResponseBody] = None
 
 
+# =============================================================================
+# Record History Data Response Schemas
+# =============================================================================
+
 class RecordHistoryDataResponseBody(G2PResponseBody):
     response_payload: Optional["RecordHistoryListData"] = None
+
 
 class RecordHistoryDataResponse(G2PResponse):
     response_body: Optional[RecordHistoryDataResponseBody] = None
 
+
+# =============================================================================
+# Version Dates Data Response Schemas
+# =============================================================================
 
 class VersionDatesDataResponseBody(G2PResponseBody):
     response_payload: Optional["VersionDatesData"] = None
@@ -97,6 +140,10 @@ class VersionDatesDataResponse(G2PResponse):
     response_body: Optional[VersionDatesDataResponseBody] = None
 
 
+# =============================================================================
+# Changes For Date Data Response Schemas
+# =============================================================================
+
 class ChangesForDateDataResponseBody(G2PResponseBody):
     response_payload: Optional["VersionsForDateData"] = None
 
@@ -105,12 +152,21 @@ class ChangesForDateDataResponse(G2PResponse):
     response_body: Optional[ChangesForDateDataResponseBody] = None
 
 
+# =============================================================================
+# Number Of Pending Change Requests Response Schemas
+# =============================================================================
+
 class NumberOfPendingChangeRequestsResponseBody(G2PResponseBody):
     response_payload: Optional[NumberOfPendingChangeRequestsData] = None
+
 
 class NumberOfPendingChangeRequestsResponse(G2PResponse):
     response_body: Optional[NumberOfPendingChangeRequestsResponseBody] = None
 
+
+# =============================================================================
+# Number Of Cross Register Changes Response Schemas
+# =============================================================================
 
 class NumberOfCrossRegisterChangesResponseBody(G2PResponseBody):
     response_payload: Optional[NumberOfCrossRegisterChangesData] = None
@@ -120,6 +176,10 @@ class NumberOfCrossRegisterChangesResponse(G2PResponse):
     response_body: Optional[NumberOfCrossRegisterChangesResponseBody] = None
 
 
+# =============================================================================
+# Cross Register Changes Data Response Schemas
+# =============================================================================
+
 class CrossRegisterChangesDataResponseBody(G2PResponseBody):
     response_payload: Optional[CrossRegisterChangesData] = None
 
@@ -128,61 +188,105 @@ class CrossRegisterChangesDataResponse(G2PResponse):
     response_body: Optional[CrossRegisterChangesDataResponseBody] = None
 
 
+# =============================================================================
+# Change Request Data Response Schemas
+# =============================================================================
+
 class ChangeRequestDataResponseBody(G2PResponseBody):
     response_payload: Optional[ChangeRequestData] = None
+
 
 class ChangeRequestDataResponse(G2PResponse):
     response_body: Optional[ChangeRequestDataResponseBody] = None
 
 
+# =============================================================================
+# Change Requests Data Response Schemas
+# =============================================================================
+
 class ChangeRequestsDataResponseBody(G2PResponseBody):
     response_payload: Optional[ChangeRequestsData] = None
+
 
 class ChangeRequestsDataResponse(G2PResponse):
     response_body: Optional[ChangeRequestsDataResponseBody] = None
 
 
+# =============================================================================
+# Change Request Flattened Data Response Schemas
+# =============================================================================
+
 class ChangeRequestFlattenedDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[ChangeRequestFlattenedData]] = None
+
 
 class ChangeRequestFlattenedDataResponse(G2PResponse):
     response_body: Optional[ChangeRequestFlattenedDataResponseBody] = None
 
 
+# =============================================================================
+# Record Data Response Schemas
+# =============================================================================
+
 class RecordDataResponseBody(G2PResponseBody):
     response_payload: Optional[RecordData] = None
+
 
 class RecordDataResponse(G2PResponse):
     response_body: Optional[RecordDataResponseBody] = None
 
 
+# =============================================================================
+# Verifications Data Response Schemas
+# =============================================================================
+
 class VerificationsDataResponseBody(G2PResponseBody):
     response_payload: Optional[VerificationsData] = None
+
 
 class VerificationsDataResponse(G2PResponse):
     response_body: Optional[VerificationsDataResponseBody] = None
 
 
+# =============================================================================
+# Verification Data Response Schemas
+# =============================================================================
+
 class VerificationDataResponseBody(G2PResponseBody):
     response_payload: Optional[VerificationData] = None
+
 
 class VerificationDataResponse(G2PResponse):
     response_body: Optional[VerificationDataResponseBody] = None
 
 
+# =============================================================================
+# Deduplication Register Results Data Response Schemas
+# =============================================================================
+
 class DeduplicationRegisterResultsDataResponseBody(G2PResponseBody):
     response_payload: Optional[DeduplicationRegisterResultsData] = None
+
 
 class DeduplicationRegisterResultsDataResponse(G2PResponse):
     response_body: Optional[DeduplicationRegisterResultsDataResponseBody] = None
 
 
+# =============================================================================
+# Deduplication Change Request Results Data Response Schemas
+# =============================================================================
+
 class DeduplicationChangerequestResultsDataResponseBody(G2PResponseBody):
     response_payload: Optional[DeduplicationChangerequestResultsData] = None
+
 
 class DeduplicationChangerequestResultsDataResponse(G2PResponse):
     response_body: Optional[DeduplicationChangerequestResultsDataResponseBody] = None
 
+
+# =============================================================================
+# Register Schema Data Response Schemas
+# =============================================================================
 
 class RegisterSchemaDataResponseBody(G2PResponseBody):
     response_payload: Optional[RegisterSchemaData] = None
@@ -192,6 +296,10 @@ class RegisterSchemaDataResponse(G2PResponse):
     response_body: Optional[RegisterSchemaDataResponseBody] = None
 
 
+# =============================================================================
+# Register Data Response Schemas
+# =============================================================================
+
 class RegisterDataResponseBody(G2PResponseBody):
     response_payload: Optional[RegisterData] = None
 
@@ -199,6 +307,10 @@ class RegisterDataResponseBody(G2PResponseBody):
 class RegisterDataResponse(G2PResponse):
     response_body: Optional[RegisterDataResponseBody] = None
 
+
+# =============================================================================
+# Register Sections Data Response Schemas
+# =============================================================================
 
 class RegisterSectionsDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterSectionData]] = None
@@ -208,6 +320,10 @@ class RegisterSectionsDataResponse(G2PResponse):
     response_body: Optional[RegisterSectionsDataResponseBody] = None
 
 
+# =============================================================================
+# Register Section Data Response Schemas
+# =============================================================================
+
 class RegisterSectionDataResponseBody(G2PResponseBody):
     response_payload: Optional[RegisterSectionData] = None
 
@@ -215,6 +331,10 @@ class RegisterSectionDataResponseBody(G2PResponseBody):
 class RegisterSectionDataResponse(G2PResponse):
     response_body: Optional[RegisterSectionDataResponseBody] = None
 
+
+# =============================================================================
+# Register Tabs Data Response Schemas
+# =============================================================================
 
 class RegisterTabsDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterUITabData]] = None
@@ -224,6 +344,10 @@ class RegisterTabsDataResponse(G2PResponse):
     response_body: Optional[RegisterTabsDataResponseBody] = None
 
 
+# =============================================================================
+# Register Tab Data Response Schemas
+# =============================================================================
+
 class RegisterTabDataResponseBody(G2PResponseBody):
     response_payload: Optional[RegisterUITabData] = None
 
@@ -231,6 +355,10 @@ class RegisterTabDataResponseBody(G2PResponseBody):
 class RegisterTabDataResponse(G2PResponse):
     response_body: Optional[RegisterTabDataResponseBody] = None
 
+
+# =============================================================================
+# Section Records Data Response Schemas
+# =============================================================================
 
 class SectionRecordsDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RecordData]] = None
@@ -240,6 +368,10 @@ class SectionRecordsDataResponse(G2PResponse):
     response_body: Optional[SectionRecordsDataResponseBody] = None
 
 
+# =============================================================================
+# Register Tab Records Data Response Schemas
+# =============================================================================
+
 class RegisterTabRecordsDataResponseBody(G2PResponseBody):
     response_payload: Optional[List[RegisterTabRecordData]] = None
 
@@ -248,7 +380,10 @@ class RegisterTabRecordsDataResponse(G2PResponse):
     response_body: Optional[RegisterTabRecordsDataResponseBody] = None
 
 
-# Upload Documents Response
+# =============================================================================
+# Upload Documents Response Schemas
+# =============================================================================
+
 class UploadDocumentsResponseBody(G2PResponseBody):
     response_payload: Optional[UploadDocumentsResponseData] = None
 
@@ -257,7 +392,10 @@ class UploadDocumentsResponse(G2PResponse):
     response_body: Optional[UploadDocumentsResponseBody] = None
 
 
-# Upload Record Image Response
+# =============================================================================
+# Upload Record Image Response Schemas
+# =============================================================================
+
 class UploadRecordImageResponseBody(G2PResponseBody):
     response_payload: Optional["UploadRecordImageData"] = None
 
@@ -265,13 +403,22 @@ class UploadRecordImageResponseBody(G2PResponseBody):
 class UploadRecordImageResponse(G2PResponse):
     response_body: Optional[UploadRecordImageResponseBody] = None
 
-# File Url
+
+# =============================================================================
+# File Url Response Schemas
+# =============================================================================
+
 class FileUrlResponseBody(G2PResponseBody):
     response_payload: Optional[FileUrlData] = None
+
 
 class FileUrlResponse(G2PResponse):
     response_body: Optional[FileUrlResponseBody] = None
 
+
+# =============================================================================
+# Section Documents Response Schemas
+# =============================================================================
 
 class SectionDocumentsResponseBody(G2PResponseBody):
     response_payload: Optional["SectionDocumentsData"] = None
@@ -280,6 +427,10 @@ class SectionDocumentsResponseBody(G2PResponseBody):
 class SectionDocumentsResponse(G2PResponse):
     response_body: Optional[SectionDocumentsResponseBody] = None
 
+
+# =============================================================================
+# Change Request Documents Response Schemas
+# =============================================================================
 
 class ChangeRequestDocumentsResponseBody(G2PResponseBody):
     response_payload: Optional["ChangeRequestDocumentsData"] = None
@@ -290,7 +441,7 @@ class ChangeRequestDocumentsResponse(G2PResponse):
 
 
 # =============================================================================
-# Registry Configuration Responses
+# Registry Configuration Response Schemas
 # =============================================================================
 
 class RegistryConfigurationDataResponseBody(G2PResponseBody):
@@ -302,7 +453,7 @@ class RegistryConfigurationDataResponse(G2PResponse):
 
 
 # =============================================================================
-# Change Request Additional Responses
+# Change Request Additional Response Schemas
 # =============================================================================
 
 class NumberOfRequestsPendingResponseBody(G2PResponseBody):
@@ -319,3 +470,16 @@ class EarliestPendingChangeRequestResponseBody(G2PResponseBody):
 
 class EarliestPendingChangeRequestResponse(G2PResponse):
     response_body: Optional[EarliestPendingChangeRequestResponseBody] = None
+
+
+# =============================================================================
+# G2P Attribute Response Schemas
+# =============================================================================
+
+class GetG2PAttributeValuesResponseBody(G2PResponseBody):
+    response_payload: List[G2PAttributeValueData]
+
+
+class GetG2PAttributeValuesResponse(G2PResponse):
+    response_header: G2PResponseHeader
+    response_body: GetG2PAttributeValuesResponseBody
