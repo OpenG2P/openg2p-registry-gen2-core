@@ -9,7 +9,7 @@ from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select, inspect, Date as SQLDate
+from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..helpers import MinioClient
@@ -1530,28 +1530,62 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Dynamically resolve history model class based on register mnemonic
+            # Fetch all sections for the given tab_id
+            sections_result = await session.execute(
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.register_id == register_id,
+                    G2PRegisterSection.tab_id == tab_id
+                )
+            )
+            sections = sections_result.scalars().all()
+
+            # Collect unique section_register_ids
+            unique_section_register_ids = set()
+            for section in sections:
+                unique_section_register_ids.add(section.section_register_id)
+
+            # Collect unique dates from all history classes
+            unique_dates = set()
             module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
             history_class_prefix = "G2PRegisterHistory"
-            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
-            history_class = getattr(module, history_class_name)
 
-            # Fetch all history records for the given internal_record_id and tab_id
-            history_records_result = await session.execute(
-                select(history_class).where(
-                    (history_class.internal_record_id == internal_record_id) &
-                    (history_class.tab_id == tab_id)
-                ).order_by(history_class.created_at.desc())
-            )
-            history_records = history_records_result.scalars().all()
-
-            # Extract unique truncated dates (date only, no time) from created_at
-            unique_dates = set()
-            for history_record in history_records:
-                if history_record.created_at:
-                    # Truncate to date only (YYYY-MM-DD format)
-                    truncated_date = history_record.created_at.date().isoformat()
-                    unique_dates.add(truncated_date)
+            for section_register_id in unique_section_register_ids:
+                # Get register definition for this section
+                section_register_def = (
+                    await session.execute(
+                        select(G2PRegisterDefinition).where(
+                            G2PRegisterDefinition.register_id == section_register_id
+                        )
+                    )
+                ).scalar()
+                
+                if not section_register_def:
+                    continue
+                
+                # Resolve history class for this section register
+                history_class_name = f"{history_class_prefix}{section_register_def.register_mnemonic}"
+                try:
+                    history_class = getattr(module, history_class_name)
+                except AttributeError:
+                    continue
+                
+                # Query history records where internal_record_id OR link_internal_record_id matches
+                history_records_result = await session.execute(
+                    select(history_class).where(
+                        history_class.tab_id == tab_id,
+                        or_(
+                            history_class.internal_record_id == internal_record_id,
+                            history_class.link_internal_record_id == internal_record_id
+                        )
+                    )
+                )
+                history_records = history_records_result.scalars().all()
+                
+                # Extract dates from this history class
+                for history_record in history_records:
+                    if history_record.created_at:
+                        truncated_date = history_record.created_at.date().isoformat()
+                        unique_dates.add(truncated_date)
 
             # Sort dates in descending order (most recent first)
             sorted_dates = sorted(list(unique_dates), reverse=True)
