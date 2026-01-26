@@ -198,6 +198,23 @@ class SearchResultData(BaseModel):
     class Config:
         from_attributes: bool = True
 
+class DeepSearchResultData(BaseModel):
+    internal_record_id: str
+    functional_record_id: str
+    link_internal_record_id: Optional[str] = None
+    foundational_id: Optional[str] = None
+    link_foundational_id: Optional[str] = None
+    record_name: Optional[str] = None
+    record_image_url: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    last_approved_at: Optional[str] = None
+    last_approved_by: Optional[str] = None
+
+    class Config:
+        extra = "allow"
+        from_attributes: bool = True
+
 
 # =============================================================================
 # Record Data
