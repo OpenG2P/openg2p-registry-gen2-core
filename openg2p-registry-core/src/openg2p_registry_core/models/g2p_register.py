@@ -146,9 +146,9 @@ class G2PPerson(BaseORMModel):
 class G2PGeo(BaseORMModel):
     __abstract__ = True
 
-    latitude: Mapped[float] = mapped_column(String, nullable=True)
-    longitude: Mapped[float] = mapped_column(String, nullable=True)
-    altitude: Mapped[float] = mapped_column(String, nullable=True)
+    latitude: Mapped[str] = mapped_column(String, nullable=True)
+    longitude: Mapped[str] = mapped_column(String, nullable=True)
+    altitude: Mapped[str] = mapped_column(String, nullable=True)
     plus_code: Mapped[str] = mapped_column(String, nullable=True, index=True)
     address_line_1: Mapped[str] = mapped_column(String, nullable=True)
     address_line_2: Mapped[str] = mapped_column(String, nullable=True)
