@@ -145,7 +145,7 @@ class VersionDatesDataResponse(G2PResponse):
 # =============================================================================
 
 class ChangesForDateDataResponseBody(G2PResponseBody):
-    response_payload: Optional["VersionsForDateData"] = None
+    response_payload: Optional[List["VersionsForDateData"]] = None
 
 
 class ChangesForDateDataResponse(G2PResponse):

@@ -372,17 +372,17 @@ class VersionDatesData(BaseModel):
 class VersionForDateData(BaseModel):
     """Individual change record for a specific date"""
     change_request_id: str
-    section_id: str
-    section_mnemonic: str
     created_at: str
 
 
 class VersionsForDateData(BaseModel):
-    """Container for a list of changes for a specific date"""
+    """Container for changes for a specific section and date"""
     register_id: str
     internal_record_id: str
     tab_id: str
     truncated_created_date: str
+    section_id: str
+    section_mnemonic: str
     changes: List[VersionForDateData] = []
 
 
