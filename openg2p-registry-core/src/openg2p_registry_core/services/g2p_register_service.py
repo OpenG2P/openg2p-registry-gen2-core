@@ -29,7 +29,7 @@ from ..schemas import (
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
-    CrossRegisterChangeRequestData, CrossRegisterChangesData,
+    CrossRegisterChangeRequestData, CrossRegisterChangesData, DeepSearchResultData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData,
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
@@ -411,6 +411,15 @@ class G2PRegisterService(BaseService):
             await self.validate_register_definition(register_id, session)
             search_results_list, total_items = await self._search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
             return search_results_list, total_items
+    
+    async def deep_search_in_a_register(
+        self, register_id: str, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None
+    ) -> tuple[list[DeepSearchResultData], int]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            await self.validate_register_definition(register_id, session)
+            deep_search_results_list, total_items = await self._deep_search_in_register(register_id, search_text, current_page, page_size, sort_by, filter_by, session)
+            return deep_search_results_list, total_items
 
     async def get_change_requests(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestData], int]:
         """Get all change requests for a specific internal record and tab with pagination"""
@@ -1052,6 +1061,92 @@ class G2PRegisterService(BaseService):
             register_tabs_list.append(tab_data)
 
         return register_tabs_list
+    
+    async def _deep_search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[DeepSearchResultData], int]:
+        g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+        # Get the implementation class for this register
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix: str = "G2PRegister"
+            implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+            implementation_class = getattr(module, implementation_class_name)
+        except (AttributeError, ModuleNotFoundError) as error:
+            _logger.error(f"Could not find register class for mnemonic {g2p_register_definition.register_mnemonic}: {str(error)}")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                message=f"Register implementation not found for {g2p_register_definition.register_mnemonic}"
+            )
+        
+        # Build search query
+        search_query: str = f"%{search_text}%"
+
+        # Base filter: search_text applied on implementation_class.search_text
+        filter_conditions: list = [implementation_class.search_text.ilike(search_query)]
+
+        # Additional filters if provided
+        if filter_by:
+            # Assuming a FilterBuilder exists for consistency, but focusing only on filter_by structure as in _search_in_register
+            filter_builder = FilterBuilder([])  # No schema used for deep search
+            try:
+                user_filter_conditions = filter_builder.build_conditions(filter_by, implementation_class)
+                filter_conditions.extend(user_filter_conditions)
+            except ValueError as validation_error:
+                _logger.warning(f"Filter validation error: {validation_error}")
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                    message=str(validation_error)
+                )
+
+        # Sorting
+        order_by_clause = None
+        if sort_by:
+            # Sort descending if startswith '-', else ascending
+            column_name = sort_by.lstrip('-')
+            sort_column = getattr(implementation_class, column_name, None)
+            if sort_column is not None:
+                if sort_by.startswith('-'):
+                    order_by_clause = sort_column.desc()
+                else:
+                    order_by_clause = sort_column.asc()
+
+        # Total count
+        total_query = select(implementation_class).filter(*filter_conditions)
+        total_count = (await session.execute(total_query)).scalars().unique().all()
+        total_count = len(total_count)
+
+        # Pagination
+        offset = (current_page - 1) * page_size
+
+        # Query records
+        query = select(implementation_class).filter(*filter_conditions)
+        if order_by_clause is not None:
+            query = query.order_by(order_by_clause)
+        query = query.offset(offset).limit(page_size)
+
+        results = (await session.execute(query)).scalars().all()
+
+        # Build DeepSearchResultData list
+        deep_search_results_list: list[DeepSearchResultData] = []
+        for record in results:
+            # Convert all datetime fields to ISO format strings for pydantic compatibility
+            if hasattr(record, "model_dump"):
+                data_dict = record.model_dump(exclude_unset=False, by_alias=False)
+            elif hasattr(record, "dict"):
+                data_dict = record.dict(exclude_unset=False, by_alias=False)
+            else:
+                data_dict = dict(record.__dict__)
+            # Remove private attributes
+            data_dict = {k: v for k, v in data_dict.items() if not k.startswith("_")}
+            # Convert all datetime and date values to ISO strings where necessary
+            for k, v in list(data_dict.items()):
+                # Import here to avoid circular deps
+                import datetime
+                if isinstance(v, datetime.datetime) or isinstance(v, datetime.date):
+                    data_dict[k] = v.isoformat()
+            deep_search_results_list.append(DeepSearchResultData(**data_dict))
+
+        return deep_search_results_list, total_count
+
 
     async def _search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[SearchResultData], int]:
         g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
