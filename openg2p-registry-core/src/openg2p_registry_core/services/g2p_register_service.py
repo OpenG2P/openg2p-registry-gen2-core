@@ -1656,20 +1656,22 @@ class G2PRegisterService(BaseService):
                             history_class.internal_record_id == internal_record_id,
                             history_class.link_internal_record_id == internal_record_id
                         )
-                    ).order_by(history_class.created_at.desc())
+                    ).where(
+                        func.date(history_class.created_at) == date.fromisoformat(truncated_created_date)
+                    ).where(
+                        history_class.section_id == section.section_id
+                    )
+                    .order_by(history_class.created_at.desc())
                 )
                 history_records = history_records_result.scalars().all()
                 
                 # Filter by truncated date and build changes list for this section
                 section_changes = []
                 for history_record in history_records:
-                    if history_record.created_at:
-                        record_date = history_record.created_at.date().isoformat()
-                        if record_date == truncated_created_date:
-                            section_changes.append(VersionForDateData(
-                                change_request_id=history_record.change_request_id,
-                                created_at=history_record.created_at.isoformat()
-                            ))
+                    section_changes.append(VersionForDateData(
+                        change_request_id=history_record.change_request_id,
+                        created_at=history_record.created_at.isoformat()
+                    ))
                 
                 # Only add section if it has changes
                 if section_changes:
