@@ -1561,7 +1561,19 @@ class G2PRegisterService(BaseService):
                 
                 if not section_register_def:
                     continue
+
+                # Get all internal_record_ids to query by traversing the hierarchy
+                # This handles multi-level hierarchies (e.g., Farmer → Lands → Crops)
+                history_internal_record_ids: list[str] = await self._get_history_internal_record_ids(
+                    section_register_id=section_register_id,
+                    subject_internal_record_id=internal_record_id,
+                    subject_register_id=register_id,
+                    session=session
+                )
                 
+                if not history_internal_record_ids:
+                    continue
+
                 # Resolve history class for this section register
                 history_class_name = f"{history_class_prefix}{section_register_def.register_mnemonic}"
                 try:
@@ -1569,14 +1581,11 @@ class G2PRegisterService(BaseService):
                 except AttributeError:
                     continue
                 
-                # Query history records where internal_record_id OR link_internal_record_id matches
+                # Query history records where internal_record_id is in the traversed IDs
                 history_records_result = await session.execute(
                     select(history_class).where(
                         history_class.tab_id == tab_id,
-                        or_(
-                            history_class.internal_record_id == internal_record_id,
-                            history_class.link_internal_record_id == internal_record_id
-                        )
+                        history_class.internal_record_id.in_(history_internal_record_ids)
                     )
                 )
                 history_records = history_records_result.scalars().all()
@@ -1640,6 +1649,18 @@ class G2PRegisterService(BaseService):
                 
                 if not section_register_def:
                     continue
+
+                # Get all internal_record_ids to query by traversing the hierarchy
+                # This handles multi-level hierarchies (e.g., Farmer → Lands → Crops)
+                history_internal_record_ids: list[str] = await self._get_history_internal_record_ids(
+                    section_register_id=section.section_register_id,
+                    subject_internal_record_id=internal_record_id,
+                    subject_register_id=register_id,
+                    session=session
+                )
+                
+                if not history_internal_record_ids:
+                    continue
                 
                 # Resolve history class for this section register
                 history_class_name = f"{history_class_prefix}{section_register_def.register_mnemonic}"
@@ -1648,14 +1669,11 @@ class G2PRegisterService(BaseService):
                 except AttributeError:
                     continue
                 
-                # Query history records where internal_record_id OR link_internal_record_id matches
+                # Query history records where internal_record_id is in the traversed IDs
                 history_records_result = await session.execute(
                     select(history_class).where(
                         history_class.tab_id == tab_id,
-                        or_(
-                            history_class.internal_record_id == internal_record_id,
-                            history_class.link_internal_record_id == internal_record_id
-                        )
+                        history_class.internal_record_id.in_(history_internal_record_ids)
                     ).where(
                         func.date(history_class.created_at) == date.fromisoformat(truncated_created_date)
                     ).where(
@@ -1665,13 +1683,16 @@ class G2PRegisterService(BaseService):
                 )
                 history_records = history_records_result.scalars().all()
                 
-                # Filter by truncated date and build changes list for this section
-                section_changes = []
+                # Build changes list, deduplicating by change_request_id
+                # (Multiple records may share the same change_request_id in hierarchical queries)
+                seen_change_requests: dict[str, VersionForDateData] = {}
                 for history_record in history_records:
-                    section_changes.append(VersionForDateData(
-                        change_request_id=history_record.change_request_id,
-                        created_at=history_record.created_at.isoformat()
-                    ))
+                    if history_record.change_request_id not in seen_change_requests:
+                        seen_change_requests[history_record.change_request_id] = VersionForDateData(
+                            change_request_id=history_record.change_request_id,
+                            created_at=history_record.created_at.isoformat()
+                        )
+                section_changes = list(seen_change_requests.values())
                 
                 # Only add section if it has changes
                 if section_changes:
@@ -3155,3 +3176,139 @@ class G2PRegisterService(BaseService):
                 approval_status=change_request.approval_status,
                 change_payload=payload.change_payload if payload else None
             )
+
+    async def _find_path_to_ancestor(
+        self,
+        start_register_id: str,
+        target_register_id: str,
+        session,
+        max_depth: int = 20
+    ) -> list[G2PRegisterDefinition] | None:
+        """
+        Find path from start_register up to target_register via master_register_id.
+        
+        Args:
+            start_register_id: Starting register (child/descendant)
+            target_register_id: Target ancestor register
+            session: Database session
+            max_depth: Maximum hierarchy depth to prevent infinite loops
+            
+        Returns:
+            List of register definitions from start to target, or None if not found
+        """
+        path: list[G2PRegisterDefinition] = []
+        current_id: str | None = start_register_id
+        depth: int = 0
+
+        while current_id and depth < max_depth:
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == current_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition:
+                return None
+
+            path.append(register_definition)
+
+            if current_id == target_register_id:
+                return path
+
+            current_id = register_definition.master_register_id
+            depth += 1
+
+        return None
+
+    def _get_register_implementation_class(self, register_mnemonic: str):
+        """
+        Get the implementation class for a register based on its mnemonic.
+        
+        Args:
+            register_mnemonic: The register mnemonic (e.g., "Farmer", "Land", "Crop")
+            
+        Returns:
+            The SQLAlchemy model class for the register
+        """
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix: str = "G2PRegister"
+            implementation_class_name: str = f"{register_class_prefix}{register_mnemonic}"
+            implementation_class = getattr(module, implementation_class_name)
+            return implementation_class
+        except (AttributeError, ModuleNotFoundError) as error:
+            _logger.error(f"Could not find register class for mnemonic {register_mnemonic}: {str(error)}")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                message=f"Register implementation not found for {register_mnemonic}"
+            )
+
+    async def _get_history_internal_record_ids(
+        self,
+        section_register_id: str,
+        subject_internal_record_id: str,
+        subject_register_id: str,
+        session
+    ) -> list[str]:
+        """
+        Get the internal_record_ids to query for history records by traversing 
+        down the register hierarchy from subject to section.
+        
+        Example: For Farmer (subject) → Lands → Crops (section)
+        - Given farmer's internal_record_id
+        - Returns all crop internal_record_ids belonging to that farmer
+        
+        Args:
+            section_register_id: The register ID of the section (e.g., Crops)
+            subject_internal_record_id: The subject record's internal_record_id (e.g., Farmer's ID)
+            subject_register_id: The subject register ID (e.g., Farmer register)
+            session: Database session
+            
+        Returns:
+            List of internal_record_ids to query in history table
+        """
+        # If same register, no traversal needed
+        if section_register_id == subject_register_id:
+            return [subject_internal_record_id]
+        
+        # Build path from section to subject (section is child, subject is ancestor)
+        path: list[G2PRegisterDefinition] | None = await self._find_path_to_ancestor(
+            section_register_id, subject_register_id, session
+        )
+        
+        if not path:
+            # No hierarchy path found, fall back to single ID
+            _logger.warning(
+                f"No hierarchy path found from section {section_register_id} to subject {subject_register_id}"
+            )
+            return [subject_internal_record_id]
+        
+        # Reverse path to traverse from subject (top) to section (bottom)
+        # path is [section, ..., subject], we need [subject, ..., section]
+        path_reversed: list[G2PRegisterDefinition] = list(reversed(path))
+        
+        # Start with subject's internal_record_id
+        current_ids: list[str] = [subject_internal_record_id]
+        
+        # Traverse down the hierarchy (skip first register which is subject)
+        for i in range(1, len(path_reversed)):
+            register_def: G2PRegisterDefinition = path_reversed[i]
+            impl_class = self._get_register_implementation_class(register_def.register_mnemonic)
+            
+            # Find all records where link_internal_record_id is in current_ids
+            result = await session.execute(
+                select(impl_class.internal_record_id).where(
+                    impl_class.link_internal_record_id.in_(current_ids)
+                )
+            )
+            child_ids = [row[0] for row in result.fetchall()]
+            
+            if not child_ids:
+                # No records found at this level
+                return []
+            
+            current_ids = child_ids
+        
+        return current_ids
