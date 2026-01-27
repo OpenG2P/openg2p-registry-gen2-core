@@ -1352,7 +1352,7 @@ class G2PRegisterService(BaseService):
         return search_results_list, total_items
 
     async def get_number_of_versions(self, register_id: str, internal_record_id: str, tab_id: str) -> NumberOfVersionsData:
-        """Get the number of versions (history records) for a given register, internal_record_id and tab_id"""
+        """Get the number of versions (unique change requests) for a given register, internal_record_id and tab_id across all sections"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate register exists
@@ -1369,24 +1369,84 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
                 )
 
-            # Dynamically resolve register and history model classes based on register mnemonic
-            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
-            register_class_prefix = "G2PRegister"
-            history_class_prefix = "G2PRegisterHistory"
-            register_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
-            history_class_name = f"{history_class_prefix}{register_definition.register_mnemonic}"
-            register_class = getattr(module, register_class_name)
-            history_class = getattr(module, history_class_name)
-
-            # Count history records for the given internal_record_id
-            count_result = await session.execute(
-                select(func.count()).select_from(history_class).where(
-                    history_class.internal_record_id == internal_record_id
+            # Fetch all sections for the given tab_id
+            sections_result = await session.execute(
+                select(G2PRegisterSection).where(
+                    G2PRegisterSection.register_id == register_id,
+                    G2PRegisterSection.tab_id == tab_id
                 )
             )
-            number_of_versions = count_result.scalar_one()
+            sections = sections_result.scalars().all()
 
-            # Get last_updated_by and last_updated_at from the register record
+            # Collect unique section_register_ids
+            unique_section_register_ids = set()
+            for section in sections:
+                unique_section_register_ids.add(section.section_register_id)
+
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            history_class_prefix = "G2PRegisterHistory"
+            register_class_prefix = "G2PRegister"
+
+            # Collect unique change_request_ids and track latest history record across all sections
+            unique_change_request_ids: set[str] = set()
+            latest_approved_at: datetime = None
+            latest_history_record = None
+
+            for section_register_id in unique_section_register_ids:
+                # Get register definition for this section
+                section_register_def = (
+                    await session.execute(
+                        select(G2PRegisterDefinition).where(
+                            G2PRegisterDefinition.register_id == section_register_id
+                        )
+                    )
+                ).scalar()
+                
+                if not section_register_def:
+                    continue
+
+                # Get all internal_record_ids to query by traversing the hierarchy
+                history_internal_record_ids: list[str] = await self._get_history_internal_record_ids(
+                    section_register_id=section_register_id,
+                    subject_internal_record_id=internal_record_id,
+                    subject_register_id=register_id,
+                    session=session
+                )
+                
+                if not history_internal_record_ids:
+                    continue
+
+                # Resolve history class for this section register
+                history_class_name = f"{history_class_prefix}{section_register_def.register_mnemonic}"
+                try:
+                    history_class = getattr(module, history_class_name)
+                except AttributeError:
+                    continue
+                
+                # Query history records where internal_record_id is in the traversed IDs
+                history_records_result = await session.execute(
+                    select(history_class).where(
+                        history_class.tab_id == tab_id,
+                        history_class.internal_record_id.in_(history_internal_record_ids)
+                    )
+                )
+                history_records = history_records_result.scalars().all()
+                
+                # Collect unique change_request_ids and track latest record
+                for history_record in history_records:
+                    unique_change_request_ids.add(history_record.change_request_id)
+                    # Track the most recent history record by approved_at
+                    if history_record.approved_at:
+                        if latest_approved_at is None or history_record.approved_at > latest_approved_at:
+                            latest_approved_at = history_record.approved_at
+                            latest_history_record = history_record
+
+            # Count unique change requests (not raw history records)
+            number_of_versions = len(unique_change_request_ids)
+
+            # Get last_updated_by and last_updated_at from the subject register record
+            register_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+            register_class = getattr(module, register_class_name)
             register_record = (
                 await session.execute(
                     select(register_class).where(
@@ -1401,15 +1461,7 @@ class G2PRegisterService(BaseService):
                 last_updated_by = register_record.last_approved_by
                 last_updated_at = register_record.last_approved_at
 
-            # Get last_approved_by and last_approved_at from the latest history record
-            latest_history_record = (
-                await session.execute(
-                    select(history_class).where(
-                        history_class.internal_record_id == internal_record_id
-                    ).order_by(history_class.approved_at.desc()).limit(1)
-                )
-            ).scalar()
-
+            # Get last_approved_by and last_approved_at from the latest history record across all sections
             last_approved_by: str = None
             last_approved_at: datetime = None
             if latest_history_record:
