@@ -1,6 +1,6 @@
 import logging
 import importlib
-from typing import Optional
+from typing import Optional, Any
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -517,3 +517,88 @@ class G2PRegisterHierarchicalService(BaseService):
                 ))
 
             return tab_records
+
+    def _to_snake_case(self, name: str) -> str:
+        import re
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    async def enrich_record_hierarchy(
+        self,
+        register_definition: G2PRegisterDefinition,
+        record: Any,
+        session,
+        visited_registers: set[str] = None
+    ) -> dict:
+        """
+        Recursively enrich a record with its parent and child records.
+        """
+        if visited_registers is None:
+            visited_registers = set()
+
+        # Create a new set for this branch to allow revisiting nodes from different branches
+        # but prevent cycles in the current path.
+        current_visited = visited_registers.copy()
+        
+        if register_definition.register_id in current_visited:
+             # Just return base record if already visited to break cycle
+             return self._convert_record_to_record_data(record).model_dump(exclude_unset=True)
+             
+        current_visited.add(register_definition.register_id)
+
+        # Base Data
+        record_data = self._convert_record_to_record_data(record).model_dump(exclude_unset=True)
+
+        # 1. Fetch Children (Down)
+        child_registers = (await session.execute(
+            select(G2PRegisterDefinition).where(
+                G2PRegisterDefinition.master_register_id == register_definition.register_id
+            )
+        )).scalars().all()
+
+        for child_reg in child_registers:
+            # Skip if we've already visited this register in the current path (prevents cycles/redundancy)
+            if child_reg.register_id in current_visited:
+                continue
+
+            child_key = self._to_snake_case(child_reg.register_mnemonic)
+            
+            # Get child implementation class
+            child_impl = self._get_implementation_class(child_reg.register_mnemonic)
+            
+            # Fetch linked records
+            child_records = (await session.execute(
+                select(child_impl).where(
+                    child_impl.link_internal_record_id == record.internal_record_id
+                )
+            )).scalars().all()
+            
+            enrich_children = []
+            for child_rec in child_records:
+                enriched_child = await self.enrich_record_hierarchy(
+                    child_reg, child_rec, session, current_visited
+                )
+                enrich_children.append(enriched_child)
+            
+            # User example convention: list of children
+            record_data[child_key] = enrich_children
+
+        # 2. Fetch Parent (Up)
+        if register_definition.master_register_id:
+             parent_reg = await session.get(G2PRegisterDefinition, register_definition.master_register_id)
+             if parent_reg and parent_reg.register_id not in current_visited:
+                 parent_key = self._to_snake_case(parent_reg.register_mnemonic)
+                 
+                 # Get parent implementation class
+                 parent_impl = self._get_implementation_class(parent_reg.register_mnemonic)
+                 
+                 # Fetch parent record
+                 if record.link_internal_record_id:
+                     parent_rec = await session.get(parent_impl, record.link_internal_record_id)
+                     if parent_rec:
+                         enriched_parent = await self.enrich_record_hierarchy(
+                             parent_reg, parent_rec, session, current_visited
+                         )
+                         record_data[parent_key] = enriched_parent
+
+        return record_data

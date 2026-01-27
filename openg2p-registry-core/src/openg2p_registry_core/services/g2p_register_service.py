@@ -8,9 +8,12 @@ from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
 from openg2p_registry_core.schemas import ChangeRequestRequestPayload
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, inspect, Date as SQLDate
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from .g2p_register_hierarchical_service import G2PRegisterHierarchicalService
 
 from ..helpers import MinioClient
 
@@ -1064,6 +1067,7 @@ class G2PRegisterService(BaseService):
     
     async def _deep_search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[DeepSearchResultData], int]:
         g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+        
         # Get the implementation class for this register
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
@@ -1127,23 +1131,16 @@ class G2PRegisterService(BaseService):
 
         # Build DeepSearchResultData list
         deep_search_results_list: list[DeepSearchResultData] = []
+        
+        hierarchical_service = G2PRegisterHierarchicalService.get_component()
+        if not hierarchical_service:
+            hierarchical_service = G2PRegisterHierarchicalService()
+
         for record in results:
-            # Convert all datetime fields to ISO format strings for pydantic compatibility
-            if hasattr(record, "model_dump"):
-                data_dict = record.model_dump(exclude_unset=False, by_alias=False)
-            elif hasattr(record, "dict"):
-                data_dict = record.dict(exclude_unset=False, by_alias=False)
-            else:
-                data_dict = dict(record.__dict__)
-            # Remove private attributes
-            data_dict = {k: v for k, v in data_dict.items() if not k.startswith("_")}
-            # Convert all datetime and date values to ISO strings where necessary
-            for k, v in list(data_dict.items()):
-                # Import here to avoid circular deps
-                import datetime
-                if isinstance(v, datetime.datetime) or isinstance(v, datetime.date):
-                    data_dict[k] = v.isoformat()
-            deep_search_results_list.append(DeepSearchResultData(**data_dict))
+            enriched_data = await hierarchical_service.enrich_record_hierarchy(
+                g2p_register_definition, record, session
+            )
+            deep_search_results_list.append(DeepSearchResultData(**enriched_data))
 
         return deep_search_results_list, total_count
 
