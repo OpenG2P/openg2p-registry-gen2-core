@@ -586,6 +586,7 @@ class RegisterSectionData(BaseModel):
     no_of_verifications_required: int = 0
     auto_approval: bool = False
     is_list: bool = False
+    register_purpose: str
     is_primary_section: bool = False
     section_order: int = 0
     section_ui_schema: Optional[dict] = None

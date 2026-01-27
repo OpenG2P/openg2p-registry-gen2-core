@@ -2459,6 +2459,15 @@ class G2PRegisterService(BaseService):
 
         sections_list: list[RegisterSectionData] = []
         for section in sections:
+            
+            g2p_register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == section.register_id
+                    )
+                )
+            ).scalar()
+
             section_data = RegisterSectionData(
                 section_register_id=section.section_register_id,
                 register_id=section.register_id,
@@ -2470,6 +2479,7 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
                 is_list=section.is_list,
+                register_purpose=g2p_register_definition.register_purpose,
                 section_order=section.section_order,
                 section_ui_schema=section.section_ui_schema
             )
