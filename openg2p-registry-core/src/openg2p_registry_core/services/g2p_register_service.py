@@ -1255,7 +1255,7 @@ class G2PRegisterService(BaseService):
                 internal_record_id=result.internal_record_id,
                 functional_record_id=result.functional_record_id,
                 link_internal_record_id=result.link_internal_record_id,
-                foundational_id=result.foundational_id,
+                foundational_id=result.foundational_id if hasattr(result, 'foundational_id') else None,
                 link_foundational_id=result.link_foundational_id,
                 record_name=result.record_name,
                 record_image_url=record_image_url,
