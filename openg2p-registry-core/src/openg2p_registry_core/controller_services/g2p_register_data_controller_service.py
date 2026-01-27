@@ -50,7 +50,7 @@ class G2PRegisterDataControllerService(BaseService):
         version_dates_data: VersionDatesData = await g2p_register_service.get_version_dates(register_id, internal_record_id, tab_id)
         return version_dates_data
 
-    async def get_versions_for_a_date(self, get_changes_for_date_request: GetChangesForDateRequest) -> VersionsForDateData:
+    async def get_versions_for_a_date(self, get_changes_for_date_request: GetChangesForDateRequest) -> list[VersionsForDateData]:
         """Get changes from history records for a given register, internal_record_id, tab_id and specific date"""
         register_id = get_changes_for_date_request.request_body.request_payload.register_id
         internal_record_id = get_changes_for_date_request.request_body.request_payload.internal_record_id
@@ -58,7 +58,7 @@ class G2PRegisterDataControllerService(BaseService):
         truncated_created_date = get_changes_for_date_request.request_body.request_payload.truncated_created_date
         _logger.info(f"Getting changes for date for register_id: {register_id}, internal_record_id: {internal_record_id}, tab_id: {tab_id}, truncated_created_date: {truncated_created_date} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        changes_for_date_data: VersionsForDateData = await g2p_register_service.get_versions_for_a_date(register_id, internal_record_id, tab_id, truncated_created_date)
+        changes_for_date_data: list[VersionsForDateData] = await g2p_register_service.get_versions_for_a_date(register_id, internal_record_id, tab_id, truncated_created_date)
         return changes_for_date_data
 
     async def get_subject_record(self, get_subject_record_request: GetSubjectRecordRequest) -> RecordData:

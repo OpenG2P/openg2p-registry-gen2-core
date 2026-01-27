@@ -372,17 +372,17 @@ class VersionDatesData(BaseModel):
 class VersionForDateData(BaseModel):
     """Individual change record for a specific date"""
     change_request_id: str
-    section_id: str
-    section_mnemonic: str
     created_at: str
 
 
 class VersionsForDateData(BaseModel):
-    """Container for a list of changes for a specific date"""
+    """Container for changes for a specific section and date"""
     register_id: str
     internal_record_id: str
     tab_id: str
     truncated_created_date: str
+    section_id: str
+    section_mnemonic: str
     changes: List[VersionForDateData] = []
 
 
@@ -586,6 +586,7 @@ class RegisterSectionData(BaseModel):
     no_of_verifications_required: int = 0
     auto_approval: bool = False
     is_list: bool = False
+    register_purpose: str
     is_primary_section: bool = False
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
