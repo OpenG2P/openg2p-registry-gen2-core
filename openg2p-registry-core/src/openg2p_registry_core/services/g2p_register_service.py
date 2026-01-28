@@ -40,7 +40,8 @@ from ..schemas import (
     RegisterSchemaData, RegisterSectionData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
     RegistryConfigurationData, EarliestPendingChangeRequestData,
-    ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData
+    ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
+    RegisterRelationEnum
 )
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -2519,6 +2520,44 @@ class G2PRegisterService(BaseService):
 
         return sections_list
 
+    def _get_register_relation(
+        self,
+        register_id: str,
+        section_register_id: str,
+        register_definition: G2PRegisterDefinition,
+        section_register_definition: G2PRegisterDefinition
+    ) -> RegisterRelationEnum:
+        """
+        Determine the relationship between section's register and the queried register.
+        
+        Args:
+            register_id: The register_id from the API request
+            section_register_id: The section's register_id
+            register_definition: The G2PRegisterDefinition for register_id
+            section_register_definition: The G2PRegisterDefinition for section_register_id
+        
+        Returns:
+            RegisterRelationEnum: SELF, CHILD, PARENT, or PEER
+        """
+        if section_register_id == register_id:
+            return RegisterRelationEnum.SELF
+        
+        # Child: section's register has this register as its master
+        if section_register_definition.master_register_id == register_id:
+            return RegisterRelationEnum.CHILD
+        
+        # Parent: this register has section's register as its master
+        if register_definition.master_register_id == section_register_id:
+            return RegisterRelationEnum.PARENT
+        
+        # Peer: both share the same master_register_id
+        if (register_definition.master_register_id and 
+            register_definition.master_register_id == section_register_definition.master_register_id):
+            return RegisterRelationEnum.PEER
+        
+        # Default fallback (shouldn't happen in normal cases)
+        return RegisterRelationEnum.SELF
+
     async def _fetch_register_tab_sections(self, register_id: str, tab_id: str, session) -> list[RegisterSectionData]:
         """Fetch register sections from g2p_register_sections table filtered by tab_id."""
         result = await session.execute(
@@ -2529,16 +2568,38 @@ class G2PRegisterService(BaseService):
         )
         sections = result.scalars().all()
 
+        # Fetch the main register definition once (for register_relation computation)
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == register_id
+                )
+            )
+        ).scalar()
+
         sections_list: list[RegisterSectionData] = []
         for section in sections:
-            
-            g2p_register_definition: G2PRegisterDefinition = (
-                await session.execute(
-                    select(G2PRegisterDefinition).where(
-                        G2PRegisterDefinition.register_id == section.register_id
+            # Get section's register definition for register_purpose and register_relation
+            if section.section_register_id == register_id:
+                # Same register - reuse the main register definition
+                section_register_definition = register_definition
+            else:
+                # Different register - fetch section's register definition
+                section_register_definition: G2PRegisterDefinition = (
+                    await session.execute(
+                        select(G2PRegisterDefinition).where(
+                            G2PRegisterDefinition.register_id == section.section_register_id
+                        )
                     )
-                )
-            ).scalar()
+                ).scalar()
+
+            # Determine the relationship between section's register and the main register
+            register_relation = self._get_register_relation(
+                register_id=register_id,
+                section_register_id=section.section_register_id,
+                register_definition=register_definition,
+                section_register_definition=section_register_definition
+            )
 
             section_data = RegisterSectionData(
                 section_register_id=section.section_register_id,
@@ -2551,9 +2612,10 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
                 is_list=section.is_list,
-                register_purpose=g2p_register_definition.register_purpose,
+                register_purpose=section_register_definition.register_purpose,
                 section_order=section.section_order,
-                section_ui_schema=section.section_ui_schema
+                section_ui_schema=section.section_ui_schema,
+                register_relation=register_relation
             )
             sections_list.append(section_data)
 

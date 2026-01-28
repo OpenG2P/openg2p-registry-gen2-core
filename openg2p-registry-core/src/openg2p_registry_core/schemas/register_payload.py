@@ -268,6 +268,14 @@ class EditActionEnum(str, Enum):
     NO_CHANGE = "NO_CHANGE"
 
 
+class RegisterRelationEnum(str, Enum):
+    """Relationship type between a section's register and the queried register."""
+    SELF = "SELF"
+    CHILD = "CHILD"
+    PARENT = "PARENT"
+    PEER = "PEER"
+
+
 class ChangePayload(BaseChangePayload):
     internal_record_id: str
     edit_action: EditActionEnum
@@ -590,6 +598,7 @@ class RegisterSectionData(BaseModel):
     is_primary_section: bool = False
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
+    register_relation: Optional[RegisterRelationEnum] = None
 
     class Config:
         from_attributes: bool = True
