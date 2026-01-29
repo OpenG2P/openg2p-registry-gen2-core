@@ -50,6 +50,7 @@ from .register_payload import (
     GetSectionDocumentsForChangeRequestRequestPayload,
     FileUrlRequestPayload,
     GetG2PAttributeValuesRequestPayload,
+    GetAllowedParentsForChildSectionRequestPayload,
 )
 
 
@@ -651,3 +652,15 @@ class GetG2PAttributeValuesRequestBody(G2PRequestBody):
 
 class GetG2PAttributeValuesRequest(G2PRequest):
     request_body: GetG2PAttributeValuesRequestBody
+
+
+# =============================================================================
+# Allowed Parents For Child Section Request Schemas
+# =============================================================================
+
+class GetAllowedParentsForChildSectionRequestBody(G2PRequestBody):
+    request_payload: GetAllowedParentsForChildSectionRequestPayload
+
+
+class GetAllowedParentsForChildSectionRequest(G2PRequest):
+    request_body: GetAllowedParentsForChildSectionRequestBody

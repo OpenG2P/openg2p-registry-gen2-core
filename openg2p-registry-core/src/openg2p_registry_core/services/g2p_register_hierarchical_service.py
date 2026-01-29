@@ -9,7 +9,7 @@ from sqlalchemy import select, inspect as sa_inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..models import G2PRegisterDefinition, G2PRegisterSection
-from ..schemas import RecordData, RegisterTabRecordData
+from ..schemas import RecordData, RegisterTabRecordData, AllowedParentsData, AllowedParentRecordData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-register-hierarchical-service')
@@ -585,20 +585,86 @@ class G2PRegisterHierarchicalService(BaseService):
 
         # 2. Fetch Parent (Up)
         if register_definition.master_register_id:
-             parent_reg = await session.get(G2PRegisterDefinition, register_definition.master_register_id)
-             if parent_reg and parent_reg.register_id not in current_visited:
-                 parent_key = self._to_snake_case(parent_reg.register_mnemonic)
+            parent_reg = await session.get(G2PRegisterDefinition, register_definition.master_register_id)
+            if parent_reg and parent_reg.register_id not in current_visited:
+                parent_key = self._to_snake_case(parent_reg.register_mnemonic)
                  
-                 # Get parent implementation class
-                 parent_impl = self._get_implementation_class(parent_reg.register_mnemonic)
+                # Get parent implementation class
+                parent_impl = self._get_implementation_class(parent_reg.register_mnemonic)
                  
-                 # Fetch parent record
-                 if record.link_internal_record_id:
-                     parent_rec = await session.get(parent_impl, record.link_internal_record_id)
-                     if parent_rec:
-                         enriched_parent = await self.enrich_record_hierarchy(
-                             parent_reg, parent_rec, session, current_visited
-                         )
-                         record_data[parent_key] = enriched_parent
+                # Fetch parent record
+                if record.link_internal_record_id:
+                    parent_rec = await session.get(parent_impl, record.link_internal_record_id)
+                    if parent_rec:
+                        enriched_parent = await self.enrich_record_hierarchy(
+                            parent_reg, parent_rec, session, current_visited
+                        )
+                        record_data[parent_key] = enriched_parent
 
         return record_data
+
+    async def get_allowed_parents_for_child_section(
+        self,
+        subject_register_id: str,
+        subject_record_id: str,
+        section_register_id: str
+    ) -> AllowedParentsData:
+        """
+        Get allowed parent records for a child section.
+        
+        Given a subject record (e.g., FARMER) and a child section register (e.g., SEEDS),
+        finds the parent register of that section (e.g., CROP) and returns all records
+        from the parent register that are linked to the subject.
+
+        Args:
+            subject_register_id: The register we're starting from (e.g., FARMER)
+            subject_record_id: The specific record (internal_record_id)
+            section_register_id: The child section's register (e.g., SEEDS)
+
+        Returns:
+            AllowedParentsData containing parent register mnemonic and list of allowed parent records
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # 1. Validate subject register exists
+            await self._validate_register_definition(subject_register_id, session)
+
+            # 2. Get section register definition
+            section_register: G2PRegisterDefinition = await self._validate_register_definition(
+                section_register_id, session
+            )
+
+            # 3. Find parent register (master_register_id)
+            parent_register_id = section_register.master_register_id
+            if not parent_register_id:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                    message=f"Section register {section_register_id} has no parent register"
+                )
+
+            parent_register: G2PRegisterDefinition = await self._validate_register_definition(
+                parent_register_id, session
+            )
+
+            # 4. Get parent records linked to the subject using existing hierarchy traversal
+            parent_records: list[RecordData] = await self.get_section_records(
+                subject_register_id, subject_record_id, parent_register_id
+            )
+
+            # 5. Transform to AllowedParentRecordData
+            allowed_parents: list[AllowedParentRecordData] = []
+            for record in parent_records:
+                # RecordData uses ConfigDict(extra="allow"), so we access fields directly
+                record_dict = record.model_dump()
+                allowed_parents.append(
+                    AllowedParentRecordData(
+                        internal_record_id=record_dict.get('internal_record_id'),
+                        record_name=record_dict.get('record_name')
+                    )
+                )
+
+            return AllowedParentsData(
+                register_mnemonic=parent_register.register_mnemonic,
+                master_register_id=parent_register.master_register_id,
+                allowed_parents=allowed_parents
+            )

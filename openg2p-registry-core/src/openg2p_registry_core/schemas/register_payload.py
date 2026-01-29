@@ -996,3 +996,24 @@ class G2PAttributeValueData(BaseModel):
 class GetG2PAttributeValuesRequestPayload(BaseModel):
     attribute_id: str
     parent_value_id: Optional[str] = None
+
+
+# =============================================================================
+# Allowed Parents For Child Section Schemas
+# =============================================================================
+
+class GetAllowedParentsForChildSectionRequestPayload(BaseModel):
+    subject_register_id: str
+    internal_record_id: str
+    section_register_id: str
+
+
+class AllowedParentRecordData(BaseModel):
+    internal_record_id: str
+    record_name: Optional[str] = None
+
+
+class AllowedParentsData(BaseModel):
+    register_mnemonic: str
+    master_register_id: Optional[str] = None
+    allowed_parents: List[AllowedParentRecordData]

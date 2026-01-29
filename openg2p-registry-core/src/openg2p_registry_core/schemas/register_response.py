@@ -16,7 +16,7 @@ from .register_payload import (
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
     SectionDocumentsData, ChangeRequestDocumentsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
-    G2PAttributeValueData
+    G2PAttributeValueData, AllowedParentsData
 )
 
 
@@ -483,3 +483,15 @@ class GetG2PAttributeValuesResponseBody(G2PResponseBody):
 class GetG2PAttributeValuesResponse(G2PResponse):
     response_header: G2PResponseHeader
     response_body: GetG2PAttributeValuesResponseBody
+
+
+# =============================================================================
+# Allowed Parents For Child Section Response Schemas
+# =============================================================================
+
+class AllowedParentsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[AllowedParentsData] = None
+
+
+class AllowedParentsDataResponse(G2PResponse):
+    response_body: Optional[AllowedParentsDataResponseBody] = None
