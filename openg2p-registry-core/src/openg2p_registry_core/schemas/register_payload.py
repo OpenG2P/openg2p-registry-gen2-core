@@ -271,8 +271,8 @@ class EditActionEnum(str, Enum):
 class RegisterRelationEnum(str, Enum):
     """Relationship type between a section's register and the queried register."""
     SELF = "SELF"
-    CHILD = "CHILD"
-    PARENT = "PARENT"
+    DESCENDANT = "DESCENDANT"
+    ANCESTOR = "ANCESTOR"
     PEER = "PEER"
 
 

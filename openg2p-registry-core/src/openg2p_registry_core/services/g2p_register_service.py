@@ -2537,18 +2537,18 @@ class G2PRegisterService(BaseService):
             section_register_definition: The G2PRegisterDefinition for section_register_id
         
         Returns:
-            RegisterRelationEnum: SELF, CHILD, PARENT, or PEER
+            RegisterRelationEnum: SELF, DESCENDANT, ANCESTOR, or PEER
         """
         if section_register_id == register_id:
             return RegisterRelationEnum.SELF
         
         # Child: section's register has this register as its master
         if section_register_definition.master_register_id == register_id:
-            return RegisterRelationEnum.CHILD
+            return RegisterRelationEnum.DESCENDANT
         
         # Parent: this register has section's register as its master
         if register_definition.master_register_id == section_register_id:
-            return RegisterRelationEnum.PARENT
+            return RegisterRelationEnum.ANCESTOR
         
         # Peer: both share the same master_register_id
         if (register_definition.master_register_id and 
