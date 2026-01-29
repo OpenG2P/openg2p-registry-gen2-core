@@ -177,6 +177,8 @@ class G2PGeo(BaseORMModel):
             self.plus_code or "",
             self.postal_code or "",
             self.country_code or "",
+            self.address_line_1 or "",
+            self.address_line_2 or "",
         ]
         # Extract searchable values from geo_code_hierarchy_json if present
         if self.geo_code_hierarchy_json and isinstance(self.geo_code_hierarchy_json, dict):

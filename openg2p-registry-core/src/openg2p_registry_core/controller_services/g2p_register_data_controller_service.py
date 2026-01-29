@@ -13,7 +13,8 @@ from ..schemas import (
     GetRegisterSectionRequest, RegisterSectionData,
     GetSectionRecordsRequest, GetRegisterTabRecordsRequest,
     GetRegisterSummaryDataRequest, RegisterSummaryData,
-    SearchRegisterRequest, SearchResultData
+    SearchRegisterRequest, SearchResultData,
+    GetAllowedParentsForChildSectionRequest, AllowedParentsData
 )
 
 _logger = logging.getLogger('g2p-register-data-controller-service')
@@ -179,4 +180,25 @@ class G2PRegisterDataControllerService(BaseService):
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
 
         return search_results_list, total_items, number_of_pages
+
+    async def get_allowed_parents_for_child_section(
+        self,
+        get_allowed_parents_request: GetAllowedParentsForChildSectionRequest
+    ) -> AllowedParentsData:
+        """
+        Get allowed parent records for a child section.
+        """
+        payload = get_allowed_parents_request.request_body.request_payload
+        subject_register_id: str = payload.subject_register_id
+        internal_record_id: str = payload.internal_record_id
+        section_register_id: str = payload.section_register_id
+        _logger.info(
+            f"Getting allowed parents for child section: subject_register_id={subject_register_id}, "
+            f"internal_record_id={internal_record_id}, section_register_id={section_register_id}"
+        )
+        g2p_register_hierarchical_service = G2PRegisterHierarchicalService.get_component()
+        allowed_parents_data: AllowedParentsData = await g2p_register_hierarchical_service.get_allowed_parents_for_child_section(
+            subject_register_id, internal_record_id, section_register_id
+        )
+        return allowed_parents_data
 
