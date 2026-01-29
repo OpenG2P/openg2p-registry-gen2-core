@@ -387,14 +387,8 @@ class GetIngestionDataRequestPayload(BaseModel):
 # G2P Input Mechanism Schemas
 # =============================================================================
 
-class EmptyG2PInputMechanismPayload(BaseModel):
-    """Empty payload for requests that don't require any parameters"""
-    pass
-
 class G2PInputMechanismPayload(BaseModel):
-    mechanism_id: Optional[str] = None
-    mechanism_type: str
-    display_key: str
+    register_id: str
 
     class Config:
         from_attributes: bool = True
@@ -402,6 +396,7 @@ class G2PInputMechanismPayload(BaseModel):
 
 class G2PInputMechanismData(BaseModel):
     mechanism_id: str
+    register_id: str
     mechanism_type: str
     display_key: str
 

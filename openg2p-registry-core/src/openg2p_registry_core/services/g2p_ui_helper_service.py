@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy import select
 
 from ..models import (
-    G2PInputMechanism
+    G2PInputMechanism,
+    G2PRegisterDefinition
 )
 from ..schemas import (
     G2PInputMechanismData,
@@ -20,13 +21,14 @@ _logger = logging.getLogger("g2p-ui-helper-service")
 
 class G2PUIHelperService(BaseService):
 
-    async def get_all_input_mechanisms(self) -> List[G2PInputMechanismData]:
+    async def get_all_input_mechanisms(self, register_id: str) -> List[G2PInputMechanismData]:
         """Get all registry input mechanisms"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            await self.validate_register_id(session, register_id)
             g2p_input_mechanisms = (
                 await session.execute(
-                    select(G2PInputMechanism)
+                    select(G2PInputMechanism).where(G2PInputMechanism.register_id == register_id)
                 )
             ).scalars().all()
 
@@ -37,3 +39,12 @@ class G2PUIHelperService(BaseService):
                 input_mechanism_data.append(G2PInputMechanismData.model_validate(g2p_input_mechanism))
 
             return input_mechanism_data
+
+    async def validate_register_id(self, session: AsyncSession, register_id: str):
+        """Validate register id"""
+        register = await session.execute(select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id))
+        if not register.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
+            )
