@@ -268,6 +268,14 @@ class EditActionEnum(str, Enum):
     NO_CHANGE = "NO_CHANGE"
 
 
+class RegisterRelationEnum(str, Enum):
+    """Relationship type between a section's register and the queried register."""
+    SELF = "SELF"
+    DESCENDANT = "DESCENDANT"
+    ANCESTOR = "ANCESTOR"
+    PEER = "PEER"
+
+
 class ChangePayload(BaseChangePayload):
     internal_record_id: str
     edit_action: EditActionEnum
@@ -590,6 +598,7 @@ class RegisterSectionData(BaseModel):
     is_primary_section: bool = False
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
+    register_relation: Optional[RegisterRelationEnum] = None
 
     class Config:
         from_attributes: bool = True
@@ -987,3 +996,24 @@ class G2PAttributeValueData(BaseModel):
 class GetG2PAttributeValuesRequestPayload(BaseModel):
     attribute_id: str
     parent_value_id: Optional[str] = None
+
+
+# =============================================================================
+# Allowed Parents For Child Section Schemas
+# =============================================================================
+
+class GetAllowedParentsForChildSectionRequestPayload(BaseModel):
+    subject_register_id: str
+    internal_record_id: str
+    section_register_id: str
+
+
+class AllowedParentRecordData(BaseModel):
+    internal_record_id: str
+    record_name: Optional[str] = None
+
+
+class AllowedParentsData(BaseModel):
+    register_mnemonic: str
+    master_register_id: Optional[str] = None
+    allowed_parents: List[AllowedParentRecordData]
