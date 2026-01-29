@@ -10,3 +10,4 @@ from .g2p_attribute_service import G2PAttributeService
 from .g2p_ingestion_data_service import G2PIngestionDataService
 from .g2p_geo_hierarchy_service import G2PGeoHierarchyService
 from .g2p_vc_configuration_service import G2PVcConfigurationService
+from .g2p_ui_helper_service import G2PUIHelperService
