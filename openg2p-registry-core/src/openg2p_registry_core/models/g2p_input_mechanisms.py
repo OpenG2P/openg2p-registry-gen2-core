@@ -10,5 +10,6 @@ class G2PInputMechanism(BaseORMModel):
     mechanism_id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    register_id: Mapped[str] = mapped_column(String, nullable=False)
     mechanism_type: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     display_key: Mapped[str] = mapped_column(String, nullable=False)
