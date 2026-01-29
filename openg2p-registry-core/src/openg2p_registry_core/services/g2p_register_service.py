@@ -2502,7 +2502,30 @@ class G2PRegisterService(BaseService):
         sections = result.scalars().all()
 
         sections_list: list[RegisterSectionData] = []
+        # Fetch the main register definition once (for register_relation computation)
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == register_id
+                )
+            )
+        ).scalar()
+        
+       
         for section in sections:
+            section_register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == section.section_register_id
+                    )
+                )
+            ).scalar()
+            register_relation = self._get_register_relation(
+                register_id=register_id,
+                section_register_id=section.section_register_id,
+                register_definition=register_definition,
+                section_register_definition=section_register_definition
+            )
             section_data = RegisterSectionData(
                 section_register_id=section.section_register_id,
                 register_id=section.register_id,
@@ -2514,7 +2537,9 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
                 is_list=section.is_list,
-                section_ui_schema=section.section_ui_schema
+                register_purpose=section_register_definition.register_purpose,
+                section_ui_schema=section.section_ui_schema,
+                register_relation=register_relation,
             )
             sections_list.append(section_data)
 
@@ -2636,6 +2661,30 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.DATA_NOT_FOUND.value[1],
                 message=f"Section not found for register_id: {register_id}, section_id: {section_id}"
             )
+        
+        # Fetch the main register definition once (for register_relation computation)
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == register_id
+                )
+            )
+        ).scalar()
+        
+        section_register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == section.section_register_id
+                )
+            )
+        ).scalar()
+        
+        register_relation = self._get_register_relation(
+                register_id=register_id,
+                section_register_id=section.section_register_id,
+                register_definition=register_definition,
+                section_register_definition=section_register_definition
+            )
 
         return RegisterSectionData(
             section_register_id=section.section_register_id,
@@ -2648,7 +2697,9 @@ class G2PRegisterService(BaseService):
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
             is_list=section.is_list,
-            section_ui_schema=section.section_ui_schema
+            register_purpose=section_register_definition.register_purpose,
+            section_ui_schema=section.section_ui_schema,
+            register_relation=register_relation,
         )
 
     async def create_register(
