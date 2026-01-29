@@ -49,3 +49,4 @@ from .g2p_application import (
 from .g2p_attributes import G2PAttribute, G2PAttributeValue
 from .g2p_registry_document import G2PRegistryDocument
 from .g2p_registry_vc_configuration import G2PRegistryVcConfiguration
+from .g2p_input_mechanisms import G2PInputMechanism

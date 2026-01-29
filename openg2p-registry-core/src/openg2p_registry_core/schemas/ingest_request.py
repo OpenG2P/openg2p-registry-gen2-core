@@ -26,6 +26,8 @@ from .ingest_payload import (
     ChangeResponseTemplateFilePayload,
     ChangeActiveStatusPayload,
     SubscriptionActivityLogPayload,
+    G2PInputMechanismPayload,
+    EmptyG2PInputMechanismPayload
 )
 
 
@@ -257,3 +259,14 @@ class SubscriptionActivityLogRequestBody(G2PRequestBody):
 
 class SubscriptionActivityLogRequest(G2PRequest):
     request_body: SubscriptionActivityLogRequestBody
+
+# =============================================================================
+# G2P Input Mechanism Request Schemas
+# =============================================================================
+
+class G2PInputMechanismRequestBody(G2PRequestBody):
+    request_payload: G2PInputMechanismPayload | EmptyG2PInputMechanismPayload
+
+
+class G2PInputMechanismRequest(G2PRequest):
+    request_body: G2PInputMechanismRequestBody
