@@ -15,6 +15,7 @@ from .ingest_payload import (
     IncomingTemplateData,
     DataModelData,
     SubscriptionActivityLogData,
+    G2PInputMechanismData
 )
 
 
@@ -193,3 +194,15 @@ class SubscriptionActivityLogsResponseBody(G2PResponseBody):
 
 class SubscriptionActivityLogsResponse(G2PResponse):
     response_body: Optional[SubscriptionActivityLogsResponseBody] = None
+
+
+# =============================================================================
+# G2P Input Mechanism Response Schemas
+# =============================================================================
+
+class G2PInputMechanismResponseBody(G2PResponseBody):
+    response_payload: Optional[List[G2PInputMechanismData]] = None
+
+
+class G2PInputMechanismResponse(G2PResponse):
+    response_body: Optional[G2PInputMechanismResponseBody] = None
