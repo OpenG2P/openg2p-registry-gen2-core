@@ -28,7 +28,7 @@ from ..models import (
     G2PRegistryConfiguration, G2PRegistryDocument
 )
 from ..schemas import (
-    ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
+    ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData, NumberOfVersionsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
@@ -112,12 +112,19 @@ class G2PRegisterService(BaseService):
             change_request_summary_data: ChangeRequestSummaryData = await self._fetch_change_request_summary_data(session)
             return change_request_summary_data
 
-    async def get_all_registers(self) -> list[RegisterData]:
-        print("Fetching all registers for you", dbengine.get())
+    async def get_all_registers(self, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[AllRegistersRegisterData], int]:
+        """Get all registers with pagination, master_register_mnemonic, and has_data fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            all_registers_list: list[RegisterData] = await self._fetch_all_registers(session)
-            return all_registers_list
+            all_registers_list, total_items = await self._fetch_all_registers(session, current_page, page_size, sort_by, filter_by)
+            return all_registers_list, total_items
+
+    async def get_dashboard_registers(self) -> list[RegisterData]:
+        """Get all registers for dashboard display (clone of get_all_registers)"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            dashboard_registers_list: list[RegisterData] = await self._fetch_dashboard_registers(session)
+            return dashboard_registers_list
 
     async def get_child_registers(self, register_id: str) -> list[ChildRegisterData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -975,7 +982,123 @@ class G2PRegisterService(BaseService):
             _logger.warning(f"Could not find register class for mnemonic {register_definition.register_mnemonic}: {str(error)}")
             return 0
 
-    async def _fetch_all_registers(self, session) -> list[RegisterData]:
+    async def _fetch_all_registers(self, session, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[AllRegistersRegisterData], int]:
+        """Fetch all registers with pagination, master_register_mnemonic, and has_data fields"""
+        # Base query filter
+        base_filter = G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value
+
+        # Get total count
+        count_result = await session.execute(
+            select(func.count()).select_from(G2PRegisterDefinition).where(base_filter)
+        )
+        total_items = count_result.scalar_one()
+
+        # Build query with pagination
+        query = select(G2PRegisterDefinition).where(base_filter)
+
+        # Apply sorting
+        if sort_by:
+            try:
+                if sort_by.startswith('-'):
+                    sort_column = getattr(G2PRegisterDefinition, sort_by[1:])
+                    query = query.order_by(sort_column.desc())
+                else:
+                    sort_column = getattr(G2PRegisterDefinition, sort_by)
+                    query = query.order_by(sort_column.asc())
+            except AttributeError:
+                _logger.warning(f"Sort column {sort_by} not found, using default order")
+                query = query.order_by(G2PRegisterDefinition.register_rank)
+        else:
+            query = query.order_by(G2PRegisterDefinition.register_rank)
+
+        # Apply pagination
+        offset = (current_page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
+
+        register_definitions: list[G2PRegisterDefinition] = (
+            await session.execute(query)
+        ).scalars().all()
+
+        # Build a mapping of register_id to mnemonic for master_register_mnemonic lookup
+        all_register_ids = [rd.master_register_id for rd in register_definitions if rd.master_register_id]
+        master_register_mnemonics = {}
+        if all_register_ids:
+            master_registers = (
+                await session.execute(
+                    select(G2PRegisterDefinition.register_id, G2PRegisterDefinition.register_mnemonic)
+                    .where(G2PRegisterDefinition.register_id.in_(all_register_ids))
+                )
+            ).all()
+            master_register_mnemonics = {r.register_id: r.register_mnemonic for r in master_registers}
+
+        all_registers_list: list[AllRegistersRegisterData] = []
+
+        for register_definition in register_definitions:
+            # Get master_register_mnemonic
+            master_register_mnemonic = None
+            if register_definition.master_register_id:
+                master_register_mnemonic = master_register_mnemonics.get(register_definition.master_register_id)
+
+            # Check has_data
+            has_data = await self._check_register_has_data(register_definition, session)
+
+            # Get register_purpose value (handle enum)
+            register_purpose_value = None
+            if register_definition.register_purpose:
+                register_purpose_value = register_definition.register_purpose if isinstance(register_definition.register_purpose, str) else register_definition.register_purpose.value
+
+            register_data: AllRegistersRegisterData = AllRegistersRegisterData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_definition.register_description,
+                master_register_id=register_definition.master_register_id,
+                master_register_mnemonic=master_register_mnemonic,
+                has_data=has_data,
+                register_purpose=register_purpose_value,
+                program_id=register_definition.program_id,
+                program_mnemonic=register_definition.program_mnemonic,
+                register_rank=register_definition.register_rank,
+                register_icon=register_definition.register_icon,
+                has_image=register_definition.has_image,
+                dedup_is_enabled=register_definition.dedup_is_enabled,
+                dedup_threshold_score=register_definition.dedup_threshold_score
+            )
+            all_registers_list.append(register_data)
+
+        return all_registers_list, total_items
+
+    async def _check_register_has_data(self, register_definition: G2PRegisterDefinition, session) -> bool:
+        """Check if a register has data in register table or change_request table (any state)"""
+        # 1. Check register table (using dynamic class)
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+            register_class_prefix = "G2PRegister"
+            implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+            implementation_class = getattr(module, implementation_class_name)
+
+            count_result = await session.execute(
+                select(func.count()).select_from(implementation_class).limit(1)
+            )
+            if count_result.scalar() > 0:
+                return True
+        except (AttributeError, ModuleNotFoundError):
+            # Register may not have implementation class
+            pass
+
+        # 2. Check change_request table (any state)
+        cr_count_result = await session.execute(
+            select(func.count()).select_from(G2PRegisterChangeRequest)
+            .where(G2PRegisterChangeRequest.register_id == register_definition.register_id)
+            .limit(1)
+        )
+        if cr_count_result.scalar() > 0:
+            return True
+
+        return False
+
+    async def _fetch_dashboard_registers(self, session) -> list[RegisterData]:
+        """Fetch all registers for dashboard display (clone of _fetch_all_registers)"""
         register_definitions: list[G2PRegisterDefinition] = (
             await session.execute(
                 select(G2PRegisterDefinition)
@@ -984,7 +1107,7 @@ class G2PRegisterService(BaseService):
             )
         ).scalars().all()
 
-        all_registers_list: list[RegisterData] = []
+        dashboard_registers_list: list[RegisterData] = []
 
         for register_definition in register_definitions:
             register_data: RegisterData = RegisterData(
@@ -994,9 +1117,9 @@ class G2PRegisterService(BaseService):
                 register_description=register_definition.register_description,
                 master_register_id=register_definition.master_register_id
             )
-            all_registers_list.append(register_data)
+            dashboard_registers_list.append(register_data)
 
-        return all_registers_list
+        return dashboard_registers_list
 
     async def _fetch_child_registers(self, master_register_id: str, session) -> list[ChildRegisterData]:
         child_register_definitions: list[G2PRegisterDefinition] = (

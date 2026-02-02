@@ -115,6 +115,18 @@ class GetAllRegistersRequest(G2PRequest):
 
 
 # =============================================================================
+# Get Dashboard Registers Request Schemas
+# =============================================================================
+
+class GetDashboardRegistersRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetDashboardRegistersRequest(G2PRequest):
+    request_body: GetDashboardRegistersRequestBody
+
+
+# =============================================================================
 # Child Register Request Schemas
 # =============================================================================
 
