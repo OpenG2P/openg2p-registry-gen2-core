@@ -2957,6 +2957,9 @@ class G2PRegisterService(BaseService):
                     register_definition.register_description = register_description
 
                 if master_register_id is not None:
+                    # Validate master_register_id is not the same as register_id
+                    if master_register_id == register_id:
+                        raise ValueError("A register cannot be its own master register.")
                     # Validate master_register_id exists
                     master_register = await session.get(G2PRegisterDefinition, master_register_id)
                     if not master_register:
