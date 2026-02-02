@@ -2831,7 +2831,10 @@ class G2PRegisterService(BaseService):
         register_description: str | None = None,
         master_register_id: str | None = None,
         dedup_is_enabled: bool = False,
-        dedup_threshold_score: float | None = None
+        dedup_threshold_score: float | None = None,
+        register_icon: str | None = None,
+        register_rank: int | None = None,
+        register_purpose: str | None = None
     ) -> RegisterData:
         """
         Create a new register definition and a null register schema record.
@@ -2845,6 +2848,12 @@ class G2PRegisterService(BaseService):
             if existing_register.scalar():
                 raise ValueError(f"Register with mnemonic '{register_mnemonic}' already exists.")
 
+            # Validate master_register_id exists if provided
+            if master_register_id:
+                master_register = await session.get(G2PRegisterDefinition, master_register_id)
+                if not master_register:
+                    raise ValueError(f"Master register with id '{master_register_id}' does not exist.")
+
             # Create the register definition
             register_id: str = str(uuid.uuid4())
             register_definition = G2PRegisterDefinition(
@@ -2853,7 +2862,10 @@ class G2PRegisterService(BaseService):
                 register_description=register_description,
                 master_register_id=master_register_id,
                 dedup_is_enabled=dedup_is_enabled,
-                dedup_threshold_score=dedup_threshold_score
+                dedup_threshold_score=dedup_threshold_score,
+                register_icon=register_icon,
+                register_rank=register_rank,
+                register_purpose=register_purpose if register_purpose else RegisterPurposeEnum.REGISTER.value
             )
             session.add(register_definition)
 
@@ -2877,6 +2889,147 @@ class G2PRegisterService(BaseService):
                 register_description=register_description,
                 master_register_id=master_register_id
             )
+
+    async def edit_register(
+        self,
+        register_id: str,
+        register_mnemonic: str | None = None,
+        register_description: str | None = None,
+        master_register_id: str | None = None,
+        dedup_is_enabled: bool | None = None,
+        dedup_threshold_score: float | None = None,
+        register_icon: str | None = None,
+        register_rank: int | None = None,
+        register_purpose: str | None = None
+    ) -> RegisterData:
+        """
+        Edit an existing register definition.
+        If the register has data (in register table or change_request table),
+        only register_mnemonic and register_description can be edited.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+
+            # Check if register has data
+            has_data = await self._check_register_has_data(register_definition, session)
+
+            if has_data:
+                # Only allow editing mnemonic and description
+                if register_mnemonic is not None:
+                    # Check if the new mnemonic already exists (for a different register)
+                    if register_mnemonic != register_definition.register_mnemonic:
+                        existing_register = await session.execute(
+                            select(G2PRegisterDefinition).where(
+                                G2PRegisterDefinition.register_mnemonic == register_mnemonic,
+                                G2PRegisterDefinition.register_id != register_id
+                            )
+                        )
+                        if existing_register.scalar():
+                            raise ValueError(f"Register with mnemonic '{register_mnemonic}' already exists.")
+                    register_definition.register_mnemonic = register_mnemonic
+
+                if register_description is not None:
+                    register_definition.register_description = register_description
+
+                # Log warning if trying to edit other fields
+                if any([master_register_id is not None, dedup_is_enabled is not None, 
+                        dedup_threshold_score is not None, register_icon is not None, 
+                        register_rank is not None, register_purpose is not None]):
+                    _logger.warning(f"Register {register_id} has data. Only mnemonic and description can be edited.")
+            else:
+                # Allow editing all fields
+                if register_mnemonic is not None:
+                    # Check if the new mnemonic already exists (for a different register)
+                    if register_mnemonic != register_definition.register_mnemonic:
+                        existing_register = await session.execute(
+                            select(G2PRegisterDefinition).where(
+                                G2PRegisterDefinition.register_mnemonic == register_mnemonic,
+                                G2PRegisterDefinition.register_id != register_id
+                            )
+                        )
+                        if existing_register.scalar():
+                            raise ValueError(f"Register with mnemonic '{register_mnemonic}' already exists.")
+                    register_definition.register_mnemonic = register_mnemonic
+
+                if register_description is not None:
+                    register_definition.register_description = register_description
+
+                if master_register_id is not None:
+                    # Validate master_register_id exists
+                    master_register = await session.get(G2PRegisterDefinition, master_register_id)
+                    if not master_register:
+                        raise ValueError(f"Master register with id '{master_register_id}' does not exist.")
+                    register_definition.master_register_id = master_register_id
+
+                if dedup_is_enabled is not None:
+                    register_definition.dedup_is_enabled = dedup_is_enabled
+
+                if dedup_threshold_score is not None:
+                    register_definition.dedup_threshold_score = dedup_threshold_score
+
+                if register_icon is not None:
+                    register_definition.register_icon = register_icon
+
+                if register_rank is not None:
+                    register_definition.register_rank = register_rank
+
+                if register_purpose is not None:
+                    register_definition.register_purpose = register_purpose
+
+            await session.commit()
+            await session.refresh(register_definition)
+
+            _logger.info(f"Updated register definition for register_id: {register_id}")
+
+            return RegisterData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_definition.register_description,
+                master_register_id=register_definition.master_register_id
+            )
+
+    async def delete_register(self, register_id: str) -> RegisterData:
+        """
+        Delete a register definition if it has no data in register table or change_request table.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            # Validate register exists
+            register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
+
+            # Check if register has data
+            has_data = await self._check_register_has_data(register_definition, session)
+
+            if has_data:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
+                    message=f"Cannot delete register '{register_definition.register_mnemonic}' as it has existing data."
+                )
+
+            # Store data for return before deletion
+            register_data = RegisterData(
+                register_id=register_definition.register_id,
+                register_mnemonic=register_definition.register_mnemonic,
+                register_subject=register_definition.register_subject,
+                register_description=register_definition.register_description,
+                master_register_id=register_definition.master_register_id
+            )
+
+            # Delete associated register schema
+            register_schema = await session.get(G2PRegisterSchema, register_id)
+            if register_schema:
+                await session.delete(register_schema)
+
+            # Delete register definition
+            await session.delete(register_definition)
+            await session.commit()
+
+            _logger.info(f"Deleted register definition for register_id: {register_id}")
+
+            return register_data
 
     async def update_register_schema(
         self,

@@ -36,6 +36,8 @@ from .register_payload import (
     UpdateRegisterSectionRequestPayload,
     UpdateRegisterSectionUISchemaRequestPayload,
     CreateRegisterRequestPayload,
+    EditRegisterRequestPayload,
+    DeleteRegisterRequestPayload,
     UpdateRegisterSchemaRequestPayload,
     UpdateDedupIsEnabledRequestPayload,
     UpdateDedupThresholdScoreRequestPayload,
@@ -496,6 +498,30 @@ class CreateRegisterRequestBody(G2PRequestBody):
 
 class CreateRegisterRequest(G2PRequest):
     request_body: CreateRegisterRequestBody
+
+
+# =============================================================================
+# Edit Register Request Schemas
+# =============================================================================
+
+class EditRegisterRequestBody(G2PRequestBody):
+    request_payload: EditRegisterRequestPayload
+
+
+class EditRegisterRequest(G2PRequest):
+    request_body: EditRegisterRequestBody
+
+
+# =============================================================================
+# Delete Register Request Schemas
+# =============================================================================
+
+class DeleteRegisterRequestBody(G2PRequestBody):
+    request_payload: DeleteRegisterRequestPayload
+
+
+class DeleteRegisterRequest(G2PRequest):
+    request_body: DeleteRegisterRequestBody
 
 
 # =============================================================================

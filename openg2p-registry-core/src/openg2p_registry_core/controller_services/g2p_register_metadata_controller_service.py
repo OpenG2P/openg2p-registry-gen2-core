@@ -9,7 +9,7 @@ from ..schemas import (
     AddRegisterTabRequest, DeleteRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
-    CreateRegisterRequest, UpdateRegisterSchemaRequest,
+    CreateRegisterRequest, EditRegisterRequest, DeleteRegisterRequest, UpdateRegisterSchemaRequest,
     UpdateDedupIsEnabledRequest, UpdateDedupThresholdScoreRequest,
     UpdateDeduplicationSchemaRequest, UpdateSearchResultSchemaRequest,
     RegisterSchemaData, RegisterSectionData
@@ -257,7 +257,43 @@ class G2PRegisterMetadataControllerService(BaseService):
             register_description=payload.register_description,
             master_register_id=payload.master_register_id,
             dedup_is_enabled=payload.dedup_is_enabled,
-            dedup_threshold_score=payload.dedup_threshold_score
+            dedup_threshold_score=payload.dedup_threshold_score,
+            register_icon=payload.register_icon,
+            register_rank=payload.register_rank,
+            register_purpose=payload.register_purpose
+        )
+        return register_data
+
+    async def edit_register(self, edit_register_request: EditRegisterRequest) -> RegisterData:
+        """
+        Edit an existing register definition.
+        If the register has data, only mnemonic and description can be edited.
+        """
+        payload = edit_register_request.request_body.request_payload
+        _logger.info(f"Editing register with register_id: {payload.register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_data: RegisterData = await g2p_register_service.edit_register(
+            register_id=payload.register_id,
+            register_mnemonic=payload.register_mnemonic,
+            register_description=payload.register_description,
+            master_register_id=payload.master_register_id,
+            dedup_is_enabled=payload.dedup_is_enabled,
+            dedup_threshold_score=payload.dedup_threshold_score,
+            register_icon=payload.register_icon,
+            register_rank=payload.register_rank,
+            register_purpose=payload.register_purpose
+        )
+        return register_data
+
+    async def delete_register(self, delete_register_request: DeleteRegisterRequest) -> RegisterData:
+        """
+        Delete a register definition if it has no data.
+        """
+        payload = delete_register_request.request_body.request_payload
+        _logger.info(f"Deleting register with register_id: {payload.register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_data: RegisterData = await g2p_register_service.delete_register(
+            register_id=payload.register_id
         )
         return register_data
 
