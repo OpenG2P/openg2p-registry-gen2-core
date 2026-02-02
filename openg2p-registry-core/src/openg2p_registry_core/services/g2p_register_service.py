@@ -3497,8 +3497,8 @@ class G2PRegisterService(BaseService):
 
             if existing_config:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value,
-                    message="Registry configuration already exists. Use update instead."
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value[0]
                 )
 
             configuration_id = str(uuid.uuid4())
