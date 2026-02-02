@@ -5,7 +5,7 @@ from openg2p_fastapi_common.schemas import (
     G2PResponseHeader,
 )
 from .register_payload import (
-    ChangeRequestResponsePayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, ChildRegisterData,
+    ChangeRequestResponsePayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
     RegisterUITabData, SearchResultData, ChangeRequestSearchResultData,
     NumberOfVersionsData, NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
@@ -61,11 +61,23 @@ class ChangeRequestSummaryDataResponse(G2PResponse):
 # =============================================================================
 
 class AllRegistersResponseBody(G2PResponseBody):
-    response_payload: Optional[List[RegisterData]] = None
+    response_payload: Optional[List[AllRegistersRegisterData]] = None
 
 
 class AllRegistersResponse(G2PResponse):
     response_body: Optional[AllRegistersResponseBody] = None
+
+
+# =============================================================================
+# Dashboard Registers Response Schemas
+# =============================================================================
+
+class DashboardRegistersResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterData]] = None
+
+
+class DashboardRegistersResponse(G2PResponse):
+    response_body: Optional[DashboardRegistersResponseBody] = None
 
 
 # =============================================================================

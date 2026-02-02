@@ -3,13 +3,13 @@ from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PRegisterService
 from ..schemas import (
-    RegisterData, ChildRegisterData, RegisterUITabData,
-    GetAllRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
+    RegisterData, AllRegistersRegisterData, ChildRegisterData, RegisterUITabData,
+    GetAllRegistersRequest, GetDashboardRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
     AddRegisterTabRequest, DeleteRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
-    CreateRegisterRequest, UpdateRegisterSchemaRequest,
+    CreateRegisterRequest, EditRegisterRequest, DeleteRegisterRequest, UpdateRegisterSchemaRequest,
     UpdateDedupIsEnabledRequest, UpdateDedupThresholdScoreRequest,
     UpdateDeduplicationSchemaRequest, UpdateSearchResultSchemaRequest,
     RegisterSchemaData, RegisterSectionData
@@ -20,11 +20,36 @@ _logger = logging.getLogger('g2p-register-metadata-controller-service')
 
 class G2PRegisterMetadataControllerService(BaseService):
 
-    async def get_all_registers(self, get_all_registers_request: GetAllRegistersRequest) -> list[RegisterData]:
+    async def get_all_registers(self, get_all_registers_request: GetAllRegistersRequest) -> tuple[list[AllRegistersRegisterData], int, int]:
+        """Get all registers with pagination, returns (registers_list, total_items, number_of_pages)"""
         _logger.info("Fetching all registers through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        all_registers_list: list[RegisterData] = await g2p_register_service.get_all_registers()
-        return all_registers_list
+
+        # Extract pagination parameters from request
+        pagination = get_all_registers_request.request_body.pagination_request
+        current_page = pagination.current_page if pagination else 1
+        page_size = pagination.page_size if pagination else 10
+        sort_by = pagination.sort_by if pagination else None
+        filter_by = pagination.filter_by if pagination else None
+
+        all_registers_list, total_items = await g2p_register_service.get_all_registers(
+            current_page=current_page,
+            page_size=page_size,
+            sort_by=sort_by,
+            filter_by=filter_by
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return all_registers_list, total_items, number_of_pages
+
+    async def get_dashboard_registers(self, get_dashboard_registers_request: GetDashboardRegistersRequest) -> list[RegisterData]:
+        """Get all registers for dashboard display (clone of get_all_registers)"""
+        _logger.info("Fetching dashboard registers through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        dashboard_registers_list: list[RegisterData] = await g2p_register_service.get_dashboard_registers()
+        return dashboard_registers_list
 
     async def get_child_registers(self, get_child_registers_request: GetChildRegistersRequest) -> list[ChildRegisterData]:
         _logger.info(f"Fetching child registers for register_id: {get_child_registers_request.request_body.request_payload.register_id} through controller service")
@@ -232,7 +257,43 @@ class G2PRegisterMetadataControllerService(BaseService):
             register_description=payload.register_description,
             master_register_id=payload.master_register_id,
             dedup_is_enabled=payload.dedup_is_enabled,
-            dedup_threshold_score=payload.dedup_threshold_score
+            dedup_threshold_score=payload.dedup_threshold_score,
+            register_icon=payload.register_icon,
+            register_rank=payload.register_rank,
+            register_purpose=payload.register_purpose
+        )
+        return register_data
+
+    async def edit_register(self, edit_register_request: EditRegisterRequest) -> RegisterData:
+        """
+        Edit an existing register definition.
+        If the register has data, only mnemonic and description can be edited.
+        """
+        payload = edit_register_request.request_body.request_payload
+        _logger.info(f"Editing register with register_id: {payload.register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_data: RegisterData = await g2p_register_service.edit_register(
+            register_id=payload.register_id,
+            register_mnemonic=payload.register_mnemonic,
+            register_description=payload.register_description,
+            master_register_id=payload.master_register_id,
+            dedup_is_enabled=payload.dedup_is_enabled,
+            dedup_threshold_score=payload.dedup_threshold_score,
+            register_icon=payload.register_icon,
+            register_rank=payload.register_rank,
+            register_purpose=payload.register_purpose
+        )
+        return register_data
+
+    async def delete_register(self, delete_register_request: DeleteRegisterRequest) -> RegisterData:
+        """
+        Delete a register definition if it has no data.
+        """
+        payload = delete_register_request.request_body.request_payload
+        _logger.info(f"Deleting register with register_id: {payload.register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_data: RegisterData = await g2p_register_service.delete_register(
+            register_id=payload.register_id
         )
         return register_data
 

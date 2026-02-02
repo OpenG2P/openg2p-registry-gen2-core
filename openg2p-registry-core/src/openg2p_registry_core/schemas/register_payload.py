@@ -157,6 +157,21 @@ class RegisterData(BaseModel):
     master_register_id: Optional[str] = None
 
 
+class AllRegistersRegisterData(RegisterData):
+    """Extended RegisterData for get_all_registers API with additional fields"""
+    master_register_mnemonic: Optional[str] = None
+    has_data: bool = False
+    # Additional fields from G2PRegisterDefinition
+    register_purpose: Optional[str] = None
+    program_id: Optional[str] = None
+    program_mnemonic: Optional[str] = None
+    register_rank: Optional[int] = None
+    register_icon: Optional[str] = None
+    has_image: bool = False
+    dedup_is_enabled: bool = False
+    dedup_threshold_score: Optional[float] = None
+
+
 class ChildRegisterData(BaseModel):
     register_id: str
     register_mnemonic: str
@@ -909,6 +924,25 @@ class CreateRegisterRequestPayload(BaseModel):
     master_register_id: Optional[str] = None
     dedup_is_enabled: bool = False
     dedup_threshold_score: Optional[float] = None
+    register_icon: Optional[str] = None
+    register_rank: Optional[int] = None
+    register_purpose: Optional[str] = None
+
+
+class EditRegisterRequestPayload(BaseModel):
+    register_id: str
+    register_mnemonic: Optional[str] = None
+    register_description: Optional[str] = None
+    master_register_id: Optional[str] = None
+    dedup_is_enabled: Optional[bool] = None
+    dedup_threshold_score: Optional[float] = None
+    register_icon: Optional[str] = None
+    register_rank: Optional[int] = None
+    register_purpose: Optional[str] = None
+
+
+class DeleteRegisterRequestPayload(BaseModel):
+    register_id: str
 
 
 class UpdateRegisterSchemaRequestPayload(BaseModel):
