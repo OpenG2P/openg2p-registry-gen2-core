@@ -287,6 +287,7 @@ class RegisterRelationEnum(str, Enum):
     """Relationship type between a section's register and the queried register."""
     SELF = "SELF"
     DESCENDANT = "DESCENDANT"
+    DESCENDANT_OF_A_REGISTER = "DESCENDANT_OF_A_REGISTER"  # Indirect descendant with REGISTER in between
     ANCESTOR = "ANCESTOR"
     PEER = "PEER"
 

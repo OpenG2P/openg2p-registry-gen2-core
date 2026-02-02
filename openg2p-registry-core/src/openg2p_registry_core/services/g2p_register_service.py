@@ -2643,11 +2643,12 @@ class G2PRegisterService(BaseService):
                     )
                 )
             ).scalar()
-            register_relation = self._get_register_relation(
+            register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
             section_data = RegisterSectionData(
                 section_register_id=section.section_register_id,
@@ -2668,12 +2669,13 @@ class G2PRegisterService(BaseService):
 
         return sections_list
 
-    def _get_register_relation(
+    async def _get_register_relation(
         self,
         register_id: str,
         section_register_id: str,
         register_definition: G2PRegisterDefinition,
-        section_register_definition: G2PRegisterDefinition
+        section_register_definition: G2PRegisterDefinition,
+        session
     ) -> RegisterRelationEnum:
         """
         Determine the relationship between section's register and the queried register.
@@ -2683,18 +2685,26 @@ class G2PRegisterService(BaseService):
             section_register_id: The section's register_id
             register_definition: The G2PRegisterDefinition for register_id
             section_register_definition: The G2PRegisterDefinition for section_register_id
+            session: Database session for async operations
         
         Returns:
-            RegisterRelationEnum: SELF, DESCENDANT, ANCESTOR, or PEER
+            RegisterRelationEnum: SELF, DESCENDANT, DESCENDANT_OF_A_REGISTER, ANCESTOR, or PEER
         """
         if section_register_id == register_id:
             return RegisterRelationEnum.SELF
         
-        # Child: section's register has this register as its master
+        # Direct child: section's register has this register as its master
         if section_register_definition.master_register_id == register_id:
             return RegisterRelationEnum.DESCENDANT
         
-        # Parent: this register has section's register as its master
+        # Check for indirect descendant with REGISTER in between
+        has_register_in_between = await self._has_register_in_path(
+            section_register_id, register_id, session
+        )
+        if has_register_in_between:
+            return RegisterRelationEnum.DESCENDANT_OF_A_REGISTER
+        
+        # Direct parent: this register has section's register as its master
         if register_definition.master_register_id == section_register_id:
             return RegisterRelationEnum.ANCESTOR
         
@@ -2705,6 +2715,63 @@ class G2PRegisterService(BaseService):
         
         # Default fallback (shouldn't happen in normal cases)
         return RegisterRelationEnum.SELF
+
+    async def _has_register_in_path(
+        self,
+        start_register_id: str,
+        target_register_id: str,
+        session,
+        max_depth: int = 20
+    ) -> bool:
+        """
+        Check if there's a path from start to target AND at least one REGISTER exists in between.
+        
+        Traverses from start_register_id up via master_register_id.
+        Returns True if:
+          1. Path exists from start to target
+          2. At least one intermediate node has register_purpose = REGISTER
+        """
+        current_id: str | None = start_register_id
+        depth: int = 0
+        found_register_in_between: bool = False
+        is_first: bool = True  # Skip the starting node
+
+        while current_id and depth < max_depth:
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == current_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition:
+                return False
+            
+            # Move to parent
+            current_id = register_definition.master_register_id
+            
+            if is_first:
+                is_first = False
+                depth += 1
+                continue
+            
+            # Check if we reached the target
+            if register_definition.register_id == target_register_id:
+                # We found the target but haven't checked intermediate nodes yet
+                return found_register_in_between
+            
+            # Check if current intermediate node is a REGISTER
+            if register_definition.register_purpose == RegisterPurposeEnum.REGISTER.value:
+                found_register_in_between = True
+            
+            # Check if parent is the target
+            if current_id == target_register_id:
+                return found_register_in_between
+                
+            depth += 1
+
+        return False
 
     async def _fetch_register_tab_sections(self, register_id: str, tab_id: str, session) -> list[RegisterSectionData]:
         """Fetch register sections from g2p_register_sections table filtered by tab_id."""
@@ -2742,11 +2809,12 @@ class G2PRegisterService(BaseService):
                 ).scalar()
 
             # Determine the relationship between section's register and the main register
-            register_relation = self._get_register_relation(
+            register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
 
             section_data = RegisterSectionData(
@@ -2802,11 +2870,12 @@ class G2PRegisterService(BaseService):
             )
         ).scalar()
         
-        register_relation = self._get_register_relation(
+        register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
 
         return RegisterSectionData(
