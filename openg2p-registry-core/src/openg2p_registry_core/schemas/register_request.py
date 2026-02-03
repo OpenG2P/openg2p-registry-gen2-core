@@ -30,6 +30,7 @@ from .register_payload import (
     GetRegisterTabsRequestPayload,
     AddRegisterTabRequestPayload,
     DeleteRegisterTabRequestPayload,
+    EditRegisterTabRequestPayload,
     GetRegisterSectionRequestPayload,
     AddRegisterSectionRequestPayload,
     DeleteRegisterSectionRequestPayload,
@@ -426,6 +427,18 @@ class DeleteRegisterTabRequestBody(G2PRequestBody):
 
 class DeleteRegisterTabRequest(G2PRequest):
     request_body: DeleteRegisterTabRequestBody
+
+
+# =============================================================================
+# Edit Register Tab Request Schemas
+# =============================================================================
+
+class EditRegisterTabRequestBody(G2PRequestBody):
+    request_payload: EditRegisterTabRequestPayload
+
+
+class EditRegisterTabRequest(G2PRequest):
+    request_body: EditRegisterTabRequestBody
 
 
 # =============================================================================

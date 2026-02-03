@@ -204,6 +204,37 @@ class G2PRegisterService(BaseService):
 
         return tab_data
 
+    async def edit_register_tab(
+        self,
+        tab_id: str,
+        tab_label: str | None = None,
+        tab_order: int | None = None
+    ) -> RegisterUITabData:
+        """
+        Edit an existing UI tab.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            tab: G2PRegisterUITab | None = await session.get(G2PRegisterUITab, tab_id)
+            if not tab:
+                raise ValueError(f"Tab with tab_id '{tab_id}' not found.")
+
+            if tab_label is not None:
+                tab.tab_label = tab_label
+
+            if tab_order is not None:
+                tab.tab_order = tab_order
+
+            await session.commit()
+            await session.refresh(tab)
+
+            return RegisterUITabData(
+                tab_id=tab.tab_id,
+                register_id=tab.register_id,
+                tab_label=tab.tab_label,
+                tab_order=tab.tab_order
+            )
+
     async def add_register_section(
         self,
         section_register_id: str,

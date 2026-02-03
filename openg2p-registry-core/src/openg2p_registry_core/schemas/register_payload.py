@@ -880,6 +880,12 @@ class DeleteRegisterTabRequestPayload(BaseModel):
     tab_id: str
 
 
+class EditRegisterTabRequestPayload(BaseModel):
+    tab_id: str
+    tab_label: Optional[str] = None
+    tab_order: Optional[int] = None
+
+
 class GetRegisterSectionRequestPayload(BaseModel):
     register_id: str
     section_id: str

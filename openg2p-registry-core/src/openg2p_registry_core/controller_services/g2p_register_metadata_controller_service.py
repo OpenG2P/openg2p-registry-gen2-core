@@ -6,7 +6,7 @@ from ..schemas import (
     RegisterData, AllRegistersRegisterData, ChildRegisterData, RegisterUITabData,
     GetAllRegistersRequest, GetDashboardRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
-    AddRegisterTabRequest, DeleteRegisterTabRequest,
+    AddRegisterTabRequest, DeleteRegisterTabRequest, EditRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
     CreateRegisterRequest, EditRegisterRequest, DeleteRegisterRequest, UpdateRegisterSchemaRequest,
@@ -158,6 +158,23 @@ class G2PRegisterMetadataControllerService(BaseService):
         _logger.info(f"Deleting register tab with tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         register_tab_data: RegisterUITabData = await g2p_register_service.delete_register_tab(tab_id)
+        return register_tab_data
+
+    async def edit_register_tab(self, edit_register_tab_request: EditRegisterTabRequest) -> RegisterUITabData:
+        """
+        Edit an existing UI tab.
+        """
+        payload = edit_register_tab_request.request_body.request_payload
+        tab_id = payload.tab_id
+        tab_label = payload.tab_label
+        tab_order = payload.tab_order
+        _logger.info(f"Editing register tab with tab_id: {tab_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_tab_data: RegisterUITabData = await g2p_register_service.edit_register_tab(
+            tab_id=tab_id,
+            tab_label=tab_label,
+            tab_order=tab_order
+        )
         return register_tab_data
 
     async def manage_primary_section(
