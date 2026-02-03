@@ -316,18 +316,36 @@ class G2PRegisterService(BaseService):
         )
         return section_data
 
-    async def delete_register_section(self, section_id: str) -> None:
+    async def delete_register_section(self, section_id: str) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            await self._delete_register_section(section_id, session)
+            section_data: RegisterSectionData = await self._delete_register_section(section_id, session)
+            return section_data
 
-    async def _delete_register_section(self, section_id: str, session) -> None:
+    async def _delete_register_section(self, section_id: str, session) -> RegisterSectionData:
         section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
         if not section:
             raise ValueError(f"Section with section_id '{section_id}' not found.")
 
+        section_data: RegisterSectionData = RegisterSectionData(
+            section_register_id=section.section_register_id,
+            register_id=section.register_id,
+            section_id=section.section_id,
+            tab_id=section.tab_id,
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            is_list=section.is_list,
+            is_primary_section=section.is_primary_section,
+            section_ui_schema=section.section_ui_schema
+        )
+
         await session.delete(section)
         await session.commit()
+
+        return section_data
 
     async def update_register_section(
         self,

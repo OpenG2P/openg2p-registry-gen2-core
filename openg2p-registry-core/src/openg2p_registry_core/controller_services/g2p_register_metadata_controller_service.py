@@ -240,14 +240,15 @@ class G2PRegisterMetadataControllerService(BaseService):
         )
         return section_data
 
-    async def delete_register_section(self, delete_register_section_request: DeleteRegisterSectionRequest) -> None:
+    async def delete_register_section(self, delete_register_section_request: DeleteRegisterSectionRequest) -> RegisterSectionData:
         """
         Delete a section by section_id.
         """
         payload = delete_register_section_request.request_body.request_payload
         _logger.info(f"Deleting register section with section_id: {payload.section_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        await g2p_register_service.delete_register_section(section_id=payload.section_id)
+        section_data: RegisterSectionData = await g2p_register_service.delete_register_section(section_id=payload.section_id)
+        return section_data
 
     async def update_register_section(self, update_register_section_request: UpdateRegisterSectionRequest) -> RegisterSectionData:
         """
