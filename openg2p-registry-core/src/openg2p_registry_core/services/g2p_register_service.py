@@ -206,6 +206,7 @@ class G2PRegisterService(BaseService):
         no_of_verifications_required: int = 0,
         auto_approval: bool = False,
         is_list: bool = False,
+        is_primary_section: bool = False,
         section_ui_schema: dict = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -215,7 +216,7 @@ class G2PRegisterService(BaseService):
             section_data: RegisterSectionData = await self._create_register_section(
                 section_register_id, register_id, tab_id, section_mnemonic, section_description,
                 documents_required, no_of_verifications_required, auto_approval,
-                is_list, section_ui_schema, session
+                is_list, is_primary_section, section_ui_schema, session
             )
             return section_data
 
@@ -238,6 +239,7 @@ class G2PRegisterService(BaseService):
         no_of_verifications_required: int,
         auto_approval: bool,
         is_list: bool,
+        is_primary_section: bool,
         section_ui_schema: dict,
         session
     ) -> RegisterSectionData:
@@ -251,6 +253,7 @@ class G2PRegisterService(BaseService):
             no_of_verifications_required=no_of_verifications_required,
             auto_approval=auto_approval,
             is_list=is_list,
+            is_primary_section=is_primary_section,
             section_ui_schema=section_ui_schema
         )
         session.add(new_section)
@@ -268,6 +271,7 @@ class G2PRegisterService(BaseService):
             no_of_verifications_required=new_section.no_of_verifications_required,
             auto_approval=new_section.auto_approval,
             is_list=new_section.is_list,
+            is_primary_section=new_section.is_primary_section,
             section_ui_schema=new_section.section_ui_schema
         )
         return section_data
@@ -303,56 +307,61 @@ class G2PRegisterService(BaseService):
 
     async def update_register_section(
         self,
-        register_id: str,
         section_id: str,
-        tab_id: str = None,
         section_mnemonic: str = None,
         section_description: str = None,
-        documents_required: bool = None,
         no_of_verifications_required: int = None,
+        documents_required: bool = None,
         auto_approval: bool = None,
-        is_list: bool = None
+        is_primary_section: bool = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             section_data: RegisterSectionData = await self._update_register_section(
-                register_id, section_id, tab_id, section_mnemonic, section_description,
-                documents_required, no_of_verifications_required, auto_approval, is_list, session
+                section_id, section_mnemonic, section_description,
+                no_of_verifications_required, documents_required, auto_approval, is_primary_section, session
             )
             return section_data
 
     async def _update_register_section(
         self,
-        register_id: str,
         section_id: str,
-        tab_id: str,
         section_mnemonic: str,
         section_description: str,
-        documents_required: bool,
         no_of_verifications_required: int,
+        documents_required: bool,
         auto_approval: bool,
-        is_list: bool,
+        is_primary_section: bool,
         session
     ) -> RegisterSectionData:
-        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
         if not section:
-            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
+            raise ValueError(f"Section with section_id '{section_id}' not found.")
 
-        if tab_id is not None:
-            await self._validate_register_tab(register_id, tab_id, session)
-            section.tab_id = tab_id
         if section_mnemonic is not None:
             section.section_mnemonic = section_mnemonic
         if section_description is not None:
             section.section_description = section_description
-        if documents_required is not None:
-            section.documents_required = documents_required
         if no_of_verifications_required is not None:
             section.no_of_verifications_required = no_of_verifications_required
+        if documents_required is not None:
+            section.documents_required = documents_required
         if auto_approval is not None:
             section.auto_approval = auto_approval
-        if is_list is not None:
-            section.is_list = is_list
+        if is_primary_section is not None:
+            # If setting to primary, unset any other primary section under the same tab_id
+            if is_primary_section:
+                existing_primary_result = await session.execute(
+                    select(G2PRegisterSection).where(
+                        G2PRegisterSection.tab_id == section.tab_id,
+                        G2PRegisterSection.is_primary_section == True,
+                        G2PRegisterSection.section_id != section_id
+                    )
+                )
+                existing_primary = existing_primary_result.scalar()
+                if existing_primary:
+                    existing_primary.is_primary_section = False
+            section.is_primary_section = is_primary_section
 
         await session.commit()
         await session.refresh(section)
@@ -368,6 +377,7 @@ class G2PRegisterService(BaseService):
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
             is_list=section.is_list,
+            is_primary_section=section.is_primary_section,
             section_ui_schema=section.section_ui_schema
         )
         return section_data
@@ -2643,11 +2653,12 @@ class G2PRegisterService(BaseService):
                     )
                 )
             ).scalar()
-            register_relation = self._get_register_relation(
+            register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
             section_data = RegisterSectionData(
                 section_register_id=section.section_register_id,
@@ -2668,12 +2679,13 @@ class G2PRegisterService(BaseService):
 
         return sections_list
 
-    def _get_register_relation(
+    async def _get_register_relation(
         self,
         register_id: str,
         section_register_id: str,
         register_definition: G2PRegisterDefinition,
-        section_register_definition: G2PRegisterDefinition
+        section_register_definition: G2PRegisterDefinition,
+        session
     ) -> RegisterRelationEnum:
         """
         Determine the relationship between section's register and the queried register.
@@ -2683,18 +2695,26 @@ class G2PRegisterService(BaseService):
             section_register_id: The section's register_id
             register_definition: The G2PRegisterDefinition for register_id
             section_register_definition: The G2PRegisterDefinition for section_register_id
+            session: Database session for async operations
         
         Returns:
-            RegisterRelationEnum: SELF, DESCENDANT, ANCESTOR, or PEER
+            RegisterRelationEnum: SELF, DESCENDANT, DESCENDANT_OF_A_REGISTER, ANCESTOR, or PEER
         """
         if section_register_id == register_id:
             return RegisterRelationEnum.SELF
         
-        # Child: section's register has this register as its master
+        # Direct child: section's register has this register as its master
         if section_register_definition.master_register_id == register_id:
             return RegisterRelationEnum.DESCENDANT
         
-        # Parent: this register has section's register as its master
+        # Check for indirect descendant with REGISTER in between
+        has_register_in_between = await self._has_register_in_path(
+            section_register_id, register_id, session
+        )
+        if has_register_in_between:
+            return RegisterRelationEnum.DESCENDANT_OF_A_REGISTER
+        
+        # Direct parent: this register has section's register as its master
         if register_definition.master_register_id == section_register_id:
             return RegisterRelationEnum.ANCESTOR
         
@@ -2705,6 +2725,63 @@ class G2PRegisterService(BaseService):
         
         # Default fallback (shouldn't happen in normal cases)
         return RegisterRelationEnum.SELF
+
+    async def _has_register_in_path(
+        self,
+        start_register_id: str,
+        target_register_id: str,
+        session,
+        max_depth: int = 20
+    ) -> bool:
+        """
+        Check if there's a path from start to target AND at least one REGISTER exists in between.
+        
+        Traverses from start_register_id up via master_register_id.
+        Returns True if:
+          1. Path exists from start to target
+          2. At least one intermediate node has register_purpose = REGISTER
+        """
+        current_id: str | None = start_register_id
+        depth: int = 0
+        found_register_in_between: bool = False
+        is_first: bool = True  # Skip the starting node
+
+        while current_id and depth < max_depth:
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == current_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition:
+                return False
+            
+            # Move to parent
+            current_id = register_definition.master_register_id
+            
+            if is_first:
+                is_first = False
+                depth += 1
+                continue
+            
+            # Check if we reached the target
+            if register_definition.register_id == target_register_id:
+                # We found the target but haven't checked intermediate nodes yet
+                return found_register_in_between
+            
+            # Check if current intermediate node is a REGISTER
+            if register_definition.register_purpose == RegisterPurposeEnum.REGISTER.value:
+                found_register_in_between = True
+            
+            # Check if parent is the target
+            if current_id == target_register_id:
+                return found_register_in_between
+                
+            depth += 1
+
+        return False
 
     async def _fetch_register_tab_sections(self, register_id: str, tab_id: str, session) -> list[RegisterSectionData]:
         """Fetch register sections from g2p_register_sections table filtered by tab_id."""
@@ -2742,11 +2819,12 @@ class G2PRegisterService(BaseService):
                 ).scalar()
 
             # Determine the relationship between section's register and the main register
-            register_relation = self._get_register_relation(
+            register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
 
             section_data = RegisterSectionData(
@@ -2802,11 +2880,12 @@ class G2PRegisterService(BaseService):
             )
         ).scalar()
         
-        register_relation = self._get_register_relation(
+        register_relation = await self._get_register_relation(
                 register_id=register_id,
                 section_register_id=section.section_register_id,
                 register_definition=register_definition,
-                section_register_definition=section_register_definition
+                section_register_definition=section_register_definition,
+                session=session
             )
 
         return RegisterSectionData(
@@ -2887,7 +2966,10 @@ class G2PRegisterService(BaseService):
                 register_mnemonic=register_mnemonic,
                 register_subject=register_definition.register_subject,
                 register_description=register_description,
-                master_register_id=master_register_id
+                master_register_id=master_register_id,
+                register_purpose=register_definition.register_purpose,
+                register_rank=register_definition.register_rank,
+                register_icon=register_definition.register_icon
             )
 
     async def edit_register(
@@ -2991,7 +3073,10 @@ class G2PRegisterService(BaseService):
                 register_mnemonic=register_definition.register_mnemonic,
                 register_subject=register_definition.register_subject,
                 register_description=register_definition.register_description,
-                master_register_id=register_definition.master_register_id
+                master_register_id=register_definition.master_register_id,
+                register_purpose=register_definition.register_purpose,
+                register_rank=register_definition.register_rank,
+                register_icon=register_definition.register_icon
             )
 
     async def delete_register(self, register_id: str) -> RegisterData:
@@ -3018,7 +3103,10 @@ class G2PRegisterService(BaseService):
                 register_mnemonic=register_definition.register_mnemonic,
                 register_subject=register_definition.register_subject,
                 register_description=register_definition.register_description,
-                master_register_id=register_definition.master_register_id
+                master_register_id=register_definition.master_register_id,
+                register_purpose=register_definition.register_purpose,
+                register_rank=register_definition.register_rank,
+                register_icon=register_definition.register_icon
             )
 
             # Delete associated register schema
@@ -3497,8 +3585,8 @@ class G2PRegisterService(BaseService):
 
             if existing_config:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value,
-                    message="Registry configuration already exists. Use update instead."
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_EXISTS.value[0]
                 )
 
             configuration_id = str(uuid.uuid4())

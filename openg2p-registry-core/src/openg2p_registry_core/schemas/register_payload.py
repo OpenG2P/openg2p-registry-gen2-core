@@ -155,6 +155,9 @@ class RegisterData(BaseModel):
     register_subject: Optional[str] = None
     register_description: Optional[str] = None
     master_register_id: Optional[str] = None
+    register_purpose: Optional[str] = None
+    register_rank: Optional[int] = None
+    register_icon: Optional[str] = None
 
 
 class AllRegistersRegisterData(RegisterData):
@@ -287,6 +290,7 @@ class RegisterRelationEnum(str, Enum):
     """Relationship type between a section's register and the queried register."""
     SELF = "SELF"
     DESCENDANT = "DESCENDANT"
+    DESCENDANT_OF_A_REGISTER = "DESCENDANT_OF_A_REGISTER"  # Indirect descendant with REGISTER in between
     ANCESTOR = "ANCESTOR"
     PEER = "PEER"
 
@@ -901,15 +905,16 @@ class DeleteRegisterSectionRequestPayload(BaseModel):
 
 
 class UpdateRegisterSectionRequestPayload(BaseModel):
-    register_id: str
+    """
+    Only allows editing: section_mnemonic, section_description, no_of_verifications_required, documents_required, auto_approval, is_primary_section
+    """
     section_id: str
-    tab_id: Optional[str] = None
     section_mnemonic: Optional[str] = None
     section_description: Optional[str] = None
-    documents_required: Optional[bool] = None
     no_of_verifications_required: Optional[int] = None
+    documents_required: Optional[bool] = None
     auto_approval: Optional[bool] = None
-    is_list: Optional[bool] = None
+    is_primary_section: Optional[bool] = None
 
 
 class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):

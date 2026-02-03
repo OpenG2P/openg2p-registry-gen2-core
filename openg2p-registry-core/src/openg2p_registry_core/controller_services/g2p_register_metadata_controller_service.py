@@ -156,7 +156,6 @@ class G2PRegisterMetadataControllerService(BaseService):
             if primary_section.section_register_id == register_id:
                 # set the existing primary section to not primary
                 await g2p_register_service.update_register_section(
-                    register_id=primary_section.register_id,
                     section_id=primary_section.section_id,
                     is_primary_section=False
                 )
@@ -214,20 +213,19 @@ class G2PRegisterMetadataControllerService(BaseService):
     async def update_register_section(self, update_register_section_request: UpdateRegisterSectionRequest) -> RegisterSectionData:
         """
         Update a section's metadata (not including UI schema).
+        Only allows editing: section_mnemonic, section_description, no_of_verifications_required, documents_required, auto_approval, is_primary_section
         """
         payload = update_register_section_request.request_body.request_payload
-        _logger.info(f"Updating register section with register_id: {payload.register_id}, section_id: {payload.section_id} through controller service")
+        _logger.info(f"Updating register section with section_id: {payload.section_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         section_data: RegisterSectionData = await g2p_register_service.update_register_section(
-            register_id=payload.register_id,
             section_id=payload.section_id,
-            tab_id=payload.tab_id,
             section_mnemonic=payload.section_mnemonic,
             section_description=payload.section_description,
-            documents_required=payload.documents_required,
             no_of_verifications_required=payload.no_of_verifications_required,
+            documents_required=payload.documents_required,
             auto_approval=payload.auto_approval,
-            is_list=payload.is_list
+            is_primary_section=payload.is_primary_section
         )
         return section_data
 
