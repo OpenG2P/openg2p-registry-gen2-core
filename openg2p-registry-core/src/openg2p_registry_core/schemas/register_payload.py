@@ -900,7 +900,6 @@ class AddRegisterSectionRequestPayload(BaseModel):
 
 
 class DeleteRegisterSectionRequestPayload(BaseModel):
-    register_id: str
     section_id: str
 
 

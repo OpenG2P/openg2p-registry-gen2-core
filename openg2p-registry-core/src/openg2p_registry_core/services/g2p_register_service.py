@@ -285,34 +285,18 @@ class G2PRegisterService(BaseService):
         )
         return section_data
 
-    async def delete_register_section(self, register_id: str, section_id: str) -> RegisterSectionData:
+    async def delete_register_section(self, section_id: str) -> None:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            section_data: RegisterSectionData = await self._delete_register_section(register_id, section_id, session)
-            return section_data
+            await self._delete_register_section(section_id, session)
 
-    async def _delete_register_section(self, register_id: str, section_id: str, session) -> RegisterSectionData:
-        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+    async def _delete_register_section(self, section_id: str, session) -> None:
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
         if not section:
-            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
-
-        section_data: RegisterSectionData = RegisterSectionData(
-            register_id=section.register_id,
-            section_id=section.section_id,
-            tab_id=section.tab_id,
-            section_mnemonic=section.section_mnemonic,
-            section_description=section.section_description,
-            documents_required=section.documents_required,
-            no_of_verifications_required=section.no_of_verifications_required,
-            auto_approval=section.auto_approval,
-            is_list=section.is_list,
-            section_ui_schema=section.section_ui_schema
-        )
+            raise ValueError(f"Section with section_id '{section_id}' not found.")
 
         await session.delete(section)
         await session.commit()
-
-        return section_data
 
     async def update_register_section(
         self,
@@ -1003,17 +987,15 @@ class G2PRegisterService(BaseService):
 
     async def _fetch_all_registers(self, session, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[AllRegistersRegisterData], int]:
         """Fetch all registers with pagination, master_register_mnemonic, and has_data fields"""
-        # Base query filter
-        base_filter = G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value
 
         # Get total count
         count_result = await session.execute(
-            select(func.count()).select_from(G2PRegisterDefinition).where(base_filter)
+            select(func.count()).select_from(G2PRegisterDefinition)
         )
         total_items = count_result.scalar_one()
 
         # Build query with pagination
-        query = select(G2PRegisterDefinition).where(base_filter)
+        query = select(G2PRegisterDefinition)
 
         # Apply sorting
         if sort_by:
