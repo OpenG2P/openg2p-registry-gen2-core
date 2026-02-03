@@ -6,7 +6,7 @@ from ..schemas import (
     RegisterData, AllRegistersRegisterData, ChildRegisterData, RegisterUITabData,
     GetAllRegistersRequest, GetDashboardRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
-    AddRegisterTabRequest, DeleteRegisterTabRequest,
+    AddRegisterTabRequest, DeleteRegisterTabRequest, EditRegisterTabRequest,
     AddRegisterSectionRequest, DeleteRegisterSectionRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
     CreateRegisterRequest, EditRegisterRequest, DeleteRegisterRequest, UpdateRegisterSchemaRequest,
@@ -87,28 +87,54 @@ class G2PRegisterMetadataControllerService(BaseService):
         register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
         return register_sections_list
 
-    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> list[RegisterSectionData]:
+    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> tuple[list[RegisterSectionData], int, int]:
         """
-        Get register sections for a given register_id and tab_id.
+        Get register sections for a given register_id and tab_id with pagination.
+        Returns (sections_list, total_items, number_of_pages).
         """
         payload = get_register_tab_sections_request.request_body.request_payload
         register_id: str = payload.register_id
         tab_id: str = payload.tab_id
         _logger.info(f"Getting register sections for register_id: {register_id}, tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_tab_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_tab_sections(register_id, tab_id)
-        return register_tab_sections_list
 
-    async def get_register_tabs(self, get_register_tabs_request: GetRegisterTabsRequest) -> list[RegisterUITabData]:
+        # Extract pagination parameters from request
+        pagination = get_register_tab_sections_request.request_body.pagination_request
+        current_page = pagination.current_page if pagination else 1
+        page_size = pagination.page_size if pagination else 10
+
+        register_tab_sections_list, total_items = await g2p_register_service.get_register_tab_sections(
+            register_id, tab_id, current_page, page_size
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return register_tab_sections_list, total_items, number_of_pages
+
+    async def get_register_tabs(self, get_register_tabs_request: GetRegisterTabsRequest) -> tuple[list[RegisterUITabData], int, int]:
         """
-        Get UI tabs for a given register_id.
+        Get UI tabs for a given register_id with pagination.
+        Returns (tabs_list, total_items, number_of_pages).
         """
         payload = get_register_tabs_request.request_body.request_payload
         register_id = payload.register_id
         _logger.info(f"Getting register tabs for register_id: {register_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_tabs_list: list[RegisterUITabData] = await g2p_register_service.get_register_tabs(register_id)
-        return register_tabs_list
+
+        # Extract pagination parameters from request
+        pagination = get_register_tabs_request.request_body.pagination_request
+        current_page = pagination.current_page if pagination else 1
+        page_size = pagination.page_size if pagination else 10
+
+        register_tabs_list, total_items = await g2p_register_service.get_register_tabs(
+            register_id, current_page, page_size
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return register_tabs_list, total_items, number_of_pages
 
     async def add_register_tab(self, add_register_tab_request: AddRegisterTabRequest) -> RegisterUITabData:
         """
@@ -132,6 +158,23 @@ class G2PRegisterMetadataControllerService(BaseService):
         _logger.info(f"Deleting register tab with tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         register_tab_data: RegisterUITabData = await g2p_register_service.delete_register_tab(tab_id)
+        return register_tab_data
+
+    async def edit_register_tab(self, edit_register_tab_request: EditRegisterTabRequest) -> RegisterUITabData:
+        """
+        Edit an existing UI tab.
+        """
+        payload = edit_register_tab_request.request_body.request_payload
+        tab_id = payload.tab_id
+        tab_label = payload.tab_label
+        tab_order = payload.tab_order
+        _logger.info(f"Editing register tab with tab_id: {tab_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        register_tab_data: RegisterUITabData = await g2p_register_service.edit_register_tab(
+            tab_id=tab_id,
+            tab_label=tab_label,
+            tab_order=tab_order
+        )
         return register_tab_data
 
     async def manage_primary_section(
@@ -199,15 +242,12 @@ class G2PRegisterMetadataControllerService(BaseService):
 
     async def delete_register_section(self, delete_register_section_request: DeleteRegisterSectionRequest) -> RegisterSectionData:
         """
-        Delete a section by register_id and section_id.
+        Delete a section by section_id.
         """
         payload = delete_register_section_request.request_body.request_payload
-        _logger.info(f"Deleting register section with register_id: {payload.register_id}, section_id: {payload.section_id} through controller service")
+        _logger.info(f"Deleting register section with section_id: {payload.section_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        section_data: RegisterSectionData = await g2p_register_service.delete_register_section(
-            register_id=payload.register_id,
-            section_id=payload.section_id
-        )
+        section_data: RegisterSectionData = await g2p_register_service.delete_register_section(section_id=payload.section_id)
         return section_data
 
     async def update_register_section(self, update_register_section_request: UpdateRegisterSectionRequest) -> RegisterSectionData:

@@ -135,8 +135,11 @@ class FilterBuilder:
             self._validate_value(field_config, operator, value)
 
             # Convert date strings to date objects for date_range filters
-            if filter_type == "date_range" and isinstance(value, str):
-                value = self._convert_to_date(value)
+            if filter_type == "date_range":
+                if isinstance(value, str):
+                    value = self._convert_to_date(value)
+                elif isinstance(value, list):
+                    value = [self._convert_to_date(v) if isinstance(v, str) else v for v in value]
 
             condition = self._build_single_condition(column, operator, value)
             if condition is not None:
@@ -168,10 +171,27 @@ class FilterBuilder:
                     raise ValueError(
                         f"Invalid type for numeric filter on {field_name}"
                     )
+            elif operator == "between":
+                if not isinstance(value, (list, tuple)) or len(value) != 2:
+                    raise ValueError(
+                        f"Operator 'between' requires a list of 2 values for {field_name}"
+                    )
+                for v in value:
+                    if v is not None and not isinstance(v, (int, float)):
+                        raise ValueError(
+                            f"Invalid type for numeric filter on {field_name}"
+                        )
 
         elif filter_type == "date_range":
             if operator in ("gt", "gte", "lt", "lte", "eq", "neq"):
                 self._validate_date(value, field_name)
+            elif operator == "between":
+                if not isinstance(value, (list, tuple)) or len(value) != 2:
+                    raise ValueError(
+                        f"Operator 'between' requires a list of 2 values for {field_name}"
+                    )
+                self._validate_date(value[0], field_name)
+                self._validate_date(value[1], field_name)
 
         elif filter_type == "dropdown":
             options = field_config.get("options", [])
@@ -252,6 +272,12 @@ class FilterBuilder:
                 return column < value
             case "lte":
                 return column <= value
+
+            # Range operation (for numbers/dates)
+            case "between":
+                if isinstance(value, (list, tuple)) and len(value) == 2:
+                    return column.between(value[0], value[1])
+                return None
 
             # Null checks
             case "isNull":
