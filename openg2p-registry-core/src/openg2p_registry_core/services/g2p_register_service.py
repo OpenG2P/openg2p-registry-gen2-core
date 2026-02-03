@@ -3128,28 +3128,15 @@ class G2PRegisterService(BaseService):
             has_data = await self._check_register_has_data(register_definition, session)
 
             if has_data:
-                # Only allow editing mnemonic and description
-                if register_mnemonic is not None:
-                    # Check if the new mnemonic already exists (for a different register)
-                    if register_mnemonic != register_definition.register_mnemonic:
-                        existing_register = await session.execute(
-                            select(G2PRegisterDefinition).where(
-                                G2PRegisterDefinition.register_mnemonic == register_mnemonic,
-                                G2PRegisterDefinition.register_id != register_id
-                            )
-                        )
-                        if existing_register.scalar():
-                            raise ValueError(f"Register with mnemonic '{register_mnemonic}' already exists.")
-                    register_definition.register_mnemonic = register_mnemonic
+                # Raise error if trying to edit restricted fields
+                if register_mnemonic is not None or master_register_id is not None or register_purpose is not None:
+                    raise ValueError(
+                        f"Register '{register_id}' has data. Cannot edit 'register_mnemonic', 'master_register_id', or 'register_purpose'."
+                    )
 
+                # Only allow editing description
                 if register_description is not None:
                     register_definition.register_description = register_description
-
-                # Log warning if trying to edit other fields
-                if any([master_register_id is not None, dedup_is_enabled is not None, 
-                        dedup_threshold_score is not None, register_icon is not None, 
-                        register_rank is not None, register_purpose is not None]):
-                    _logger.warning(f"Register {register_id} has data. Only mnemonic and description can be edited.")
             else:
                 # Allow editing all fields
                 if register_mnemonic is not None:
