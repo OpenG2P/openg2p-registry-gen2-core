@@ -87,28 +87,54 @@ class G2PRegisterMetadataControllerService(BaseService):
         register_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_sections(register_id)
         return register_sections_list
 
-    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> list[RegisterSectionData]:
+    async def get_register_tab_sections(self, get_register_tab_sections_request: GetRegisterTabSectionsRequest) -> tuple[list[RegisterSectionData], int, int]:
         """
-        Get register sections for a given register_id and tab_id.
+        Get register sections for a given register_id and tab_id with pagination.
+        Returns (sections_list, total_items, number_of_pages).
         """
         payload = get_register_tab_sections_request.request_body.request_payload
         register_id: str = payload.register_id
         tab_id: str = payload.tab_id
         _logger.info(f"Getting register sections for register_id: {register_id}, tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_tab_sections_list: list[RegisterSectionData] = await g2p_register_service.get_register_tab_sections(register_id, tab_id)
-        return register_tab_sections_list
 
-    async def get_register_tabs(self, get_register_tabs_request: GetRegisterTabsRequest) -> list[RegisterUITabData]:
+        # Extract pagination parameters from request
+        pagination = get_register_tab_sections_request.request_body.pagination_request
+        current_page = pagination.current_page if pagination else 1
+        page_size = pagination.page_size if pagination else 10
+
+        register_tab_sections_list, total_items = await g2p_register_service.get_register_tab_sections(
+            register_id, tab_id, current_page, page_size
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return register_tab_sections_list, total_items, number_of_pages
+
+    async def get_register_tabs(self, get_register_tabs_request: GetRegisterTabsRequest) -> tuple[list[RegisterUITabData], int, int]:
         """
-        Get UI tabs for a given register_id.
+        Get UI tabs for a given register_id with pagination.
+        Returns (tabs_list, total_items, number_of_pages).
         """
         payload = get_register_tabs_request.request_body.request_payload
         register_id = payload.register_id
         _logger.info(f"Getting register tabs for register_id: {register_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_tabs_list: list[RegisterUITabData] = await g2p_register_service.get_register_tabs(register_id)
-        return register_tabs_list
+
+        # Extract pagination parameters from request
+        pagination = get_register_tabs_request.request_body.pagination_request
+        current_page = pagination.current_page if pagination else 1
+        page_size = pagination.page_size if pagination else 10
+
+        register_tabs_list, total_items = await g2p_register_service.get_register_tabs(
+            register_id, current_page, page_size
+        )
+
+        # Calculate number of pages
+        number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+
+        return register_tabs_list, total_items, number_of_pages
 
     async def add_register_tab(self, add_register_tab_request: AddRegisterTabRequest) -> RegisterUITabData:
         """

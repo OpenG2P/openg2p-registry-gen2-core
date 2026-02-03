@@ -140,12 +140,21 @@ class G2PRegisterService(BaseService):
             master_register_data: RegisterData | None = await self._fetch_master_register(register_definition, session)
             return master_register_data
 
-    async def get_register_tabs(self, register_id: str) -> list[RegisterUITabData]:
+    async def get_register_tabs(
+        self,
+        register_id: str,
+        current_page: int = 1,
+        page_size: int = 10
+    ) -> tuple[list[RegisterUITabData], int]:
+        """
+        Get register tabs with pagination.
+        Returns (tabs_list, total_count).
+        """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self.validate_register_definition(register_id, session)
-            register_tabs_list: list[RegisterUITabData] = await self._fetch_register_tabs(register_id, session)
-            return register_tabs_list
+            register_tabs_list, total_count = await self._fetch_register_tabs_paginated(register_id, current_page, page_size, session)
+            return register_tabs_list, total_count
 
     async def add_register_tab(self, register_id: str, tab_label: str, tab_order: int = 0) -> RegisterUITabData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -1198,6 +1207,51 @@ class G2PRegisterService(BaseService):
             register_tabs_list.append(tab_data)
 
         return register_tabs_list
+
+    async def _fetch_register_tabs_paginated(
+        self,
+        register_id: str,
+        current_page: int,
+        page_size: int,
+        session
+    ) -> tuple[list[RegisterUITabData], int]:
+        """
+        Fetch register tabs with pagination.
+        Returns (tabs_list, total_count).
+        """
+        # Get total count
+        count_result = await session.execute(
+            select(func.count()).select_from(G2PRegisterUITab).where(
+                G2PRegisterUITab.register_id == register_id
+            )
+        )
+        total_count = count_result.scalar() or 0
+
+        # Calculate offset
+        offset = (current_page - 1) * page_size
+
+        # Fetch paginated results
+        register_tabs: list[G2PRegisterUITab] = (
+            await session.execute(
+                select(G2PRegisterUITab).where(
+                    G2PRegisterUITab.register_id == register_id
+                ).order_by(G2PRegisterUITab.tab_order)
+                .offset(offset)
+                .limit(page_size)
+            )
+        ).scalars().all()
+
+        register_tabs_list: list[RegisterUITabData] = []
+        for tab in register_tabs:
+            tab_data: RegisterUITabData = RegisterUITabData(
+                tab_id=tab.tab_id,
+                register_id=tab.register_id,
+                tab_label=tab.tab_label,
+                tab_order=tab.tab_order
+            )
+            register_tabs_list.append(tab_data)
+
+        return register_tabs_list, total_count
     
     async def _deep_search_in_register(self, register_id: str, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[DeepSearchResultData], int]:
         g2p_register_definition: G2PRegisterDefinition = await self.validate_register_definition(register_id, session)
@@ -2575,10 +2629,16 @@ class G2PRegisterService(BaseService):
             register_sections_list: list[RegisterSectionData] = await self._fetch_register_sections(register_id, session)
             return register_sections_list
 
-    async def get_register_tab_sections(self, register_id: str, tab_id: str) -> list[RegisterSectionData]:
+    async def get_register_tab_sections(
+        self,
+        register_id: str,
+        tab_id: str,
+        current_page: int = 1,
+        page_size: int = 10
+    ) -> tuple[list[RegisterSectionData], int]:
         """
-        Get register sections for a given register_id and tab_id.
-        Returns a list of section UI schema configurations from g2p_register_sections table
+        Get register sections for a given register_id and tab_id with pagination.
+        Returns a tuple of (sections list, total_count) from g2p_register_sections table
         filtered by both register_id and tab_id.
         """
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -2586,9 +2646,11 @@ class G2PRegisterService(BaseService):
             # Validate register exists
             await self.validate_register_definition(register_id, session)
 
-            # Fetch register sections filtered by tab_id
-            register_tab_sections_list: list[RegisterSectionData] = await self._fetch_register_tab_sections(register_id, tab_id, session)
-            return register_tab_sections_list
+            # Fetch register sections filtered by tab_id with pagination
+            register_tab_sections_list, total_count = await self._fetch_register_tab_sections_paginated(
+                register_id, tab_id, current_page, page_size, session
+            )
+            return register_tab_sections_list, total_count
 
     async def get_register_section(self, register_id: str, section_id: str) -> RegisterSectionData:
         """
@@ -2846,6 +2908,92 @@ class G2PRegisterService(BaseService):
             sections_list.append(section_data)
 
         return sections_list
+
+    async def _fetch_register_tab_sections_paginated(
+        self,
+        register_id: str,
+        tab_id: str,
+        current_page: int,
+        page_size: int,
+        session
+    ) -> tuple[list[RegisterSectionData], int]:
+        """Fetch register sections from g2p_register_sections table filtered by tab_id with pagination."""
+        # Get total count
+        count_result = await session.execute(
+            select(func.count()).select_from(G2PRegisterSection).where(
+                G2PRegisterSection.register_id == register_id,
+                G2PRegisterSection.tab_id == tab_id
+            )
+        )
+        total_count = count_result.scalar() or 0
+
+        # Calculate offset
+        offset = (current_page - 1) * page_size
+
+        # Fetch paginated results
+        result = await session.execute(
+            select(G2PRegisterSection).where(
+                G2PRegisterSection.register_id == register_id,
+                G2PRegisterSection.tab_id == tab_id
+            ).order_by(G2PRegisterSection.section_order)
+            .offset(offset)
+            .limit(page_size)
+        )
+        sections = result.scalars().all()
+
+        # Fetch the main register definition once (for register_relation computation)
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == register_id
+                )
+            )
+        ).scalar()
+
+        sections_list: list[RegisterSectionData] = []
+        for section in sections:
+            # Get section's register definition for register_purpose and register_relation
+            if section.section_register_id == register_id:
+                # Same register - reuse the main register definition
+                section_register_definition = register_definition
+            else:
+                # Different register - fetch section's register definition
+                section_register_definition: G2PRegisterDefinition = (
+                    await session.execute(
+                        select(G2PRegisterDefinition).where(
+                            G2PRegisterDefinition.register_id == section.section_register_id
+                        )
+                    )
+                ).scalar()
+
+            # Determine the relationship between section's register and the main register
+            register_relation = await self._get_register_relation(
+                register_id=register_id,
+                section_register_id=section.section_register_id,
+                register_definition=register_definition,
+                section_register_definition=section_register_definition,
+                session=session
+            )
+
+            section_data = RegisterSectionData(
+                section_register_id=section.section_register_id,
+                register_id=section.register_id,
+                section_id=section.section_id,
+                tab_id=section.tab_id,
+                section_mnemonic=section.section_mnemonic,
+                section_description=section.section_description,
+                documents_required=section.documents_required,
+                no_of_verifications_required=section.no_of_verifications_required,
+                auto_approval=section.auto_approval,
+                is_list=section.is_list,
+                register_purpose=section_register_definition.register_purpose,
+                section_order=section.section_order,
+                section_ui_schema=section.section_ui_schema,
+                register_relation=register_relation
+            )
+            sections_list.append(section_data)
+
+        return sections_list, total_count
 
     async def _fetch_register_section(self, register_id: str, section_id: str, session) -> RegisterSectionData:
         """Fetch a single register section from g2p_register_sections table."""
