@@ -1507,6 +1507,21 @@ class G2PRegisterService(BaseService):
             G2PRegisterChangeRequestPayload.search_text.ilike(search_query)
         )
 
+        # Apply sorting
+        if sort_by:
+            try:
+                if sort_by.startswith('-'):
+                    sort_column = getattr(G2PRegisterChangeRequest, sort_by[1:])
+                    base_query = base_query.order_by(sort_column.desc())
+                else:
+                    sort_column = getattr(G2PRegisterChangeRequest, sort_by)
+                    base_query = base_query.order_by(sort_column.asc())
+            except AttributeError:
+                _logger.warning(f"Sort column {sort_by} not found, using default order")
+                base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+        else:
+            base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+
         # Get total count
         count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).join(
             G2PRegisterChangeRequestPayload,
