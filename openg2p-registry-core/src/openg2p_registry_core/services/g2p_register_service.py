@@ -2222,40 +2222,82 @@ class G2PRegisterService(BaseService):
                 # Get the implementation class for this register
                 try:
                     module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
-                    register_class_prefix: str = "G2PRegister"
-                    implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
-                    implementation_class = getattr(module, implementation_class_name)
 
-                    internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
-                    # Fetch the existing record by internal_record_id
-                    existing_records = (
-                        await session.execute(
-                            select(implementation_class).where(
-                                implementation_class.internal_record_id.in_(internal_record_ids)
+                    # If approval_status is APPROVED, fetch from history table
+                    if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
+                        # Fetch from history table using change_request_id
+                        history_class_prefix: str = "G2PRegisterHistory"
+                        history_class_name: str = f"{history_class_prefix}{g2p_register_definition.register_mnemonic}"
+                        history_class = getattr(module, history_class_name)
+
+                        history_records = (
+                            await session.execute(
+                                select(history_class).where(
+                                    history_class.change_request_id == change_request_id
+                                )
                             )
-                        )
-                    ).scalars().all()
+                        ).scalars().all()
 
-                    for existing_record in existing_records:
-                        if existing_record:
-                            # Convert ORM object to dict for current_register_data
-                            mapper = inspect(existing_record.__class__)
-                            current_register_data = {}
+                        # Base history fields to exclude from current_register_data
+                        history_base_fields: set = {
+                            'history_record_id', 'change_request_id', 'tab_id', 'section_id',
+                            'application_id', 'change_request_source', 'is_primary_section',
+                            'created_by', 'created_at', 'approved_by', 'approved_at', 'search_text'
+                        }
 
-                            # Base fields to exclude from current_register_data
-                            base_fields: set = {'search_text'}
+                        for history_record in history_records:
+                            if history_record:
+                                # Convert ORM object to dict for current_register_data
+                                mapper = inspect(history_record.__class__)
+                                current_register_data = {}
 
-                            for column in mapper.columns:
-                                column_name: str = column.name
-                                if column_name not in base_fields:
-                                    value = getattr(existing_record, column_name, None)
+                                for column in mapper.columns:
+                                    column_name: str = column.name
+                                    if column_name not in history_base_fields:
+                                        value = getattr(history_record, column_name, None)
 
-                                    # Convert datetime objects to strings
-                                    if value is not None and hasattr(value, 'isoformat'):
-                                        value = value.isoformat()
+                                        # Convert datetime objects to strings
+                                        if value is not None and hasattr(value, 'isoformat'):
+                                            value = value.isoformat()
 
-                                    current_register_data[column_name] = value
-                            current_register_data_list.append(current_register_data)
+                                        current_register_data[column_name] = value
+                                current_register_data_list.append(current_register_data)
+                    else:
+                        # For PENDING/REJECTED, fetch from live register table
+                        register_class_prefix: str = "G2PRegister"
+                        implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+                        implementation_class = getattr(module, implementation_class_name)
+
+                        internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
+                        # Fetch the existing record by internal_record_id
+                        existing_records = (
+                            await session.execute(
+                                select(implementation_class).where(
+                                    implementation_class.internal_record_id.in_(internal_record_ids)
+                                )
+                            )
+                        ).scalars().all()
+
+                        for existing_record in existing_records:
+                            if existing_record:
+                                # Convert ORM object to dict for current_register_data
+                                mapper = inspect(existing_record.__class__)
+                                current_register_data = {}
+
+                                # Base fields to exclude from current_register_data
+                                base_fields: set = {'search_text'}
+
+                                for column in mapper.columns:
+                                    column_name: str = column.name
+                                    if column_name not in base_fields:
+                                        value = getattr(existing_record, column_name, None)
+
+                                        # Convert datetime objects to strings
+                                        if value is not None and hasattr(value, 'isoformat'):
+                                            value = value.isoformat()
+
+                                        current_register_data[column_name] = value
+                                current_register_data_list.append(current_register_data)
 
                 except (AttributeError, ModuleNotFoundError) as error:
                     _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
