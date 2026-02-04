@@ -2223,20 +2223,18 @@ class G2PRegisterService(BaseService):
                 try:
                     module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
 
-                    # If approval_status is APPROVED, fetch from history table
+                    # If approval_status is APPROVED, fetch previous history (before this change was applied)
                     if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
-                        # Fetch from history table using change_request_id
+                        # Fetch from history table - get the previous record before this change request
                         history_class_prefix: str = "G2PRegisterHistory"
                         history_class_name: str = f"{history_class_prefix}{g2p_register_definition.register_mnemonic}"
                         history_class = getattr(module, history_class_name)
 
-                        history_records = (
-                            await session.execute(
-                                select(history_class).where(
-                                    history_class.change_request_id == change_request_id
-                                )
-                            )
-                        ).scalars().all()
+                        # Get internal_record_ids from change_payloads
+                        internal_record_ids = [
+                            cp.get("internal_record_id") for cp in change_payloads
+                            if cp.get("internal_record_id")
+                        ]
 
                         # Base history fields to exclude from current_register_data
                         history_base_fields: set = {
@@ -2245,16 +2243,26 @@ class G2PRegisterService(BaseService):
                             'created_by', 'created_at', 'approved_by', 'approved_at', 'search_text'
                         }
 
-                        for history_record in history_records:
-                            if history_record:
+                        # For each internal_record_id, fetch the previous history record
+                        for internal_record_id in internal_record_ids:
+                            previous_history = (
+                                await session.execute(
+                                    select(history_class).where(
+                                        history_class.internal_record_id == internal_record_id,
+                                        history_class.approved_at < change_request.approved_at
+                                    ).order_by(history_class.approved_at.desc()).limit(1)
+                                )
+                            ).scalar()
+
+                            if previous_history:
                                 # Convert ORM object to dict for current_register_data
-                                mapper = inspect(history_record.__class__)
+                                mapper = inspect(previous_history.__class__)
                                 current_register_data = {}
 
                                 for column in mapper.columns:
                                     column_name: str = column.name
                                     if column_name not in history_base_fields:
-                                        value = getattr(history_record, column_name, None)
+                                        value = getattr(previous_history, column_name, None)
 
                                         # Convert datetime objects to strings
                                         if value is not None and hasattr(value, 'isoformat'):
