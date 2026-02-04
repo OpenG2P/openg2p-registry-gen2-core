@@ -37,7 +37,7 @@ from ..schemas import (
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
-    RegisterSchemaData, RegisterSectionData, DisplayField,
+    RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
     RegistryConfigurationData, EarliestPendingChangeRequestData,
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
@@ -2696,6 +2696,21 @@ class G2PRegisterService(BaseService):
             # Fetch register section
             register_section_data: RegisterSectionData = await self._fetch_register_section(register_id, section_id, session)
             return register_section_data
+
+    async def get_register_section_ui_schema(self, section_id: str) -> RegisterSectionUISchemaData:
+        """
+        Get the UI schema for a register section by section_id.
+        Returns only the section_id and section_ui_schema fields.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            section = await session.get(G2PRegisterSection, section_id)
+            if not section:
+                raise ValueError(f"Section with section_id '{section_id}' not found.")
+            return RegisterSectionUISchemaData(
+                section_id=section.section_id,
+                section_ui_schema=section.section_ui_schema
+            )
 
     async def _fetch_register_schema(self, register_id: str, session) -> RegisterSchemaData:
         """Fetch register schema from database."""
