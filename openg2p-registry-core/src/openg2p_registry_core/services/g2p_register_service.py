@@ -3183,9 +3183,15 @@ class G2PRegisterService(BaseService):
                         f"Register '{register_id}' has data. Cannot edit 'register_mnemonic', 'master_register_id', or 'register_purpose'."
                     )
 
-                # Only allow editing description
+                # Allow editing description, icon, and rank (display fields)
                 if register_description is not None:
                     register_definition.register_description = register_description
+
+                if register_icon is not None:
+                    register_definition.register_icon = register_icon
+
+                if register_rank is not None:
+                    register_definition.register_rank = register_rank
             else:
                 # Allow editing all fields
                 if register_mnemonic is not None:
