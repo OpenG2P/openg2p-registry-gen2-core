@@ -531,7 +531,7 @@ class G2PRegisterService(BaseService):
 
     async def approve_single_change_request(self, change_request_id: str, session):
         # Validate change request exists and is pending approval
-        change_request = await self.validate_change_request_exists(change_request_id, session)
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
         # Mark change request as approved
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
         change_request.approved_by = "system" # TODO: Replace with actual user info
@@ -551,6 +551,17 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
+
+        # Handle POST APPROVAL domain service operation
+        from ..services import G2PRegisterDomainService
+        g2p_register_definition = await self._get_register_definition(change_request.section_register_id, session)
+
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+        domain_factory_class_name = "G2PRegisterDomainFactory"
+        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+
+        await domain_service.post_approve(change_request, session)
 
         return change_request
             

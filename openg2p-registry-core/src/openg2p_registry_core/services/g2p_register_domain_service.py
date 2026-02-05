@@ -14,7 +14,7 @@ from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.schemas import DeduplicationFieldConfig
 from sqlalchemy.orm import Session
 from sqlalchemy import func, insert, select, or_
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..models import (
     G2PRegisterChangeRequest,
@@ -42,6 +42,12 @@ class G2PRegisterDomainService(BaseService):
         DATE_RANGE = "DATE_RANGE"
 
     async def validate_domain_attributes(self, change_request_request_payload: ChangeRequestRequestPayload):
+        pass
+
+    async def pre_approve():
+        pass
+
+    async def post_approve(chnage_request: G2PRegisterChangeRequest, session: AsyncSession):
         pass
 
     def compute_deduplication_score_for_register(
