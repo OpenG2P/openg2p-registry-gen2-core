@@ -909,6 +909,16 @@ class DeleteRegisterSectionRequestPayload(BaseModel):
     section_id: str
 
 
+class GetRegisterSectionUISchemaRequestPayload(BaseModel):
+    section_id: str
+
+
+class RegisterSectionUISchemaData(BaseModel):
+    """UI schema data for a register section."""
+    section_id: str
+    section_ui_schema: Optional[dict] = None
+
+
 class UpdateRegisterSectionRequestPayload(BaseModel):
     """
     Only allows editing: section_mnemonic, section_description, no_of_verifications_required, documents_required, auto_approval, is_primary_section

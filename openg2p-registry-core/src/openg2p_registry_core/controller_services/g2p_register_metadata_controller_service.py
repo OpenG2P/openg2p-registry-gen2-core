@@ -7,12 +7,12 @@ from ..schemas import (
     GetAllRegistersRequest, GetDashboardRegistersRequest, GetChildRegistersRequest, GetMasterRegisterRequest,
     GetRegisterSchemaRequest, GetRegisterSectionsRequest, GetRegisterTabSectionsRequest, GetRegisterTabsRequest,
     AddRegisterTabRequest, DeleteRegisterTabRequest, EditRegisterTabRequest,
-    AddRegisterSectionRequest, DeleteRegisterSectionRequest,
+    AddRegisterSectionRequest, DeleteRegisterSectionRequest, GetRegisterSectionUISchemaRequest,
     UpdateRegisterSectionRequest, UpdateRegisterSectionUISchemaRequest,
     CreateRegisterRequest, EditRegisterRequest, DeleteRegisterRequest, UpdateRegisterSchemaRequest,
     UpdateDedupIsEnabledRequest, UpdateDedupThresholdScoreRequest,
     UpdateDeduplicationSchemaRequest, UpdateSearchResultSchemaRequest,
-    RegisterSchemaData, RegisterSectionData
+    RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData
 )
 
 _logger = logging.getLogger('g2p-register-metadata-controller-service')
@@ -282,6 +282,17 @@ class G2PRegisterMetadataControllerService(BaseService):
             section_ui_schema=payload.section_ui_schema
         )
         return section_data
+
+    async def get_register_section_ui_schema(
+        self, request: GetRegisterSectionUISchemaRequest
+    ) -> RegisterSectionUISchemaData:
+        """
+        Get the UI schema for a register section by section_id.
+        """
+        payload = request.request_body.request_payload
+        _logger.info(f"Getting register section UI schema with section_id: {payload.section_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        return await g2p_register_service.get_register_section_ui_schema(payload.section_id)
 
     async def create_register(self, create_register_request: CreateRegisterRequest) -> RegisterData:
         """

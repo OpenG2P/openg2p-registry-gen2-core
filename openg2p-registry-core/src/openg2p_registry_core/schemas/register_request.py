@@ -34,6 +34,7 @@ from .register_payload import (
     GetRegisterSectionRequestPayload,
     AddRegisterSectionRequestPayload,
     DeleteRegisterSectionRequestPayload,
+    GetRegisterSectionUISchemaRequestPayload,
     UpdateRegisterSectionRequestPayload,
     UpdateRegisterSectionUISchemaRequestPayload,
     CreateRegisterRequestPayload,
@@ -475,6 +476,18 @@ class DeleteRegisterSectionRequestBody(G2PRequestBody):
 
 class DeleteRegisterSectionRequest(G2PRequest):
     request_body: DeleteRegisterSectionRequestBody
+
+
+# =============================================================================
+# Get Register Section UI Schema Request Schemas
+# =============================================================================
+
+class GetRegisterSectionUISchemaRequestBody(G2PRequestBody):
+    request_payload: GetRegisterSectionUISchemaRequestPayload
+
+
+class GetRegisterSectionUISchemaRequest(G2PRequest):
+    request_body: GetRegisterSectionUISchemaRequestBody
 
 
 # =============================================================================

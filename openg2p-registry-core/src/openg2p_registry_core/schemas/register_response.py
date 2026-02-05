@@ -11,7 +11,7 @@ from .register_payload import (
     CrossRegisterChangeRequestData, CrossRegisterChangesData,
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
-    DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData,
+    DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData,
     RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
     SectionDocumentsData, ChangeRequestDocumentsData,
@@ -342,6 +342,18 @@ class RegisterSectionDataResponseBody(G2PResponseBody):
 
 class RegisterSectionDataResponse(G2PResponse):
     response_body: Optional[RegisterSectionDataResponseBody] = None
+
+
+# =============================================================================
+# Register Section UI Schema Data Response Schemas
+# =============================================================================
+
+class RegisterSectionUISchemaDataResponseBody(G2PResponseBody):
+    response_payload: Optional[RegisterSectionUISchemaData] = None
+
+
+class RegisterSectionUISchemaDataResponse(G2PResponse):
+    response_body: Optional[RegisterSectionUISchemaDataResponseBody] = None
 
 
 # =============================================================================

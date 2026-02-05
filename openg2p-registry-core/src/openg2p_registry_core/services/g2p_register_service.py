@@ -37,7 +37,7 @@ from ..schemas import (
     VerificationData, VerificationsData, AddVerificationPayload,
     DeduplicationRegisterResultsData, DeduplicationChangerequestResultsData,
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
-    RegisterSchemaData, RegisterSectionData, DisplayField,
+    RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
     RegistryConfigurationData, EarliestPendingChangeRequestData,
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
@@ -1507,6 +1507,21 @@ class G2PRegisterService(BaseService):
             G2PRegisterChangeRequestPayload.search_text.ilike(search_query)
         )
 
+        # Apply sorting
+        if sort_by:
+            try:
+                if sort_by.startswith('-'):
+                    sort_column = getattr(G2PRegisterChangeRequest, sort_by[1:])
+                    base_query = base_query.order_by(sort_column.desc())
+                else:
+                    sort_column = getattr(G2PRegisterChangeRequest, sort_by)
+                    base_query = base_query.order_by(sort_column.asc())
+            except AttributeError:
+                _logger.warning(f"Sort column {sort_by} not found, using default order")
+                base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+        else:
+            base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+
         # Get total count
         count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).join(
             G2PRegisterChangeRequestPayload,
@@ -2222,40 +2237,90 @@ class G2PRegisterService(BaseService):
                 # Get the implementation class for this register
                 try:
                     module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
-                    register_class_prefix: str = "G2PRegister"
-                    implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
-                    implementation_class = getattr(module, implementation_class_name)
 
-                    internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
-                    # Fetch the existing record by internal_record_id
-                    existing_records = (
-                        await session.execute(
-                            select(implementation_class).where(
-                                implementation_class.internal_record_id.in_(internal_record_ids)
+                    # If approval_status is APPROVED, fetch previous history (before this change was applied)
+                    if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
+                        # Fetch from history table - get the previous record before this change request
+                        history_class_prefix: str = "G2PRegisterHistory"
+                        history_class_name: str = f"{history_class_prefix}{g2p_register_definition.register_mnemonic}"
+                        history_class = getattr(module, history_class_name)
+
+                        # Get internal_record_ids from change_payloads
+                        internal_record_ids = [
+                            cp.get("internal_record_id") for cp in change_payloads
+                            if cp.get("internal_record_id")
+                        ]
+
+                        # Base history fields to exclude from current_register_data
+                        history_base_fields: set = {
+                            'history_record_id', 'change_request_id', 'tab_id', 'section_id',
+                            'application_id', 'change_request_source', 'is_primary_section',
+                            'created_by', 'created_at', 'approved_by', 'approved_at', 'search_text'
+                        }
+
+                        # For each internal_record_id, fetch the previous history record
+                        for internal_record_id in internal_record_ids:
+                            previous_history = (
+                                await session.execute(
+                                    select(history_class).where(
+                                        history_class.internal_record_id == internal_record_id,
+                                        history_class.approved_at < change_request.approved_at
+                                    ).order_by(history_class.approved_at.desc()).limit(1)
+                                )
+                            ).scalar()
+
+                            if previous_history:
+                                # Convert ORM object to dict for current_register_data
+                                mapper = inspect(previous_history.__class__)
+                                current_register_data = {}
+
+                                for column in mapper.columns:
+                                    column_name: str = column.name
+                                    if column_name not in history_base_fields:
+                                        value = getattr(previous_history, column_name, None)
+
+                                        # Convert datetime objects to strings
+                                        if value is not None and hasattr(value, 'isoformat'):
+                                            value = value.isoformat()
+
+                                        current_register_data[column_name] = value
+                                current_register_data_list.append(current_register_data)
+                    else:
+                        # For PENDING/REJECTED, fetch from live register table
+                        register_class_prefix: str = "G2PRegister"
+                        implementation_class_name: str = f"{register_class_prefix}{g2p_register_definition.register_mnemonic}"
+                        implementation_class = getattr(module, implementation_class_name)
+
+                        internal_record_ids = [change_payload.get("internal_record_id") for change_payload in change_payloads if change_payload.get("internal_record_id")]
+                        # Fetch the existing record by internal_record_id
+                        existing_records = (
+                            await session.execute(
+                                select(implementation_class).where(
+                                    implementation_class.internal_record_id.in_(internal_record_ids)
+                                )
                             )
-                        )
-                    ).scalars().all()
+                        ).scalars().all()
 
-                    for existing_record in existing_records:
-                        if existing_record:
-                            # Convert ORM object to dict for current_register_data
-                            mapper = inspect(existing_record.__class__)
-                            current_register_data = {}
+                        for existing_record in existing_records:
+                            if existing_record:
+                                # Convert ORM object to dict for current_register_data
+                                mapper = inspect(existing_record.__class__)
+                                current_register_data = {}
 
-                            # Base fields to exclude from current_register_data
-                            base_fields: set = {'search_text'}
+                                # Base fields to exclude from current_register_data
+                                base_fields: set = {'search_text'}
 
-                            for column in mapper.columns:
-                                column_name: str = column.name
-                                if column_name not in base_fields:
-                                    value = getattr(existing_record, column_name, None)
+                                for column in mapper.columns:
+                                    column_name: str = column.name
+                                    if column_name not in base_fields:
+                                        value = getattr(existing_record, column_name, None)
 
-                                    # Convert datetime objects to strings
-                                    if value is not None and hasattr(value, 'isoformat'):
-                                        value = value.isoformat()
+                                        # Convert datetime objects to strings
+                                        if value is not None and hasattr(value, 'isoformat'):
+                                            value = value.isoformat()
 
-                                    current_register_data[column_name] = value
-                            current_register_data_list.append(current_register_data)
+                                        current_register_data[column_name] = value
+                                current_register_data_list.append(current_register_data)
 
                 except (AttributeError, ModuleNotFoundError) as error:
                     _logger.warning(f"Could not fetch old register data for change request {change_request_id}: {str(error)}")
@@ -2696,6 +2761,21 @@ class G2PRegisterService(BaseService):
             # Fetch register section
             register_section_data: RegisterSectionData = await self._fetch_register_section(register_id, section_id, session)
             return register_section_data
+
+    async def get_register_section_ui_schema(self, section_id: str) -> RegisterSectionUISchemaData:
+        """
+        Get the UI schema for a register section by section_id.
+        Returns only the section_id and section_ui_schema fields.
+        """
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            section = await session.get(G2PRegisterSection, section_id)
+            if not section:
+                raise ValueError(f"Section with section_id '{section_id}' not found.")
+            return RegisterSectionUISchemaData(
+                section_id=section.section_id,
+                section_ui_schema=section.section_ui_schema
+            )
 
     async def _fetch_register_schema(self, register_id: str, session) -> RegisterSchemaData:
         """Fetch register schema from database."""
@@ -3183,9 +3263,15 @@ class G2PRegisterService(BaseService):
                         f"Register '{register_id}' has data. Cannot edit 'register_mnemonic', 'master_register_id', or 'register_purpose'."
                     )
 
-                # Only allow editing description
+                # Allow editing description, icon, and rank (display fields)
                 if register_description is not None:
                     register_definition.register_description = register_description
+
+                if register_icon is not None:
+                    register_definition.register_icon = register_icon
+
+                if register_rank is not None:
+                    register_definition.register_rank = register_rank
             else:
                 # Allow editing all fields
                 if register_mnemonic is not None:
