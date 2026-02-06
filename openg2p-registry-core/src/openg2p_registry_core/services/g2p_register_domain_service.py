@@ -47,7 +47,7 @@ class G2PRegisterDomainService(BaseService):
     async def pre_approve():
         pass
 
-    async def post_approve(chnage_request: G2PRegisterChangeRequest, session: AsyncSession):
+    async def post_approve(change_request: G2PRegisterChangeRequest, session: AsyncSession):
         pass
 
     def compute_deduplication_score_for_register(
