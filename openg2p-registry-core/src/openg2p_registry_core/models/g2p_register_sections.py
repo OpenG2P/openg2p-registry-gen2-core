@@ -8,7 +8,7 @@ from openg2p_fastapi_common.models import BaseORMModel
 class G2PRegisterSection(BaseORMModel):
     """
     Stores section UI schema configurations for each register.
-    Composite primary key: register_id + section_id
+    Primary key: section_id
     """
     __tablename__ = "g2p_register_sections"
 
