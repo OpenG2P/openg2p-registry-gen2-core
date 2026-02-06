@@ -93,12 +93,13 @@ class G2PIngestionDataService(BaseService):
                 transformed_data_json = incoming_enriched_and_transformed_data_payload.transformed_data_json or None,
             )
     
-    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, filter_by: dict, session, master_data_session, sort_by: str = "receipt_date_time:desc") -> tuple[list[IngestionDataSearchResultData], int]:
+    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, filter_by: dict, session, master_data_session, sort_by: str = None) -> tuple[list[IngestionDataSearchResultData], int]:
         """Helper method to search in ingestion data with pagination"""
         search_query = f"%{search_text}%"
 
         base_query = (
             select(IncomingRawDataPayload.ingest_id)
+            .join(IncomingRawData, IncomingRawData.ingest_id == IncomingRawDataPayload.ingest_id)
             .where(IncomingRawDataPayload.raw_data_text.ilike(search_query))
         )
 
@@ -109,22 +110,18 @@ class G2PIngestionDataService(BaseService):
                 sort_field, sort_dir = sort_by, "desc"
 
             if hasattr(IncomingRawData, sort_field):
-                base_query = base_query.join(
-                    IncomingRawData,
-                    IncomingRawData.ingest_id == IncomingRawDataPayload.ingest_id
-                )
                 sort_column = getattr(IncomingRawData, sort_field)
             elif hasattr(IncomingRawDataPayload, sort_field):
                 sort_column = getattr(IncomingRawDataPayload, sort_field)
             else:
-                sort_column = IncomingRawDataPayload.ingest_id
+                sort_column = IncomingRawData.receipt_date_time
 
             if sort_dir.lower() == "desc":
                 base_query = base_query.order_by(sort_column.desc())
             else:
                 base_query = base_query.order_by(sort_column.asc())
         else:
-            base_query = base_query.order_by(IncomingRawDataPayload.ingest_id.desc())
+            base_query = base_query.order_by(IncomingRawData.receipt_date_time.desc())
 
         count_stmt = (
             select(func.count())
@@ -217,8 +214,13 @@ class G2PIngestionDataService(BaseService):
         rows = result.all()
 
         ingestion_data_search_result_data_list: list[IngestionDataSearchResultData] = []
+        
+        row_map = {row.ingest_id: row for row in rows}
 
-        for row in rows:
+        for ingest_id in ingest_ids:
+            row = row_map.get(ingest_id)
+            if not row:
+                continue
             partner_mnemonic = None
             if row.partner_id:
                 partner_mnemonic: str | None = (

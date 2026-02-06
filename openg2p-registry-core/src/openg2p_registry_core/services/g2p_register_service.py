@@ -1530,14 +1530,14 @@ class G2PRegisterService(BaseService):
             elif hasattr(G2PRegisterChangeRequestPayload, sort_field):
                 sort_column = getattr(G2PRegisterChangeRequestPayload, sort_field)
             else:
-                sort_column = G2PRegisterChangeRequestPayload.ingest_id
+                sort_column = G2PRegisterChangeRequest.created_at
 
             if sort_dir.lower() == "desc":
                 base_query = base_query.order_by(sort_column.desc())
             else:
                 base_query = base_query.order_by(sort_column.asc())
         else:
-            base_query = base_query.order_by(G2PRegisterChangeRequestPayload.created_at.desc())
+            base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
 
         # Get total count
         count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).join(
