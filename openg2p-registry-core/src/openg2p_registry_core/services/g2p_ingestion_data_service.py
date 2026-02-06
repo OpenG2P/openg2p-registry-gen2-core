@@ -65,7 +65,7 @@ class G2PIngestionDataService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
         async with session_maker() as session, master_data_session_maker() as master_data_session:
-            search_results, total_items = await self._search_in_ingestion_data(search_text, current_page, page_size, sort_by, filter_by, session, master_data_session)
+            search_results, total_items = await self._search_in_ingestion_data(search_text, current_page, page_size, filter_by, session, master_data_session, sort_by)
             return search_results, total_items
     
     async def get_raw_data_payload(self, ingest_id: int) -> IngestionDataPayload:
@@ -93,16 +93,38 @@ class G2PIngestionDataService(BaseService):
                 transformed_data_json = incoming_enriched_and_transformed_data_payload.transformed_data_json or None,
             )
     
-    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session, master_data_session) -> tuple[list[IngestionDataSearchResultData], int]:
+    async def _search_in_ingestion_data(self, search_text: str, current_page: int, page_size: int, filter_by: dict, session, master_data_session, sort_by: str = "receipt_date_time:desc") -> tuple[list[IngestionDataSearchResultData], int]:
         """Helper method to search in ingestion data with pagination"""
         search_query = f"%{search_text}%"
 
-        # Build base query
         base_query = (
             select(IncomingRawDataPayload.ingest_id)
             .where(IncomingRawDataPayload.raw_data_text.ilike(search_query))
-            .order_by(IncomingRawDataPayload.ingest_id)
         )
+
+        if sort_by:
+            if ":" in sort_by:
+                sort_field, sort_dir = sort_by.split(":")
+            else:
+                sort_field, sort_dir = sort_by, "desc"
+
+            if hasattr(IncomingRawData, sort_field):
+                base_query = base_query.join(
+                    IncomingRawData,
+                    IncomingRawData.ingest_id == IncomingRawDataPayload.ingest_id
+                )
+                sort_column = getattr(IncomingRawData, sort_field)
+            elif hasattr(IncomingRawDataPayload, sort_field):
+                sort_column = getattr(IncomingRawDataPayload, sort_field)
+            else:
+                sort_column = IncomingRawDataPayload.ingest_id
+
+            if sort_dir.lower() == "desc":
+                base_query = base_query.order_by(sort_column.desc())
+            else:
+                base_query = base_query.order_by(sort_column.asc())
+        else:
+            base_query = base_query.order_by(IncomingRawDataPayload.ingest_id.desc())
 
         count_stmt = (
             select(func.count())
