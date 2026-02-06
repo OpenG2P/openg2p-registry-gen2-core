@@ -1503,10 +1503,10 @@ class G2PRegisterService(BaseService):
         """Search in change requests using search_text field with pagination"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            search_results, total_items = await self._search_in_change_request(search_text, current_page, page_size, sort_by, filter_by, session)
+            search_results, total_items = await self._search_in_change_request(search_text, current_page, page_size, filter_by, session, sort_by)
             return search_results, total_items
 
-    async def _search_in_change_request(self, search_text: str, current_page: int, page_size: int, sort_by: str, filter_by: dict, session) -> tuple[list[ChangeRequestSearchResultData], int]:
+    async def _search_in_change_request(self, search_text: str, current_page: int, page_size: int, filter_by: dict, session, sort_by: str = None) -> tuple[list[ChangeRequestSearchResultData], int]:
         """Helper method to search in change requests with pagination"""
         search_query = f"%{search_text}%"
 
@@ -1520,18 +1520,24 @@ class G2PRegisterService(BaseService):
 
         # Apply sorting
         if sort_by:
-            try:
-                if sort_by.startswith('-'):
-                    sort_column = getattr(G2PRegisterChangeRequest, sort_by[1:])
-                    base_query = base_query.order_by(sort_column.desc())
-                else:
-                    sort_column = getattr(G2PRegisterChangeRequest, sort_by)
-                    base_query = base_query.order_by(sort_column.asc())
-            except AttributeError:
-                _logger.warning(f"Sort column {sort_by} not found, using default order")
-                base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+            if ":" in sort_by:
+                sort_field, sort_dir = sort_by.split(":")
+            else:
+                sort_field, sort_dir = sort_by, "desc"
+
+            if hasattr(G2PRegisterChangeRequest, sort_field):
+                sort_column = getattr(G2PRegisterChangeRequest, sort_field)
+            elif hasattr(G2PRegisterChangeRequestPayload, sort_field):
+                sort_column = getattr(G2PRegisterChangeRequestPayload, sort_field)
+            else:
+                sort_column = G2PRegisterChangeRequestPayload.ingest_id
+
+            if sort_dir.lower() == "desc":
+                base_query = base_query.order_by(sort_column.desc())
+            else:
+                base_query = base_query.order_by(sort_column.asc())
         else:
-            base_query = base_query.order_by(G2PRegisterChangeRequest.created_at.desc())
+            base_query = base_query.order_by(G2PRegisterChangeRequestPayload.created_at.desc())
 
         # Get total count
         count_result = await session.execute(select(func.count()).select_from(G2PRegisterChangeRequest).join(
