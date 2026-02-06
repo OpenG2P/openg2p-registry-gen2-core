@@ -444,9 +444,9 @@ class G2PRegisterService(BaseService):
         section_ui_schema: dict,
         session
     ) -> RegisterSectionData:
-        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, (register_id, section_id))
+        section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
         if not section:
-            raise ValueError(f"Section with register_id '{register_id}' and section_id '{section_id}' not found.")
+            raise ValueError(f"Section with section_id '{section_id}' not found.")
 
         section.section_ui_schema = section_ui_schema
 
