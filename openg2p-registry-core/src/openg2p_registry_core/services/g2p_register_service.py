@@ -3277,13 +3277,9 @@ class G2PRegisterService(BaseService):
             has_data = await self._check_register_has_data(register_definition, session)
 
             if has_data:
-                # Raise error if trying to edit restricted fields
-                if register_mnemonic is not None or master_register_id is not None or register_purpose is not None:
-                    raise ValueError(
-                        f"Register '{register_id}' has data. Cannot edit 'register_mnemonic', 'master_register_id', or 'register_purpose'."
-                    )
-
-                # Allow editing description, icon, and rank (display fields)
+                # Register has data — only update allowed (display) fields,
+                # silently ignoring restricted fields like register_mnemonic,
+                # master_register_id, and register_purpose.
                 if register_description is not None:
                     register_definition.register_description = register_description
 
