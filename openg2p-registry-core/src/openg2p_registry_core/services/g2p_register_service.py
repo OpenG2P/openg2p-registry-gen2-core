@@ -554,7 +554,7 @@ class G2PRegisterService(BaseService):
 
         # Handle POST APPROVAL domain service operation
         from ..services import G2PRegisterDomainService
-        g2p_register_definition = await self._get_register_definition(change_request.section_register_id, session)
+        g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
@@ -2897,12 +2897,14 @@ class G2PRegisterService(BaseService):
         if section_register_definition.master_register_id == register_id:
             return RegisterRelationEnum.DESCENDANT
         
-        # Check for indirect descendant with REGISTER in between
-        has_register_in_between = await self._has_register_in_path(
+        # Check for indirect descendant (through TABLE-only or with REGISTER in between)
+        path_exists, has_register_in_between = await self._has_register_in_path(
             section_register_id, register_id, session
         )
-        if has_register_in_between:
+        if path_exists and has_register_in_between:
             return RegisterRelationEnum.DESCENDANT_OF_A_REGISTER
+        if path_exists:
+            return RegisterRelationEnum.DESCENDANT
         
         # Direct parent: this register has section's register as its master
         if register_definition.master_register_id == section_register_id:
@@ -2922,14 +2924,16 @@ class G2PRegisterService(BaseService):
         target_register_id: str,
         session,
         max_depth: int = 20
-    ) -> bool:
+    ) -> tuple[bool, bool]:
         """
-        Check if there's a path from start to target AND at least one REGISTER exists in between.
+        Check if there's a path from start to target via master_register_id.
         
         Traverses from start_register_id up via master_register_id.
-        Returns True if:
-          1. Path exists from start to target
-          2. At least one intermediate node has register_purpose = REGISTER
+        Returns:
+            tuple[bool, bool]: (path_exists, has_register_in_between)
+            - path_exists: True if a path from start to target was found
+            - has_register_in_between: True if at least one intermediate node
+              has register_purpose = REGISTER
         """
         current_id: str | None = start_register_id
         depth: int = 0
@@ -2946,7 +2950,7 @@ class G2PRegisterService(BaseService):
             ).scalar()
 
             if not register_definition:
-                return False
+                return False, False
             
             # Move to parent
             current_id = register_definition.master_register_id
@@ -2958,8 +2962,7 @@ class G2PRegisterService(BaseService):
             
             # Check if we reached the target
             if register_definition.register_id == target_register_id:
-                # We found the target but haven't checked intermediate nodes yet
-                return found_register_in_between
+                return True, found_register_in_between
             
             # Check if current intermediate node is a REGISTER
             if register_definition.register_purpose == RegisterPurposeEnum.REGISTER.value:
@@ -2967,11 +2970,11 @@ class G2PRegisterService(BaseService):
             
             # Check if parent is the target
             if current_id == target_register_id:
-                return found_register_in_between
+                return True, found_register_in_between
                 
             depth += 1
 
-        return False
+        return False, False
 
     async def _fetch_register_tab_sections(self, register_id: str, tab_id: str, session) -> list[RegisterSectionData]:
         """Fetch register sections from g2p_register_sections table filtered by tab_id."""
