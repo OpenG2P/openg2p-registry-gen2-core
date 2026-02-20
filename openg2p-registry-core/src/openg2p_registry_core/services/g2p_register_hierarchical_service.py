@@ -624,6 +624,12 @@ class G2PRegisterHierarchicalService(BaseService):
         Returns:
             AllowedParentsData containing parent register mnemonic and list of allowed parent records
         """
+        empty_result = AllowedParentsData(
+            register_mnemonic="",
+            master_register_id=None,
+            allowed_parents=[]
+        )
+
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # 1. Validate subject register exists
@@ -647,14 +653,24 @@ class G2PRegisterHierarchicalService(BaseService):
             )
 
             # 4. Get parent records linked to the subject using existing hierarchy traversal
-            parent_records: list[RecordData] = await self.get_section_records(
-                subject_register_id, subject_record_id, parent_register_id
-            )
+            try:
+                parent_records: list[RecordData] = await self.get_section_records(
+                    subject_register_id, subject_record_id, parent_register_id
+                )
+            except Exception:
+                _logger.warning(
+                    f"Could not retrieve parent records for subject_register_id={subject_register_id}, "
+                    f"subject_record_id={subject_record_id}, parent_register_id={parent_register_id}"
+                )
+                return AllowedParentsData(
+                    register_mnemonic=parent_register.register_mnemonic,
+                    master_register_id=parent_register.master_register_id,
+                    allowed_parents=[]
+                )
 
             # 5. Transform to AllowedParentRecordData
             allowed_parents: list[AllowedParentRecordData] = []
             for record in parent_records:
-                # RecordData uses ConfigDict(extra="allow"), so we access fields directly
                 record_dict = record.model_dump()
                 allowed_parents.append(
                     AllowedParentRecordData(
