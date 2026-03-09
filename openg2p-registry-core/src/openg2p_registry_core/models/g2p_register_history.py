@@ -10,7 +10,7 @@ from .g2p_register import MaritalStatusEnum, GenderEnum, ShapeTypeEnum
 
 
 class ChangeRequestSourceEnum(enum.Enum):
-    APPLICATION = "APPLICATION"
+    INTAKE_FORM = "INTAKE_FORM"
     DIRECT = "DIRECT"
 
 

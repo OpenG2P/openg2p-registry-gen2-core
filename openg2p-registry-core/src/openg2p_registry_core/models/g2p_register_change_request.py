@@ -19,7 +19,7 @@ class DeduplicationStatusEnum(enum.Enum):
     FAILED = "FAILED"
 
 class ChangeRequestSourceEnum(enum.Enum):
-    APPLICATION = "APPLICATION"
+    INTAKE_FORM = "INTAKE_FORM"
     DIRECT = "DIRECT"
 
 class G2PRegisterChangeRequest(BaseORMModel):
