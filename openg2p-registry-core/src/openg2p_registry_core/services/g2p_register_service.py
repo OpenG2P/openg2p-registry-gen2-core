@@ -662,13 +662,45 @@ class G2PRegisterService(BaseService):
         # Always approve only the requested change request ID.
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_request = await self.approve_single_change_request(change_request_id, session)
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+            )
             _logger.info(f"Approved change request: {change_request_id}")
             await session.commit()
             await session.refresh(change_request)
             return change_request
 
+    async def auto_approve_change_request(self, change_request_id: str):
+        """Approve a change request while skipping verification-count validation."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                skip_verification=True,
+                skip_sequence_check=True
+            )
+            _logger.info(f"Auto-approved change request: {change_request_id}")
+            await session.commit()
+            await session.refresh(change_request)
+            return change_request
+
+
     async def approve_single_change_request(self, change_request_id: str, session):
+        return await self._approve_change_request_core(
+            change_request_id=change_request_id,
+            session=session,
+            skip_verification=False
+        )
+
+    async def _approve_change_request_core(
+        self,
+        change_request_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False
+    ):
         # Validate change request exists and is pending approval
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
         # Mark change request as approved
@@ -680,9 +712,11 @@ class G2PRegisterService(BaseService):
         _logger.info(f"Validating change request for approval: {change_request}")
         g2p_register_section = await self.validate_change_request_section(change_request, session)
         # Validate whether verifications are done
-        await self.validate_change_request_verifications(change_request, session)
+        if not skip_verification:
+            await self.validate_change_request_verifications(change_request, session)
         # Ensure there are no earlier change requests for the internal_record_id pending approval
-        await self.validate_change_request_sequence(change_request, session)
+        if not skip_sequence_check:
+            await self.validate_change_request_sequence(change_request, session)
         # In case of approval, insert data into register_history
         await self.insert_into_register_history(change_request, session)
         # Upsert data into register
@@ -1086,8 +1120,8 @@ class G2PRegisterService(BaseService):
         )
 
         # Determine change request source based on intake_form_id
-        change_request_source = ChangeRequestSourceEnum.APPLICATION.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
-        no_of_verifications_required = 0 if intake_form_id else g2p_register_section.no_of_verifications_required
+        change_request_source = ChangeRequestSourceEnum.INTAKE_FORM.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
+        no_of_verifications_required = g2p_register_section.no_of_verifications_required if g2p_register_section else 0
 
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
