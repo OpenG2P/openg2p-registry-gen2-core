@@ -334,6 +334,11 @@ class G2PRegisterService(BaseService):
         documents_required: bool = False,
         no_of_verifications_required: int = 0,
         auto_approval: bool = False,
+        cr_auto_approve_for_bene_portal: bool = False,
+        cr_auto_approve_for_agent_portal: bool = False,
+        cr_auto_approve_for_staff_portal: bool = False,
+        cr_auto_approve_for_partner: bool = False,
+        cr_auto_approve_for_intake_form: bool = False,
         is_list: bool = False,
         is_primary_section: bool = False,
         section_ui_schema: dict = None
@@ -345,6 +350,8 @@ class G2PRegisterService(BaseService):
             section_data: RegisterSectionData = await self._create_register_section(
                 section_register_id, register_id, tab_id, section_mnemonic, section_description,
                 documents_required, no_of_verifications_required, auto_approval,
+                cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
                 is_list, is_primary_section, section_ui_schema, session
             )
             return section_data
@@ -367,6 +374,11 @@ class G2PRegisterService(BaseService):
         documents_required: bool,
         no_of_verifications_required: int,
         auto_approval: bool,
+        cr_auto_approve_for_bene_portal: bool,
+        cr_auto_approve_for_agent_portal: bool,
+        cr_auto_approve_for_staff_portal: bool,
+        cr_auto_approve_for_partner: bool,
+        cr_auto_approve_for_intake_form: bool,
         is_list: bool,
         is_primary_section: bool,
         section_ui_schema: dict,
@@ -381,6 +393,11 @@ class G2PRegisterService(BaseService):
             documents_required=documents_required,
             no_of_verifications_required=no_of_verifications_required,
             auto_approval=auto_approval,
+            cr_auto_approve_for_bene_portal=cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=cr_auto_approve_for_intake_form,
             is_list=is_list,
             is_primary_section=is_primary_section,
             section_ui_schema=section_ui_schema
@@ -399,6 +416,11 @@ class G2PRegisterService(BaseService):
             documents_required=new_section.documents_required,
             no_of_verifications_required=new_section.no_of_verifications_required,
             auto_approval=new_section.auto_approval,
+            cr_auto_approve_for_bene_portal=new_section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=new_section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=new_section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=new_section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=new_section.cr_auto_approve_for_intake_form,
             is_list=new_section.is_list,
             is_primary_section=new_section.is_primary_section,
             section_ui_schema=new_section.section_ui_schema
@@ -426,6 +448,11 @@ class G2PRegisterService(BaseService):
             documents_required=section.documents_required,
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
+            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
             is_list=section.is_list,
             is_primary_section=section.is_primary_section,
             section_ui_schema=section.section_ui_schema
@@ -444,13 +471,21 @@ class G2PRegisterService(BaseService):
         no_of_verifications_required: int = None,
         documents_required: bool = None,
         auto_approval: bool = None,
+        cr_auto_approve_for_bene_portal: bool = None,
+        cr_auto_approve_for_agent_portal: bool = None,
+        cr_auto_approve_for_staff_portal: bool = None,
+        cr_auto_approve_for_partner: bool = None,
+        cr_auto_approve_for_intake_form: bool = None,
         is_primary_section: bool = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             section_data: RegisterSectionData = await self._update_register_section(
                 section_id, section_mnemonic, section_description,
-                no_of_verifications_required, documents_required, auto_approval, is_primary_section, session
+                no_of_verifications_required, documents_required, auto_approval,
+                cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
+                is_primary_section, session
             )
             return section_data
 
@@ -462,6 +497,11 @@ class G2PRegisterService(BaseService):
         no_of_verifications_required: int,
         documents_required: bool,
         auto_approval: bool,
+        cr_auto_approve_for_bene_portal: bool,
+        cr_auto_approve_for_agent_portal: bool,
+        cr_auto_approve_for_staff_portal: bool,
+        cr_auto_approve_for_partner: bool,
+        cr_auto_approve_for_intake_form: bool,
         is_primary_section: bool,
         session
     ) -> RegisterSectionData:
@@ -479,6 +519,16 @@ class G2PRegisterService(BaseService):
             section.documents_required = documents_required
         if auto_approval is not None:
             section.auto_approval = auto_approval
+        if cr_auto_approve_for_bene_portal is not None:
+            section.cr_auto_approve_for_bene_portal = cr_auto_approve_for_bene_portal
+        if cr_auto_approve_for_agent_portal is not None:
+            section.cr_auto_approve_for_agent_portal = cr_auto_approve_for_agent_portal
+        if cr_auto_approve_for_staff_portal is not None:
+            section.cr_auto_approve_for_staff_portal = cr_auto_approve_for_staff_portal
+        if cr_auto_approve_for_partner is not None:
+            section.cr_auto_approve_for_partner = cr_auto_approve_for_partner
+        if cr_auto_approve_for_intake_form is not None:
+            section.cr_auto_approve_for_intake_form = cr_auto_approve_for_intake_form
         if is_primary_section is not None:
             # If setting to primary, unset any other primary section under the same tab_id
             if is_primary_section:
@@ -507,6 +557,11 @@ class G2PRegisterService(BaseService):
             documents_required=section.documents_required,
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
+            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
             is_list=section.is_list,
             is_primary_section=section.is_primary_section,
             section_ui_schema=section.section_ui_schema
@@ -552,6 +607,11 @@ class G2PRegisterService(BaseService):
             documents_required=section.documents_required,
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
+            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
             is_list=section.is_list,
             section_ui_schema=section.section_ui_schema
         )
@@ -602,13 +662,45 @@ class G2PRegisterService(BaseService):
         # Always approve only the requested change request ID.
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_request = await self.approve_single_change_request(change_request_id, session)
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+            )
             _logger.info(f"Approved change request: {change_request_id}")
             await session.commit()
             await session.refresh(change_request)
             return change_request
 
+    async def auto_approve_change_request(self, change_request_id: str):
+        """Approve a change request while skipping verification-count validation."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                skip_verification=True,
+                skip_sequence_check=True
+            )
+            _logger.info(f"Auto-approved change request: {change_request_id}")
+            await session.commit()
+            await session.refresh(change_request)
+            return change_request
+
+
     async def approve_single_change_request(self, change_request_id: str, session):
+        return await self._approve_change_request_core(
+            change_request_id=change_request_id,
+            session=session,
+            skip_verification=False
+        )
+
+    async def _approve_change_request_core(
+        self,
+        change_request_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False
+    ):
         # Validate change request exists and is pending approval
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
         # Mark change request as approved
@@ -620,9 +712,11 @@ class G2PRegisterService(BaseService):
         _logger.info(f"Validating change request for approval: {change_request}")
         g2p_register_section = await self.validate_change_request_section(change_request, session)
         # Validate whether verifications are done
-        await self.validate_change_request_verifications(change_request, session)
+        if not skip_verification:
+            await self.validate_change_request_verifications(change_request, session)
         # Ensure there are no earlier change requests for the internal_record_id pending approval
-        await self.validate_change_request_sequence(change_request, session)
+        if not skip_sequence_check:
+            await self.validate_change_request_sequence(change_request, session)
         # In case of approval, insert data into register_history
         await self.insert_into_register_history(change_request, session)
         # Upsert data into register
@@ -1026,8 +1120,8 @@ class G2PRegisterService(BaseService):
         )
 
         # Determine change request source based on intake_form_id
-        change_request_source = ChangeRequestSourceEnum.APPLICATION.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
-        no_of_verifications_required = 0 if intake_form_id else g2p_register_section.no_of_verifications_required
+        change_request_source = ChangeRequestSourceEnum.INTAKE_FORM.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
+        no_of_verifications_required = g2p_register_section.no_of_verifications_required if g2p_register_section else 0
 
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
@@ -2860,6 +2954,11 @@ class G2PRegisterService(BaseService):
                 documents_required=section.documents_required,
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
+                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
                 is_list=section.is_list,
                 register_purpose=section_register_definition.register_purpose,
                 section_ui_schema=section.section_ui_schema,
@@ -3030,6 +3129,11 @@ class G2PRegisterService(BaseService):
                 documents_required=section.documents_required,
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
+                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
                 is_list=section.is_list,
                 register_purpose=section_register_definition.register_purpose,
                 section_order=section.section_order,
@@ -3116,6 +3220,11 @@ class G2PRegisterService(BaseService):
                 documents_required=section.documents_required,
                 no_of_verifications_required=section.no_of_verifications_required,
                 auto_approval=section.auto_approval,
+                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
                 is_list=section.is_list,
                 register_purpose=section_register_definition.register_purpose,
                 section_order=section.section_order,
@@ -3177,6 +3286,11 @@ class G2PRegisterService(BaseService):
             documents_required=section.documents_required,
             no_of_verifications_required=section.no_of_verifications_required,
             auto_approval=section.auto_approval,
+            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
             is_list=section.is_list,
             register_purpose=section_register_definition.register_purpose,
             section_ui_schema=section.section_ui_schema,
@@ -3585,6 +3699,11 @@ class G2PRegisterService(BaseService):
                 documents_required=primary_section.documents_required,
                 no_of_verifications_required=primary_section.no_of_verifications_required,
                 auto_approval=primary_section.auto_approval,
+                cr_auto_approve_for_bene_portal=primary_section.cr_auto_approve_for_bene_portal,
+                cr_auto_approve_for_agent_portal=primary_section.cr_auto_approve_for_agent_portal,
+                cr_auto_approve_for_staff_portal=primary_section.cr_auto_approve_for_staff_portal,
+                cr_auto_approve_for_partner=primary_section.cr_auto_approve_for_partner,
+                cr_auto_approve_for_intake_form=primary_section.cr_auto_approve_for_intake_form,
                 is_list=primary_section.is_list,
                 is_primary_section=primary_section.is_primary_section,
                 section_ui_schema=primary_section.section_ui_schema

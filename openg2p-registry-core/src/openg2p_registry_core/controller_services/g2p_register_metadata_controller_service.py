@@ -263,6 +263,11 @@ class G2PRegisterMetadataControllerService(BaseService):
             documents_required=payload.documents_required,
             no_of_verifications_required=payload.no_of_verifications_required,
             auto_approval=payload.auto_approval,
+            cr_auto_approve_for_bene_portal=payload.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=payload.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=payload.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=payload.cr_auto_approve_for_intake_form,
             is_list=payload.is_list,
             is_primary_section=is_primary_section,
             section_ui_schema=payload.section_ui_schema
@@ -282,7 +287,8 @@ class G2PRegisterMetadataControllerService(BaseService):
     async def update_register_section(self, update_register_section_request: UpdateRegisterSectionRequest) -> RegisterSectionData:
         """
         Update a section's metadata (not including UI schema).
-        Only allows editing: section_mnemonic, section_description, no_of_verifications_required, documents_required, auto_approval, is_primary_section
+        Only allows editing: section_mnemonic, section_description, no_of_verifications_required,
+        documents_required, auto_approval, cr_auto_approve_for_*, is_primary_section
         """
         payload = update_register_section_request.request_body.request_payload
         _logger.info(f"Updating register section with section_id: {payload.section_id} through controller service")
@@ -294,6 +300,11 @@ class G2PRegisterMetadataControllerService(BaseService):
             no_of_verifications_required=payload.no_of_verifications_required,
             documents_required=payload.documents_required,
             auto_approval=payload.auto_approval,
+            cr_auto_approve_for_bene_portal=payload.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=payload.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=payload.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=payload.cr_auto_approve_for_intake_form,
             is_primary_section=payload.is_primary_section
         )
         return section_data

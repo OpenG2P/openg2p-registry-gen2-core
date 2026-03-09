@@ -764,6 +764,11 @@ class RegisterSectionData(BaseModel):
     documents_required: bool = False
     no_of_verifications_required: int = 0
     auto_approval: bool = False
+    cr_auto_approve_for_bene_portal: bool = False
+    cr_auto_approve_for_agent_portal: bool = False
+    cr_auto_approve_for_staff_portal: bool = False
+    cr_auto_approve_for_partner: bool = False
+    cr_auto_approve_for_intake_form: bool = False
     is_list: bool = False
     register_purpose: Optional[str] = None
     is_primary_section: bool = False
@@ -1066,6 +1071,11 @@ class AddRegisterSectionRequestPayload(BaseModel):
     documents_required: bool = False
     no_of_verifications_required: int = 0
     auto_approval: bool = False
+    cr_auto_approve_for_bene_portal: bool = False
+    cr_auto_approve_for_agent_portal: bool = False
+    cr_auto_approve_for_staff_portal: bool = False
+    cr_auto_approve_for_partner: bool = False
+    cr_auto_approve_for_intake_form: bool = False
     is_list: bool = False
     is_primary_section: bool = False
     section_ui_schema: Optional[dict] = None
@@ -1087,7 +1097,8 @@ class RegisterSectionUISchemaData(BaseModel):
 
 class UpdateRegisterSectionRequestPayload(BaseModel):
     """
-    Only allows editing: section_mnemonic, section_description, no_of_verifications_required, documents_required, auto_approval, is_primary_section
+    Only allows editing: section_mnemonic, section_description, no_of_verifications_required,
+    documents_required, auto_approval, cr_auto_approve_for_*, is_primary_section
     """
     section_id: str
     section_mnemonic: Optional[str] = None
@@ -1095,6 +1106,11 @@ class UpdateRegisterSectionRequestPayload(BaseModel):
     no_of_verifications_required: Optional[int] = None
     documents_required: Optional[bool] = None
     auto_approval: Optional[bool] = None
+    cr_auto_approve_for_bene_portal: Optional[bool] = None
+    cr_auto_approve_for_agent_portal: Optional[bool] = None
+    cr_auto_approve_for_staff_portal: Optional[bool] = None
+    cr_auto_approve_for_partner: Optional[bool] = None
+    cr_auto_approve_for_intake_form: Optional[bool] = None
     is_primary_section: Optional[bool] = None
 
 
