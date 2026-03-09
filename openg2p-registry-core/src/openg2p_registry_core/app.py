@@ -15,7 +15,9 @@ from .services import (
     G2PAttributeService,
     G2PIngestionDataService,
     G2PVcConfigurationService,
-    G2PUIHelperService
+    G2PUIHelperService,
+    G2PIntakeFormService,
+    G2PRegisterVerificationService,
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
@@ -29,7 +31,9 @@ from .controller_services import (
     G2PAttributeControllerService,
     G2PIngestionDataControllerService,
     G2PVcConfigurationControllerService,
-    G2PUIHelperControllerService
+    G2PUIHelperControllerService,
+    G2PIntakeFormControllerService,
+    G2PVerificationControllerService,
 )
 from .models import (
     DataModel,
@@ -57,8 +61,8 @@ from .models import (
     OutgoingTransformedDataPayload,
     G2PRegisterSectionDocument,
     SubscriptionActivityLog,
-    G2PApplication,
-    G2PApplicationSectionPayload,
+    G2PIntakeForm,
+    G2PIntakeFormSectionPayload,
     DeduplicationRegisterResult,
     DeduplicationChangerequestResult,
     G2PAttribute,
@@ -108,6 +112,8 @@ class Initializer(BaseInitializer):
         G2PAttributeService()
         G2PVcConfigurationService()
         G2PUIHelperService()
+        G2PIntakeFormService()
+        G2PRegisterVerificationService()
 
         # Controller Services
         G2PIngestControllerService()
@@ -122,6 +128,8 @@ class Initializer(BaseInitializer):
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
         G2PUIHelperControllerService()
+        G2PIntakeFormControllerService()
+        G2PVerificationControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -131,7 +139,7 @@ class Initializer(BaseInitializer):
             await DataModel.create_migrate()
 
             # Register Models
-            await G2PApplication.create_migrate()
+            await G2PIntakeForm.create_migrate()
             await G2PRegisterUITab.create_migrate()
             await G2PRegisterSchema.create_migrate()
             await G2PRegisterSection.create_migrate()
@@ -141,7 +149,7 @@ class Initializer(BaseInitializer):
             await G2PRegistryConfiguration.create_migrate()
             await G2PRegisterDocumentHistory.create_migrate()
             await G2PRegisterSectionDocument.create_migrate()
-            await G2PApplicationSectionPayload.create_migrate()
+            await G2PIntakeFormSectionPayload.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
             await G2PRegisterChangeRequestDocument.create_migrate()
             await G2PRegistryDocument.create_migrate()

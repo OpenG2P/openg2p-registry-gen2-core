@@ -66,7 +66,7 @@ class G2PRegisterService(BaseService):
     async def _get_tab(self, tab_id: str, session):
         return await session.get(G2PRegisterUITab, tab_id)
 
-    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, application_id: str = None):
+    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, intake_form_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
@@ -77,7 +77,7 @@ class G2PRegisterService(BaseService):
             # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
             # We don't validate internal_record_id existence here - it will be created when the change request is approved
 
-            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, application_id)
+            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, intake_form_id)
 
             session.add(g2p_register_change_request)
             # Add the payload object if it exists
@@ -144,7 +144,8 @@ class G2PRegisterService(BaseService):
         self,
         register_id: str,
         current_page: int = 1,
-        page_size: int = 10
+        page_size: int = 10,
+        used_for_new_intake_form: bool | None = None,
     ) -> tuple[list[RegisterUITabData], int]:
         """
         Get register tabs with pagination.
@@ -153,21 +154,67 @@ class G2PRegisterService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self.validate_register_definition(register_id, session)
-            register_tabs_list, total_count = await self._fetch_register_tabs_paginated(register_id, current_page, page_size, session)
+            register_tabs_list, total_count = await self._fetch_register_tabs_paginated(
+                register_id,
+                current_page,
+                page_size,
+                session,
+                used_for_new_intake_form,
+            )
             return register_tabs_list, total_count
 
-    async def add_register_tab(self, register_id: str, tab_label: str, tab_order: int = 0) -> RegisterUITabData:
+    async def add_register_tab(
+        self,
+        register_id: str,
+        tab_label: str,
+        tab_order: int = 0,
+        used_for_new_intake_form: bool = False,
+        no_of_verifications_required: int = 0,
+        intake_form_name: str | None = None,
+        intake_form_description: str | None = None,
+        intake_form_auto_approve: bool = False,
+        is_active: bool = True
+    ) -> RegisterUITabData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self.validate_register_definition(register_id, session)
-            register_tab_data: RegisterUITabData = await self._create_register_tab(register_id, tab_label, tab_order, session)
+            register_tab_data: RegisterUITabData = await self._create_register_tab(
+                register_id,
+                tab_label,
+                tab_order,
+                used_for_new_intake_form,
+                no_of_verifications_required,
+                intake_form_name,
+                intake_form_description,
+                intake_form_auto_approve,
+                is_active,
+                session,
+            )
             return register_tab_data
 
-    async def _create_register_tab(self, register_id: str, tab_label: str, tab_order: int, session) -> RegisterUITabData:
+    async def _create_register_tab(
+        self,
+        register_id: str,
+        tab_label: str,
+        tab_order: int,
+        used_for_new_intake_form: bool,
+        no_of_verifications_required: int,
+        intake_form_name: str | None,
+        intake_form_description: str | None,
+        intake_form_auto_approve: bool,
+        is_active: bool,
+        session
+    ) -> RegisterUITabData:
         new_tab: G2PRegisterUITab = G2PRegisterUITab(
             register_id=register_id,
             tab_label=tab_label,
-            tab_order=tab_order
+            tab_order=tab_order,
+            used_for_new_intake_form=used_for_new_intake_form,
+            no_of_verifications_required=no_of_verifications_required,
+            intake_form_name=intake_form_name,
+            intake_form_description=intake_form_description,
+            intake_form_auto_approve=intake_form_auto_approve,
+            is_active=is_active,
         )
         session.add(new_tab)
         await session.commit()
@@ -177,7 +224,13 @@ class G2PRegisterService(BaseService):
             tab_id=new_tab.tab_id,
             register_id=new_tab.register_id,
             tab_label=new_tab.tab_label,
-            tab_order=new_tab.tab_order
+            tab_order=new_tab.tab_order,
+            used_for_new_intake_form=new_tab.used_for_new_intake_form,
+            no_of_verifications_required=new_tab.no_of_verifications_required,
+            intake_form_name=new_tab.intake_form_name,
+            intake_form_description=new_tab.intake_form_description,
+            intake_form_auto_approve=new_tab.intake_form_auto_approve,
+            is_active=new_tab.is_active,
         )
         return tab_data
 
@@ -196,7 +249,13 @@ class G2PRegisterService(BaseService):
             tab_id=tab.tab_id,
             register_id=tab.register_id,
             tab_label=tab.tab_label,
-            tab_order=tab.tab_order
+            tab_order=tab.tab_order,
+            used_for_new_intake_form=tab.used_for_new_intake_form,
+            no_of_verifications_required=tab.no_of_verifications_required,
+            intake_form_name=tab.intake_form_name,
+            intake_form_description=tab.intake_form_description,
+            intake_form_auto_approve=tab.intake_form_auto_approve,
+            is_active=tab.is_active,
         )
 
         await session.delete(tab)
@@ -208,7 +267,13 @@ class G2PRegisterService(BaseService):
         self,
         tab_id: str,
         tab_label: str | None = None,
-        tab_order: int | None = None
+        tab_order: int | None = None,
+        used_for_new_intake_form: bool | None = None,
+        no_of_verifications_required: int | None = None,
+        intake_form_name: str | None = None,
+        intake_form_description: str | None = None,
+        intake_form_auto_approve: bool | None = None,
+        is_active: bool | None = None
     ) -> RegisterUITabData:
         """
         Edit an existing UI tab.
@@ -225,6 +290,24 @@ class G2PRegisterService(BaseService):
             if tab_order is not None:
                 tab.tab_order = tab_order
 
+            if used_for_new_intake_form is not None:
+                tab.used_for_new_intake_form = used_for_new_intake_form
+
+            if no_of_verifications_required is not None:
+                tab.no_of_verifications_required = no_of_verifications_required
+
+            if intake_form_name is not None:
+                tab.intake_form_name = intake_form_name
+
+            if intake_form_description is not None:
+                tab.intake_form_description = intake_form_description
+
+            if intake_form_auto_approve is not None:
+                tab.intake_form_auto_approve = intake_form_auto_approve
+
+            if is_active is not None:
+                tab.is_active = is_active
+
             await session.commit()
             await session.refresh(tab)
 
@@ -232,7 +315,13 @@ class G2PRegisterService(BaseService):
                 tab_id=tab.tab_id,
                 register_id=tab.register_id,
                 tab_label=tab.tab_label,
-                tab_order=tab.tab_order
+                tab_order=tab.tab_order,
+                used_for_new_intake_form=tab.used_for_new_intake_form,
+                no_of_verifications_required=tab.no_of_verifications_required,
+                intake_form_name=tab.intake_form_name,
+                intake_form_description=tab.intake_form_description,
+                intake_form_auto_approve=tab.intake_form_auto_approve,
+                is_active=tab.is_active,
             )
 
     async def add_register_section(
@@ -510,24 +599,14 @@ class G2PRegisterService(BaseService):
             return change_requests_list, total_items
 
     async def approve_change_request(self, change_request_id: str):
-        # if change_request.change_request_source is APPLICATION, loop through all change requests for the application and approve them
-        # if change_request.change_request_source is DIRECT, just approve the single change request
+        # Always approve only the requested change request ID.
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_request = await self.validate_change_request_exists(change_request_id, session)
-            if change_request.change_request_source == ChangeRequestSourceEnum.APPLICATION.value:
-                change_requests = await self._fetch_change_requests_for_application(change_request.application_id, session)
-                for change_request in change_requests:
-                    await self.approve_single_change_request(change_request.change_request_id, session)
-                    _logger.info(f"Approved change request: {change_request.change_request_id}")
-            else:
-                await self.approve_single_change_request(change_request_id, session)
-                _logger.info(f"Approved change request: {change_request_id}")    
-
+            change_request = await self.approve_single_change_request(change_request_id, session)
+            _logger.info(f"Approved change request: {change_request_id}")
             await session.commit()
             await session.refresh(change_request)
-            return change_request              
-       
+            return change_request
 
     async def approve_single_change_request(self, change_request_id: str, session):
         # Validate change request exists and is pending approval
@@ -565,10 +644,10 @@ class G2PRegisterService(BaseService):
 
         return change_request
             
-    async def _fetch_change_requests_for_application(self, application_id: str, session) -> list[G2PRegisterChangeRequest]:
+    async def _fetch_change_requests_for_intake_form(self, intake_form_id: str, session) -> list[G2PRegisterChangeRequest]:
         result = await session.execute(
             select(G2PRegisterChangeRequest).where(
-                G2PRegisterChangeRequest.application_id == application_id
+                G2PRegisterChangeRequest.intake_form_id == intake_form_id
             )
         )
         return result.scalars().all()
@@ -673,8 +752,8 @@ class G2PRegisterService(BaseService):
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0]
             )
-        if register_definition.register_purpose == RegisterPurposeEnum.PROGRAM_APPLICATION.value:
-            # No history for program applications
+        if register_definition.register_purpose == RegisterPurposeEnum.PROGRAM_REGISTER.value:
+            # No history for program intake_forms
             return
         
         module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
@@ -743,7 +822,7 @@ class G2PRegisterService(BaseService):
         history_dict["internal_record_id"] = change_payload.get("internal_record_id")
         history_dict["tab_id"] = change_request.tab_id
         history_dict["section_id"] = change_request.section_id
-        history_dict["application_id"] = change_request.application_id
+        history_dict["intake_form_id"] = change_request.intake_form_id
         history_dict["change_request_source"] = change_request.change_request_source
         history_dict["is_primary_section"] = change_request.is_primary_section
 
@@ -926,7 +1005,7 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, application_id: str = None) -> G2PRegisterChangeRequest:
+    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, intake_form_id: str = None) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id if present, otherwise generate new UUID
         internal_record_id: str = None
@@ -946,8 +1025,9 @@ class G2PRegisterService(BaseService):
             change_payload=[item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else [],
         )
 
-        # Determine change request source based on application_id
-        change_request_source = ChangeRequestSourceEnum.APPLICATION.value if application_id else ChangeRequestSourceEnum.DIRECT.value
+        # Determine change request source based on intake_form_id
+        change_request_source = ChangeRequestSourceEnum.APPLICATION.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
+        no_of_verifications_required = 0 if intake_form_id else g2p_register_section.no_of_verifications_required
 
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
@@ -959,10 +1039,10 @@ class G2PRegisterService(BaseService):
             section_register_id=change_request_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
             change_request_source=change_request_source,
-            application_id=application_id,
+            intake_form_id=intake_form_id,
             created_by="system",  # TODO: Replace with actual user info
             created_at=datetime.now(),
-            no_of_verifications_required=g2p_register_section.no_of_verifications_required,
+            no_of_verifications_required=no_of_verifications_required,
             no_of_verifications_done=0,
             approval_status=ApprovalStatusEnum.PENDING.value,
         )
@@ -1244,7 +1324,13 @@ class G2PRegisterService(BaseService):
                 tab_id=tab.tab_id,
                 register_id=tab.register_id,
                 tab_label=tab.tab_label,
-                tab_order=tab.tab_order
+                tab_order=tab.tab_order,
+                used_for_new_intake_form=tab.used_for_new_intake_form,
+                no_of_verifications_required=tab.no_of_verifications_required,
+                intake_form_name=tab.intake_form_name,
+                intake_form_description=tab.intake_form_description,
+                intake_form_auto_approve=tab.intake_form_auto_approve,
+                is_active=tab.is_active,
             )
             register_tabs_list.append(tab_data)
 
@@ -1255,17 +1341,22 @@ class G2PRegisterService(BaseService):
         register_id: str,
         current_page: int,
         page_size: int,
-        session
+        session,
+        used_for_new_intake_form: bool | None = None,
     ) -> tuple[list[RegisterUITabData], int]:
         """
         Fetch register tabs with pagination.
         Returns (tabs_list, total_count).
         """
+        filter_conditions: list = [G2PRegisterUITab.register_id == register_id]
+        if used_for_new_intake_form is not None:
+            filter_conditions.append(
+                G2PRegisterUITab.used_for_new_intake_form == used_for_new_intake_form
+            )
+
         # Get total count
         count_result = await session.execute(
-            select(func.count()).select_from(G2PRegisterUITab).where(
-                G2PRegisterUITab.register_id == register_id
-            )
+            select(func.count()).select_from(G2PRegisterUITab).where(*filter_conditions)
         )
         total_count = count_result.scalar() or 0
 
@@ -1275,9 +1366,9 @@ class G2PRegisterService(BaseService):
         # Fetch paginated results
         register_tabs: list[G2PRegisterUITab] = (
             await session.execute(
-                select(G2PRegisterUITab).where(
-                    G2PRegisterUITab.register_id == register_id
-                ).order_by(G2PRegisterUITab.tab_order)
+                select(G2PRegisterUITab)
+                .where(*filter_conditions)
+                .order_by(G2PRegisterUITab.tab_order)
                 .offset(offset)
                 .limit(page_size)
             )
@@ -1289,7 +1380,13 @@ class G2PRegisterService(BaseService):
                 tab_id=tab.tab_id,
                 register_id=tab.register_id,
                 tab_label=tab.tab_label,
-                tab_order=tab.tab_order
+                tab_order=tab.tab_order,
+                used_for_new_intake_form=tab.used_for_new_intake_form,
+                no_of_verifications_required=tab.no_of_verifications_required,
+                intake_form_name=tab.intake_form_name,
+                intake_form_description=tab.intake_form_description,
+                intake_form_auto_approve=tab.intake_form_auto_approve,
+                is_active=tab.is_active,
             )
             register_tabs_list.append(tab_data)
 
@@ -1768,7 +1865,7 @@ class G2PRegisterService(BaseService):
             # Also include the abstract class columns
             base_columns.update([
                 'history_record_id', 'internal_record_id', 'change_request_id', 'tab_id', 'section_id',
-                'is_primary_section', 'application_id', 'change_request_source', 'created_by', 'created_at',
+                'is_primary_section', 'intake_form_id', 'change_request_source', 'created_by', 'created_at',
                 'approved_by', 'approved_at'
             ])
 
@@ -1786,7 +1883,7 @@ class G2PRegisterService(BaseService):
                     'tab_id': history_record.tab_id,
                     'section_id': history_record.section_id,
                     'is_primary_section': history_record.is_primary_section,
-                    'application_id': history_record.application_id,
+                    'intake_form_id': history_record.intake_form_id,
                     'change_request_source': history_record.change_request_source.value if history_record.change_request_source else None,
                     'created_by': history_record.created_by,
                     'created_at': history_record.created_at.isoformat() if history_record.created_at else None,
@@ -2271,7 +2368,7 @@ class G2PRegisterService(BaseService):
                         # Base history fields to exclude from current_register_data
                         history_base_fields: set = {
                             'history_record_id', 'change_request_id', 'tab_id', 'section_id',
-                            'application_id', 'change_request_source', 'is_primary_section',
+                            'intake_form_id', 'change_request_source', 'is_primary_section',
                             'created_by', 'created_at', 'approved_by', 'approved_at', 'search_text'
                         }
 
@@ -2520,125 +2617,28 @@ class G2PRegisterService(BaseService):
             return record_data
 
     async def get_verifications_for_change_request(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[VerificationData], int]:
-        """Get all verifications for a specific change request with pagination"""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            # Validate change request exists (without checking approval status)
-            change_request: G2PRegisterChangeRequest = (
-                await session.execute(
-                    select(G2PRegisterChangeRequest).where(
-                        G2PRegisterChangeRequest.change_request_id == change_request_id
-                    )
-                )
-            ).scalar()
-            if not change_request:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
-                )
+        """Deprecated delegator. Use G2PRegisterVerificationService directly."""
+        from .g2p_verification_service import G2PRegisterVerificationService
 
-            # Get total count
-            count_result = await session.execute(select(func.count()).select_from(G2PRegisterVerification).where(
-                G2PRegisterVerification.change_request_id == change_request_id
-            ))
-            total_items = count_result.scalar() or 0
-
-            # Apply pagination
-            offset = (current_page - 1) * page_size
-            verifications = (
-                await session.execute(
-                    select(G2PRegisterVerification).where(
-                        G2PRegisterVerification.change_request_id == change_request_id
-                    ).order_by(G2PRegisterVerification.verified_at.desc()).offset(offset).limit(page_size)
-                )
-            ).scalars().all()
-
-            verifications_list: list[VerificationData] = []
-
-            # Convert ORM objects to VerificationData while still in session context
-            for verification in verifications:
-                verified_at_str = str(verification.verified_at.isoformat()) if verification.verified_at and hasattr(verification.verified_at, 'isoformat') else None
-
-                verification_data: VerificationData = VerificationData(
-                    verification_id=verification.verification_id,
-                    register_id=verification.register_id,
-                    internal_record_id=verification.internal_record_id,
-                    section_id=verification.section_id,
-                    change_request_id=verification.change_request_id,
-                    verified_by=verification.verified_by,
-                    verified_at=verified_at_str,
-                    verification_observations=verification.verification_observations,
-                    is_approved=verification.is_approved
-                )
-                verifications_list.append(verification_data)
-
-            return verifications_list, total_items
+        verification_service = G2PRegisterVerificationService.get_component()
+        return await verification_service.get_verifications(
+            change_request_id=change_request_id,
+            intake_form_id=None,
+            current_page=current_page,
+            page_size=page_size,
+            sort_by=sort_by,
+            filter_by=filter_by,
+        )
 
     async def add_verification_for_change_request(
         self,
         payload: AddVerificationPayload
     ) -> VerificationData:
-        """
-        Add a new verification for a change request.
+        """Deprecated delegator. Use G2PRegisterVerificationService directly."""
+        from .g2p_verification_service import G2PRegisterVerificationService
 
-        Args:
-            payload: AddVerificationPayload containing change_request_id, verification_observations, is_approved
-
-        Returns:
-            VerificationData: The created verification
-
-        Raises:
-            G2PRegistryException: If change request not found or other validation errors
-        """
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            # Validate change request exists
-            change_request_result = await session.execute(
-                select(G2PRegisterChangeRequest).where(
-                    G2PRegisterChangeRequest.change_request_id == payload.change_request_id
-                )
-            )
-            change_request = change_request_result.scalar_one_or_none()
-
-            if not change_request:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0]
-                )
-
-            # Create new verification
-            verification_id = str(uuid.uuid4())
-            verification = G2PRegisterVerification(
-                verification_id=verification_id,
-                register_id=change_request.register_id,
-                internal_record_id=change_request.internal_record_id,
-                section_id=change_request.section_id,
-                change_request_id=payload.change_request_id,
-                verified_by="system",  # Will be set by controller with actual user
-                verified_at=datetime.now(),
-                verification_observations=payload.verification_observations,
-                is_approved=payload.is_approved
-            )
-            session.add(verification)
-            change_request.no_of_verifications_done += 1
-            session.add(change_request)
-            await session.commit()
-            await session.refresh(verification)
-
-            # Return verification data
-            verification_data = VerificationData(
-                verification_id=verification.verification_id,
-                register_id=verification.register_id,
-                internal_record_id=verification.internal_record_id,
-                section_id=verification.section_id,
-                change_request_id=verification.change_request_id,
-                verified_by=verification.verified_by,
-                verified_at=verification.verified_at.isoformat() if verification.verified_at else None,
-                verification_observations=verification.verification_observations,
-                is_approved=verification.is_approved
-            )
-
-            return verification_data
+        verification_service = G2PRegisterVerificationService.get_component()
+        return await verification_service.add_verification(payload)
 
     async def get_deduplication_register_results(self, change_request_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[DeduplicationRegisterResultData], int]:
         """
@@ -3631,7 +3631,7 @@ class G2PRegisterService(BaseService):
                     object_name=object_name,
                     data=io.BytesIO(document_content),
                     length=len(document_content),
-                    content_type=document.content_type or "application/octet-stream",
+                    content_type=document.content_type or "intake_form/octet-stream",
                 )
 
                 # Generate presigned URL for the uploaded document

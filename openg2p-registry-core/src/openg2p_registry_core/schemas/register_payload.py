@@ -187,6 +187,12 @@ class RegisterUITabData(BaseModel):
     register_id: str
     tab_label: str
     tab_order: int
+    used_for_new_intake_form: bool = False
+    no_of_verifications_required: int = 0
+    intake_form_name: Optional[str] = None
+    intake_form_description: Optional[str] = None
+    intake_form_auto_approve: bool = False
+    is_active: bool = True
 
 
 # =============================================================================
@@ -344,6 +350,150 @@ class ChangeRequestResponsePayload(RegisterPayload):
     approved_at: Optional[str] = None
 
 
+#==============================================================================
+# Intake Form Data
+#==============================================================================
+
+class IntakeFormData(BaseModel):
+    """Intake form data."""
+    intake_form_id: Optional[str] = None
+    register_id: Optional[str] = None
+    tab_id: Optional[str] = None
+    foundational_id: Optional[str] = None
+    link_foundational_id: Optional[str] = None
+    intake_form_status: Optional[str] = None
+    change_request_submission_status: Optional[str] = None
+    change_request_id: Optional[str] = None
+    submission_no_of_attempts: Optional[int] = None
+    submission_latest_datetime: Optional[str] = None
+    submission_latest_error_code: Optional[str] = None
+    no_of_verifications_required: Optional[int] = None
+    no_of_verifications_done: Optional[int] = None
+    approval_status: Optional[str] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    last_updated_by: Optional[str] = None
+    last_updated_at: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
+            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "intake_form_status" not in mapped and "intake_form_status" in mapped:
+            mapped["intake_form_status"] = mapped["intake_form_status"]
+        return mapped
+
+
+class IntakeFormPayload(BaseModel):
+    """Intake form section payload (free-form JSON)."""
+    model_config = ConfigDict(extra="allow", from_attributes=True)
+
+
+class IntakeFormResponsePayload(IntakeFormData):
+    """Intake form response payload."""
+    pass
+
+
+class SectionPayloadInput(BaseModel):
+    """A single section payload item for saving an intake form."""
+    section_id: str
+    intake_form_payload_json: dict
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_payload_field(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_payload_json" not in mapped and "intake_form_payload_json" in mapped:
+            mapped["intake_form_payload_json"] = mapped["intake_form_payload_json"]
+        return mapped
+
+
+class SaveIntakeFormRequestPayload(BaseModel):
+    """Request payload for save_intake_form_draft (create or update, always DRAFT)."""
+    intake_form_id: Optional[str] = None
+    register_id: Optional[str] = None
+    tab_id: Optional[str] = None
+    foundational_id: Optional[str] = None
+    link_foundational_id: Optional[str] = None
+    no_of_verifications_required: Optional[int] = 0
+    section_payloads: Optional[List[SectionPayloadInput]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
+            mapped["intake_form_id"] = mapped["intake_form_id"]
+        return mapped
+
+
+class FinalizeIntakeFormRequestPayload(BaseModel):
+    """Request payload for finalize_intake_form (DRAFT -> FINAL)."""
+    intake_form_id: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
+            mapped["intake_form_id"] = mapped["intake_form_id"]
+        return mapped
+
+
+class ApproveRejectIntakeFormRequestPayload(BaseModel):
+    """Request payload for approve_intake_form / reject_intake_form."""
+    intake_form_id: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
+            mapped["intake_form_id"] = mapped["intake_form_id"]
+        return mapped
+
+
+class GetIntakeFormRequestPayload(BaseModel):
+    """Get single intake form request payload."""
+    intake_form_id: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_intake_form_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        mapped = dict(value)
+        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
+            mapped["intake_form_id"] = mapped["intake_form_id"]
+        return mapped
+
+
+class GetAllIntakeFormsRequestPayload(BaseModel):
+    """Get all intake forms request payload (paginated, optional register_id filter)."""
+    register_id: Optional[str] = None
+
+
+class SearchIntakeFormRequestPayload(BaseModel):
+    """Search in intake form section payloads request payload."""
+    register_id: Optional[str] = None
+
+
 # =============================================================================
 # Version and History Data
 # =============================================================================
@@ -372,7 +522,7 @@ class RecordHistoryData(BaseModel):
     tab_id: str
     section_id: str
     is_primary_section: bool = False
-    application_id: Optional[str] = None
+    intake_form_id: Optional[str] = None
     change_request_source: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[str] = None
@@ -515,9 +665,10 @@ class ChangeRequestsData(BaseModel):
 class VerificationData(BaseModel):
     verification_id: str
     register_id: str
-    internal_record_id: str
-    section_id: str
-    change_request_id: str
+    internal_record_id: Optional[str] = None
+    section_id: Optional[str] = None
+    change_request_id: Optional[str] = None
+    intake_form_id: Optional[str] = None
     verified_by: str
     verified_at: Optional[str] = None
     verification_observations: Optional[str] = None
@@ -535,7 +686,8 @@ class VerificationsData(BaseModel):
 
 
 class AddVerificationPayload(BaseModel):
-    change_request_id: str
+    intake_form_id: Optional[str] = None
+    change_request_id: Optional[str] = None
     verification_observations: Optional[str] = None
     is_approved: bool
 
@@ -842,7 +994,8 @@ class GetSubjectRecordRequestPayload(BaseModel):
 
 
 class GetVerificationsRequestPayload(BaseModel):
-    change_request_id: str
+    change_request_id: Optional[str] = None
+    intake_form_id: Optional[str] = None
 
 
 class GetDeduplicationRegisterResultsRequestPayload(BaseModel):
@@ -868,12 +1021,19 @@ class GetRegisterTabSectionsRequestPayload(BaseModel):
 
 class GetRegisterTabsRequestPayload(BaseModel):
     register_id: str
+    used_for_new_intake_form: Optional[bool] = None
 
 
 class AddRegisterTabRequestPayload(BaseModel):
     register_id: str
     tab_label: str
     tab_order: int = 0
+    used_for_new_intake_form: bool = False
+    no_of_verifications_required: int = 0
+    intake_form_name: Optional[str] = None
+    intake_form_description: Optional[str] = None
+    intake_form_auto_approve: bool = False
+    is_active: bool = True
 
 
 class DeleteRegisterTabRequestPayload(BaseModel):
@@ -884,6 +1044,12 @@ class EditRegisterTabRequestPayload(BaseModel):
     tab_id: str
     tab_label: Optional[str] = None
     tab_order: Optional[int] = None
+    used_for_new_intake_form: Optional[bool] = None
+    no_of_verifications_required: Optional[int] = None
+    intake_form_name: Optional[str] = None
+    intake_form_description: Optional[str] = None
+    intake_form_auto_approve: Optional[bool] = None
+    is_active: Optional[bool] = None
 
 
 class GetRegisterSectionRequestPayload(BaseModel):
