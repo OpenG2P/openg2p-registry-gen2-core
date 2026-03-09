@@ -48,6 +48,13 @@ class G2PRegisterSection(BaseORMModel):
     # JSON structure to define UI rendering for this section
     section_ui_schema: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
+    # Auto-approval
+    cr_auto_approve_for_bene_portal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cr_auto_approve_for_agent_portal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cr_auto_approve_for_staff_portal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cr_auto_approve_for_partner: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cr_auto_approve_for_intake_form: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     
 class G2PRegisterSectionDocument(BaseORMModel):
     __tablename__ = "g2p_register_section_documents"

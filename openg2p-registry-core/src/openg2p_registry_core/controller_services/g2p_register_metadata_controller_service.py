@@ -119,6 +119,7 @@ class G2PRegisterMetadataControllerService(BaseService):
         """
         payload = get_register_tabs_request.request_body.request_payload
         register_id = payload.register_id
+        used_for_new_intake_form = payload.used_for_new_intake_form
         _logger.info(f"Getting register tabs for register_id: {register_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
 
@@ -128,7 +129,7 @@ class G2PRegisterMetadataControllerService(BaseService):
         page_size = pagination.page_size if pagination else 10
 
         register_tabs_list, total_items = await g2p_register_service.get_register_tabs(
-            register_id, current_page, page_size
+            register_id, current_page, page_size, used_for_new_intake_form
         )
 
         # Calculate number of pages
@@ -144,9 +145,25 @@ class G2PRegisterMetadataControllerService(BaseService):
         register_id = payload.register_id
         tab_label = payload.tab_label
         tab_order = payload.tab_order
+        used_for_new_intake_form = payload.used_for_new_intake_form
+        no_of_verifications_required = payload.no_of_verifications_required
+        intake_form_name = payload.intake_form_name
+        intake_form_description = payload.intake_form_description
+        intake_form_auto_approve = payload.intake_form_auto_approve
+        is_active = payload.is_active
         _logger.info(f"Adding register tab for register_id: {register_id} with tab_label: {tab_label} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        register_tab_data: RegisterUITabData = await g2p_register_service.add_register_tab(register_id, tab_label, tab_order)
+        register_tab_data: RegisterUITabData = await g2p_register_service.add_register_tab(
+            register_id=register_id,
+            tab_label=tab_label,
+            tab_order=tab_order,
+            used_for_new_intake_form=used_for_new_intake_form,
+            no_of_verifications_required=no_of_verifications_required,
+            intake_form_name=intake_form_name,
+            intake_form_description=intake_form_description,
+            intake_form_auto_approve=intake_form_auto_approve,
+            is_active=is_active,
+        )
         return register_tab_data
 
     async def delete_register_tab(self, delete_register_tab_request: DeleteRegisterTabRequest) -> RegisterUITabData:
@@ -168,12 +185,24 @@ class G2PRegisterMetadataControllerService(BaseService):
         tab_id = payload.tab_id
         tab_label = payload.tab_label
         tab_order = payload.tab_order
+        used_for_new_intake_form = payload.used_for_new_intake_form
+        no_of_verifications_required = payload.no_of_verifications_required
+        intake_form_name = payload.intake_form_name
+        intake_form_description = payload.intake_form_description
+        intake_form_auto_approve = payload.intake_form_auto_approve
+        is_active = payload.is_active
         _logger.info(f"Editing register tab with tab_id: {tab_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         register_tab_data: RegisterUITabData = await g2p_register_service.edit_register_tab(
             tab_id=tab_id,
             tab_label=tab_label,
-            tab_order=tab_order
+            tab_order=tab_order,
+            used_for_new_intake_form=used_for_new_intake_form,
+            no_of_verifications_required=no_of_verifications_required,
+            intake_form_name=intake_form_name,
+            intake_form_description=intake_form_description,
+            intake_form_auto_approve=intake_form_auto_approve,
+            is_active=is_active,
         )
         return register_tab_data
 

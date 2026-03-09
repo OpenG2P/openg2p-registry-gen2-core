@@ -40,10 +40,10 @@ from .outgestion_pipeline import (
     OutgoingTransformedDataPayload,
 )
 from .data_models import DataModel, ProcessStatusEnum
-from .g2p_application import (
-    G2PApplication,
-    G2PApplicationSectionPayload,
-    ApplicationStatusEnum,
+from .g2p_intake_form import (
+    G2PIntakeForm,
+    G2PIntakeFormSectionPayload,
+    IntakeFormStatusEnum,
     ChangeRequestStatusEnum
 )
 from .g2p_attributes import G2PAttribute, G2PAttributeValue

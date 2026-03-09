@@ -22,7 +22,7 @@ class G2PRegisterHistory(BaseORMModel):
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    application_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    intake_form_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     change_request_source: Mapped[ChangeRequestSourceEnum] = mapped_column(String, nullable=False)
     is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

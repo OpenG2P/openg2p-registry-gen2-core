@@ -16,7 +16,8 @@ from .register_payload import (
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
     SectionDocumentsData, ChangeRequestDocumentsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
-    G2PAttributeValueData, AllowedParentsData
+    G2PAttributeValueData, AllowedParentsData,
+    IntakeFormResponsePayload
 )
 
 
@@ -30,6 +31,34 @@ class ChangeRequestResponseBody(G2PResponseBody):
 
 class ChangeRequestResponse(G2PResponse):
     response_body: Optional[ChangeRequestResponseBody] = None
+
+# =============================================================================
+# Intake Form Response Schemas
+# =============================================================================
+
+class IntakeFormResponseBody(G2PResponseBody):
+    response_payload: Optional[IntakeFormResponsePayload] = None
+
+
+class IntakeFormResponse(G2PResponse):
+    response_body: Optional[IntakeFormResponseBody] = None
+
+
+class IntakeFormsDataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[IntakeFormResponsePayload]] = None
+
+
+class IntakeFormsDataResponse(G2PResponse):
+    response_body: Optional[IntakeFormsDataResponseBody] = None
+
+
+class IntakeFormSearchResultsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[IntakeFormResponsePayload]] = None
+
+
+class IntakeFormSearchResultsResponse(G2PResponse):
+    response_body: Optional[IntakeFormSearchResultsResponseBody] = None
+
 
 
 # =============================================================================

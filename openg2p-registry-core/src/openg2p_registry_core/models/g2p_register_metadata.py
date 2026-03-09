@@ -2,13 +2,13 @@ import uuid
 import re
 import enum
 
-from sqlalchemy import Boolean, Integer, String, Text, JSON, Float
+from sqlalchemy import Boolean, Integer, String, Text, JSON, Float, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 class RegisterPurposeEnum(enum.Enum):
     REGISTER = "REGISTER"
-    PROGRAM_APPLICATION = "PROGRAM_APPLICATION"
+    PROGRAM_REGISTER = "PROGRAM_REGISTER"
     TABLE = "TABLE"
 
 class G2PRegisterDefinition(BaseORMModel):
@@ -55,6 +55,13 @@ class G2PRegisterUITab(BaseORMModel):
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_label: Mapped[str] = mapped_column(String, nullable=False)
     tab_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    used_for_new_intake_form: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    no_of_verifications_required: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    intake_form_name: Mapped[str] = mapped_column(String, nullable=True)
+    intake_form_description: Mapped[str] = mapped_column(String, nullable=True)
+    intake_form_auto_approve: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     @validates('tab_label')
     def validate_tab_label(self, _key: str, tab_label_value: str) -> str:
