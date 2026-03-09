@@ -4,7 +4,7 @@ from openg2p_fastapi_common.service import BaseService
 
 from openg2p_registry_core.models import G2PRegisterChangeRequest
 
-from ..services import G2PRegisterService, G2PRegisterDomainService
+from ..services import G2PRegisterService, G2PRegisterDomainService, G2PRegisterVerificationService
 from ..schemas import (
     ChangeRequestRequest, ChangeRequestRequestPayload, ChangeRequestResponsePayload,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
@@ -125,22 +125,31 @@ class G2PRegisterChangerequestControllerService(BaseService):
         )
 
     async def get_verifications_for_change_request(self, get_verifications_request: GetVerificationsRequest) -> tuple[list[VerificationData], int, int]:
+        # Deprecated wrapper.
+        # NOTE: Migrate clients to /verifications/get_verifications directly.
         payload = get_verifications_request.request_body.request_payload
         pagination = get_verifications_request.request_body.pagination_request
         change_request_id = payload.change_request_id
         _logger.info(f"Getting verifications for change_request_id: {change_request_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        verifications_list, total_items = await g2p_register_service.get_verifications_for_change_request(
-            change_request_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
+        verification_service = G2PRegisterVerificationService.get_component()
+        verifications_list, total_items = await verification_service.get_verifications(
+            change_request_id=change_request_id,
+            intake_form_id=None,
+            current_page=pagination.current_page,
+            page_size=pagination.page_size,
+            sort_by=pagination.sort_by,
+            filter_by=pagination.filter_by,
         )
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return verifications_list, total_items, number_of_pages
 
     async def add_verification_for_change_request(self, add_verification_request: AddVerificationRequest) -> VerificationData:
+        # Deprecated wrapper.
+        # NOTE: Migrate clients to /verifications/add_verification directly.
         add_verification_payload: AddVerificationPayload = add_verification_request.request_body.request_payload
         _logger.info(f"Adding verification for change_request_id: {add_verification_payload.change_request_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        verification_data: VerificationData = await g2p_register_service.add_verification_for_change_request(add_verification_payload)
+        verification_service = G2PRegisterVerificationService.get_component()
+        verification_data: VerificationData = await verification_service.add_verification(add_verification_payload)
         return verification_data
 
     async def get_change_request_summary_data(self, get_change_request_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryData:

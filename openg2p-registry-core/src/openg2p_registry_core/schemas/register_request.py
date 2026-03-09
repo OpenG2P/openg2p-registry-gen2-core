@@ -4,6 +4,12 @@ from openg2p_fastapi_common.schemas import (
 )
 from .register_payload import (
     ChangeRequestRequestPayload,
+    SaveIntakeFormRequestPayload,
+    FinalizeIntakeFormRequestPayload,
+    ApproveRejectIntakeFormRequestPayload,
+    GetIntakeFormRequestPayload,
+    GetAllIntakeFormsRequestPayload,
+    SearchIntakeFormRequestPayload,
     AddVerificationPayload,
     EmptyRequestPayload,
     ChildRegisterRequestPayload,
@@ -68,6 +74,56 @@ class ChangeRequestRequestBody(G2PRequestBody):
 
 class ChangeRequestRequest(G2PRequest):
     request_body: ChangeRequestRequestBody
+
+# =============================================================================
+# Intake Form Request Schemas
+# =============================================================================
+class SaveIntakeFormRequestBody(G2PRequestBody):
+    request_payload: SaveIntakeFormRequestPayload
+
+
+class SaveIntakeFormRequest(G2PRequest):
+    request_body: SaveIntakeFormRequestBody
+
+
+class FinalizeIntakeFormRequestBody(G2PRequestBody):
+    request_payload: FinalizeIntakeFormRequestPayload
+
+
+class FinalizeIntakeFormRequest(G2PRequest):
+    request_body: FinalizeIntakeFormRequestBody
+
+
+class ApproveRejectIntakeFormRequestBody(G2PRequestBody):
+    request_payload: ApproveRejectIntakeFormRequestPayload
+
+
+class ApproveRejectIntakeFormRequest(G2PRequest):
+    request_body: ApproveRejectIntakeFormRequestBody
+
+
+class GetIntakeFormRequestBody(G2PRequestBody):
+    request_payload: GetIntakeFormRequestPayload
+
+
+class GetIntakeFormRequest(G2PRequest):
+    request_body: GetIntakeFormRequestBody
+
+
+class GetAllIntakeFormsRequestBody(G2PRequestBody):
+    request_payload: GetAllIntakeFormsRequestPayload
+
+
+class GetAllIntakeFormsRequest(G2PRequest):
+    request_body: GetAllIntakeFormsRequestBody
+
+
+class SearchIntakeFormRequestBody(G2PRequestBody):
+    request_payload: SearchIntakeFormRequestPayload
+
+
+class SearchIntakeFormRequest(G2PRequest):
+    request_body: SearchIntakeFormRequestBody
 
 
 # =============================================================================

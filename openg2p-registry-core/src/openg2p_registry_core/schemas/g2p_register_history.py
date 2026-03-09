@@ -11,7 +11,7 @@ class G2PRegisterHistorySchema(BaseModel):
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
     change_request_id: Optional[str] = None
-    application_id: Optional[str] = None
+    intake_form_id: Optional[str] = None
     change_request_source: Optional[str] = None
     is_primary_section: Optional[bool] = None
     functional_record_id: Optional[str] = None
