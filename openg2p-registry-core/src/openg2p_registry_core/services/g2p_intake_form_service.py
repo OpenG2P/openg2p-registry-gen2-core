@@ -4,7 +4,7 @@ from datetime import datetime
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from sqlalchemy import select
+from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.exc import IntegrityError
 
@@ -17,7 +17,7 @@ from ..models import (
     ApprovalStatusEnum,
 )
 from ..helpers import submission_reference_generator
-from ..schemas import SaveSubmissionDraftRequestPayload
+from ..schemas import SaveSubmissionDraftRequestPayload, IntakeFormSubmissionsSummaryData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-intake-form-service')
@@ -238,6 +238,57 @@ class G2PIntakeFormService(BaseService):
                 )
             ).scalars().all()
             return intake_form, section_payloads
+
+    async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:
+        """Fetch aggregate summary counts for intake form submissions."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            summary_query = select(
+                func.count().label("total_submissions"),
+                func.sum(
+                    case((G2PIntakeForm.intake_form_status == IntakeFormStatusEnum.DRAFT.value, 1), else_=0)
+                ).label("total_draft_submissions"),
+                func.sum(
+                    case((G2PIntakeForm.intake_form_status == IntakeFormStatusEnum.FINAL.value, 1), else_=0)
+                ).label("total_final_submissions"),
+                func.sum(
+                    case(
+                        (
+                            (G2PIntakeForm.intake_form_status == IntakeFormStatusEnum.FINAL.value) &
+                            (G2PIntakeForm.approval_status == ApprovalStatusEnum.PENDING.value),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("total_approval_pending_submissions"),
+                func.sum(
+                    case(
+                        (
+                            (G2PIntakeForm.change_request_id.is_not(None)) &
+                            (G2PIntakeForm.change_request_id != ""),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("total_change_request_created_submissions"),
+                func.sum(
+                    case((G2PIntakeForm.approval_status == ApprovalStatusEnum.APPROVED.value, 1), else_=0)
+                ).label("total_approved_submissions"),
+                func.sum(
+                    case((G2PIntakeForm.approval_status == ApprovalStatusEnum.REJECTED.value, 1), else_=0)
+                ).label("total_rejected_submissions"),
+            ).select_from(G2PIntakeForm)
+
+            row = (await session.execute(summary_query)).one()
+            return IntakeFormSubmissionsSummaryData(
+                total_submissions=row.total_submissions or 0,
+                total_draft_submissions=row.total_draft_submissions or 0,
+                total_final_submissions=row.total_final_submissions or 0,
+                total_approval_pending_submissions=row.total_approval_pending_submissions or 0,
+                total_change_request_created_submissions=row.total_change_request_created_submissions or 0,
+                total_approved_submissions=row.total_approved_submissions or 0,
+                total_rejected_submissions=row.total_rejected_submissions or 0,
+            )
 
     async def search_in_submission(
         self,

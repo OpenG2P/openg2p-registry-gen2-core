@@ -9,8 +9,9 @@ from ..schemas import (
     ApproveRejectSubmissionRequest, ApproveRejectSubmissionRequestPayload,
     SubmissionResponsePayload,
     SectionPayloadResponseItem,
-    GetSubmissionRequest,
+    GetSubmissionRequest, GetIntakeFormSubmissionsSummaryRequest,
     SearchInSubmissionRequest,
+    IntakeFormSubmissionsSummaryData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -72,6 +73,14 @@ class G2PIntakeFormControllerService(BaseService):
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form, section_payloads = await g2p_intake_form_service.get_submission(submission_id)
         return self._build_submission_response_payload(g2p_intake_form, section_payloads)
+
+    async def get_intake_form_submissions_summary(
+        self, get_intake_form_submissions_summary_request: GetIntakeFormSubmissionsSummaryRequest
+    ) -> IntakeFormSubmissionsSummaryData:
+        _ = get_intake_form_submissions_summary_request
+        _logger.info("Getting intake form submissions summary through controller service")
+        g2p_intake_form_service = G2PIntakeFormService.get_component()
+        return await g2p_intake_form_service.get_intake_form_submissions_summary()
 
     async def search_in_submission(self, search_in_submission_request: SearchInSubmissionRequest) -> tuple[list[SubmissionResponsePayload], int, int]:
         payload = search_in_submission_request.request_body.request_payload

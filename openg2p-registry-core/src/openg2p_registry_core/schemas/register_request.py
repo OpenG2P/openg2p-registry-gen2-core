@@ -141,6 +141,14 @@ class GetRegisterSummaryDataRequest(G2PRequest):
     request_body: GetRegisterSummaryDataRequestBody
 
 
+class GetIntakeFormSubmissionsSummaryRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetIntakeFormSubmissionsSummaryRequest(G2PRequest):
+    request_body: GetIntakeFormSubmissionsSummaryRequestBody
+
+
 # =============================================================================
 # Change Request Summary Request Schemas
 # =============================================================================

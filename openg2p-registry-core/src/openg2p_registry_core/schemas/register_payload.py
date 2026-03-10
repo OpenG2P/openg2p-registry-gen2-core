@@ -497,6 +497,17 @@ class SearchInSubmissionRequestPayload(BaseModel):
     tab_id: Optional[str] = None
 
 
+class IntakeFormSubmissionsSummaryData(BaseModel):
+    """Summary statistics for intake form submissions."""
+    total_submissions: int
+    total_draft_submissions: int
+    total_final_submissions: int
+    total_approval_pending_submissions: int
+    total_change_request_created_submissions: int
+    total_approved_submissions: int
+    total_rejected_submissions: int
+
+
 # =============================================================================
 # Version and History Data
 # =============================================================================
