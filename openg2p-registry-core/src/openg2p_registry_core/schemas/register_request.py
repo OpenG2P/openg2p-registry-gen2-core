@@ -4,12 +4,11 @@ from openg2p_fastapi_common.schemas import (
 )
 from .register_payload import (
     ChangeRequestRequestPayload,
-    SaveIntakeFormRequestPayload,
-    FinalizeIntakeFormRequestPayload,
-    ApproveRejectIntakeFormRequestPayload,
-    GetIntakeFormRequestPayload,
-    GetAllIntakeFormsRequestPayload,
-    SearchIntakeFormRequestPayload,
+    SaveSubmissionDraftRequestPayload,
+    FinalizeSubmissionRequestPayload,
+    ApproveRejectSubmissionRequestPayload,
+    GetSubmissionRequestPayload,
+    SearchInSubmissionRequestPayload,
     AddVerificationPayload,
     EmptyRequestPayload,
     ChildRegisterRequestPayload,
@@ -78,52 +77,44 @@ class ChangeRequestRequest(G2PRequest):
 # =============================================================================
 # Intake Form Request Schemas
 # =============================================================================
-class SaveIntakeFormRequestBody(G2PRequestBody):
-    request_payload: SaveIntakeFormRequestPayload
+class SaveSubmissionDraftRequestBody(G2PRequestBody):
+    request_payload: SaveSubmissionDraftRequestPayload
 
 
-class SaveIntakeFormRequest(G2PRequest):
-    request_body: SaveIntakeFormRequestBody
+class SaveSubmissionDraftRequest(G2PRequest):
+    request_body: SaveSubmissionDraftRequestBody
 
 
-class FinalizeIntakeFormRequestBody(G2PRequestBody):
-    request_payload: FinalizeIntakeFormRequestPayload
+class FinalizeSubmissionRequestBody(G2PRequestBody):
+    request_payload: FinalizeSubmissionRequestPayload
 
 
-class FinalizeIntakeFormRequest(G2PRequest):
-    request_body: FinalizeIntakeFormRequestBody
+class FinalizeSubmissionRequest(G2PRequest):
+    request_body: FinalizeSubmissionRequestBody
 
 
-class ApproveRejectIntakeFormRequestBody(G2PRequestBody):
-    request_payload: ApproveRejectIntakeFormRequestPayload
+class ApproveRejectSubmissionRequestBody(G2PRequestBody):
+    request_payload: ApproveRejectSubmissionRequestPayload
 
 
-class ApproveRejectIntakeFormRequest(G2PRequest):
-    request_body: ApproveRejectIntakeFormRequestBody
+class ApproveRejectSubmissionRequest(G2PRequest):
+    request_body: ApproveRejectSubmissionRequestBody
 
 
-class GetIntakeFormRequestBody(G2PRequestBody):
-    request_payload: GetIntakeFormRequestPayload
+class GetSubmissionRequestBody(G2PRequestBody):
+    request_payload: GetSubmissionRequestPayload
 
 
-class GetIntakeFormRequest(G2PRequest):
-    request_body: GetIntakeFormRequestBody
+class GetSubmissionRequest(G2PRequest):
+    request_body: GetSubmissionRequestBody
 
 
-class GetAllIntakeFormsRequestBody(G2PRequestBody):
-    request_payload: GetAllIntakeFormsRequestPayload
+class SearchInSubmissionRequestBody(G2PRequestBody):
+    request_payload: SearchInSubmissionRequestPayload
 
 
-class GetAllIntakeFormsRequest(G2PRequest):
-    request_body: GetAllIntakeFormsRequestBody
-
-
-class SearchIntakeFormRequestBody(G2PRequestBody):
-    request_payload: SearchIntakeFormRequestPayload
-
-
-class SearchIntakeFormRequest(G2PRequest):
-    request_body: SearchIntakeFormRequestBody
+class SearchInSubmissionRequest(G2PRequest):
+    request_body: SearchInSubmissionRequestBody
 
 
 # =============================================================================

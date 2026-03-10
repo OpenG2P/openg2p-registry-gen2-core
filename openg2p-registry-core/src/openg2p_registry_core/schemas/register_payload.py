@@ -398,8 +398,8 @@ class IntakeFormPayload(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True)
 
 
-class IntakeFormResponsePayload(IntakeFormData):
-    """Intake form response payload."""
+class SubmissionResponsePayload(IntakeFormData):
+    """Submission response payload."""
     section_payloads: Optional[List["SectionPayloadResponseItem"]] = None
 
 
@@ -425,8 +425,8 @@ class SectionPayloadInput(BaseModel):
         return mapped
 
 
-class SaveIntakeFormRequestPayload(BaseModel):
-    """Request payload for save_intake_form_draft (create or update, always DRAFT)."""
+class SaveSubmissionDraftRequestPayload(BaseModel):
+    """Request payload for save_submission_draft (create or update, always DRAFT)."""
     submission_id: Optional[str] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
@@ -446,8 +446,8 @@ class SaveIntakeFormRequestPayload(BaseModel):
         return mapped
 
 
-class FinalizeIntakeFormRequestPayload(BaseModel):
-    """Request payload for finalize_intake_form (DRAFT -> FINAL)."""
+class FinalizeSubmissionRequestPayload(BaseModel):
+    """Request payload for finalize_submission (DRAFT -> FINAL)."""
     submission_id: str
 
     @model_validator(mode="before")
@@ -461,8 +461,8 @@ class FinalizeIntakeFormRequestPayload(BaseModel):
         return mapped
 
 
-class ApproveRejectIntakeFormRequestPayload(BaseModel):
-    """Request payload for approve_intake_form / reject_intake_form."""
+class ApproveRejectSubmissionRequestPayload(BaseModel):
+    """Request payload for approve_submission / reject_submission."""
     submission_id: str
 
     @model_validator(mode="before")
@@ -476,8 +476,8 @@ class ApproveRejectIntakeFormRequestPayload(BaseModel):
         return mapped
 
 
-class GetIntakeFormRequestPayload(BaseModel):
-    """Get single intake form request payload."""
+class GetSubmissionRequestPayload(BaseModel):
+    """Get single submission request payload."""
     submission_id: str
 
     @model_validator(mode="before")
@@ -491,14 +491,10 @@ class GetIntakeFormRequestPayload(BaseModel):
         return mapped
 
 
-class GetAllIntakeFormsRequestPayload(BaseModel):
-    """Get all intake forms request payload (paginated, optional register_id filter)."""
+class SearchInSubmissionRequestPayload(BaseModel):
+    """Search in submission section payloads request payload."""
     register_id: Optional[str] = None
-
-
-class SearchIntakeFormRequestPayload(BaseModel):
-    """Search in intake form section payloads request payload."""
-    register_id: Optional[str] = None
+    tab_id: Optional[str] = None
 
 
 # =============================================================================

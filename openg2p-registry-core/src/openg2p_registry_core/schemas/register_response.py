@@ -17,7 +17,7 @@ from .register_payload import (
     SectionDocumentsData, ChangeRequestDocumentsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
     G2PAttributeValueData, AllowedParentsData,
-    IntakeFormResponsePayload
+    SubmissionResponsePayload
 )
 
 
@@ -36,28 +36,20 @@ class ChangeRequestResponse(G2PResponse):
 # Intake Form Response Schemas
 # =============================================================================
 
-class IntakeFormResponseBody(G2PResponseBody):
-    response_payload: Optional[IntakeFormResponsePayload] = None
+class SubmissionResponseBody(G2PResponseBody):
+    response_payload: Optional[SubmissionResponsePayload] = None
 
 
-class IntakeFormResponse(G2PResponse):
-    response_body: Optional[IntakeFormResponseBody] = None
+class SubmissionResponse(G2PResponse):
+    response_body: Optional[SubmissionResponseBody] = None
 
 
-class IntakeFormsDataResponseBody(G2PResponseBody):
-    response_payload: Optional[List[IntakeFormResponsePayload]] = None
+class SubmissionSearchResultsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[SubmissionResponsePayload]] = None
 
 
-class IntakeFormsDataResponse(G2PResponse):
-    response_body: Optional[IntakeFormsDataResponseBody] = None
-
-
-class IntakeFormSearchResultsResponseBody(G2PResponseBody):
-    response_payload: Optional[List[IntakeFormResponsePayload]] = None
-
-
-class IntakeFormSearchResultsResponse(G2PResponse):
-    response_body: Optional[IntakeFormSearchResultsResponseBody] = None
+class SubmissionSearchResultsResponse(G2PResponse):
+    response_body: Optional[SubmissionSearchResultsResponseBody] = None
 
 
 
