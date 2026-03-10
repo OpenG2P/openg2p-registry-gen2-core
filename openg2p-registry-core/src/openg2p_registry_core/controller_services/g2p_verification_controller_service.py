@@ -19,12 +19,12 @@ class G2PVerificationControllerService(BaseService):
         self._validate_pagination_request(pagination)
         _logger.info(
             "Getting verifications through controller service for "
-            f"change_request_id={payload.change_request_id}, intake_form_id={payload.intake_form_id}"
+            f"change_request_id={payload.change_request_id}, submission_id={payload.submission_id}"
         )
         verification_service = G2PRegisterVerificationService.get_component()
         verifications_list, total_items = await verification_service.get_verifications(
             change_request_id=payload.change_request_id,
-            intake_form_id=payload.intake_form_id,
+            submission_id=payload.submission_id,
             current_page=pagination.current_page,
             page_size=pagination.page_size,
             sort_by=pagination.sort_by,
@@ -38,7 +38,7 @@ class G2PVerificationControllerService(BaseService):
         _logger.info(
             "Adding verification through controller service for "
             f"change_request_id={add_verification_payload.change_request_id}, "
-            f"intake_form_id={add_verification_payload.intake_form_id}"
+            f"submission_id={add_verification_payload.submission_id}"
         )
         verification_service = G2PRegisterVerificationService.get_component()
         verification_data: VerificationData = await verification_service.add_verification(add_verification_payload)

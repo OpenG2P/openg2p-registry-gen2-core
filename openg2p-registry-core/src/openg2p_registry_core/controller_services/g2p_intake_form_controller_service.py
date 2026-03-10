@@ -32,45 +32,45 @@ class G2PIntakeFormControllerService(BaseService):
 
     async def finalize_intake_form(self, finalize_intake_form_request: FinalizeIntakeFormRequest) -> IntakeFormResponsePayload:
         payload: FinalizeIntakeFormRequestPayload = finalize_intake_form_request.request_body.request_payload
-        intake_form_id = payload.intake_form_id
+        submission_id = payload.submission_id
         finalized_by = finalize_intake_form_request.request_header.sender_app_mnemonic
-        _logger.info(f"Saving final intake form with intake_form_id: {intake_form_id} through controller service")
+        _logger.info(f"Saving final intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.finalize_intake_form(
-            intake_form_id=intake_form_id,
+            submission_id=submission_id,
             finalized_by=finalized_by
         )
         return self._build_intake_form_response_payload(g2p_intake_form)
 
     async def approve_intake_form(self, approve_intake_form_request: ApproveRejectIntakeFormRequest) -> IntakeFormResponsePayload:
         payload: ApproveRejectIntakeFormRequestPayload = approve_intake_form_request.request_body.request_payload
-        intake_form_id = payload.intake_form_id
+        submission_id = payload.submission_id
         approved_by = approve_intake_form_request.request_header.sender_app_mnemonic
-        _logger.info(f"Approving intake form with intake_form_id: {intake_form_id} through controller service")
+        _logger.info(f"Approving intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.approve_intake_form(
-            intake_form_id=intake_form_id,
+            submission_id=submission_id,
             approved_by=approved_by
         )
         return self._build_intake_form_response_payload(g2p_intake_form)
 
     async def reject_intake_form(self, reject_intake_form_request: ApproveRejectIntakeFormRequest) -> IntakeFormResponsePayload:
         payload: ApproveRejectIntakeFormRequestPayload = reject_intake_form_request.request_body.request_payload
-        intake_form_id = payload.intake_form_id
+        submission_id = payload.submission_id
         rejected_by = reject_intake_form_request.request_header.sender_app_mnemonic
-        _logger.info(f"Rejecting intake form with intake_form_id: {intake_form_id} through controller service")
+        _logger.info(f"Rejecting intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.reject_intake_form(
-            intake_form_id=intake_form_id,
+            submission_id=submission_id,
             rejected_by=rejected_by
         )
         return self._build_intake_form_response_payload(g2p_intake_form)
 
     async def get_intake_form(self, get_intake_form_request: GetIntakeFormRequest) -> IntakeFormResponsePayload:
-        intake_form_id = get_intake_form_request.request_body.request_payload.intake_form_id
-        _logger.info(f"Getting intake form with intake_form_id: {intake_form_id} through controller service")
+        submission_id = get_intake_form_request.request_body.request_payload.submission_id
+        _logger.info(f"Getting intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
-        g2p_intake_form, section_payloads = await g2p_intake_form_service.get_intake_form(intake_form_id)
+        g2p_intake_form, section_payloads = await g2p_intake_form_service.get_intake_form(submission_id)
         return self._build_intake_form_response_payload(g2p_intake_form, section_payloads)
 
     async def get_all_intake_forms(self, get_all_intake_forms_request: GetAllIntakeFormsRequest) -> tuple[list[IntakeFormResponsePayload], int, int]:
@@ -116,7 +116,8 @@ class G2PIntakeFormControllerService(BaseService):
         section_payloads: list[G2PIntakeFormSectionPayload] | None = None
     ) -> IntakeFormResponsePayload:
         return IntakeFormResponsePayload(
-            intake_form_id=g2p_intake_form.intake_form_id,
+            submission_id=g2p_intake_form.submission_id,
+            submission_reference=g2p_intake_form.submission_reference,
             register_id=g2p_intake_form.register_id,
             tab_id=g2p_intake_form.tab_id,
             foundational_id=g2p_intake_form.foundational_id,
