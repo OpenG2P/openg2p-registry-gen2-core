@@ -209,14 +209,21 @@ class G2PIntakeFormService(BaseService):
     async def get_intake_form(
         self,
         intake_form_id: str
-    ) -> G2PIntakeForm:
-        """Fetch a single intake form record by intake_form_id."""
+    ) -> tuple[G2PIntakeForm, list[G2PIntakeFormSectionPayload]]:
+        """Fetch an intake form and its related section payload rows by intake_form_id."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             intake_form = await session.get(G2PIntakeForm, intake_form_id)
             if not intake_form:
                 self._raise_intake_form_not_found(intake_form_id)
-            return intake_form
+            section_payloads = (
+                await session.execute(
+                    select(G2PIntakeFormSectionPayload).where(
+                        G2PIntakeFormSectionPayload.intake_form_id == intake_form_id
+                    )
+                )
+            ).scalars().all()
+            return intake_form, section_payloads
 
     async def get_all_intake_forms(
         self,

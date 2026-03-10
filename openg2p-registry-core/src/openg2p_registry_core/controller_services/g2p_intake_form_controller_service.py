@@ -1,13 +1,14 @@
 import logging
 from openg2p_fastapi_common.service import BaseService
 
-from ..models import G2PIntakeForm
+from ..models import G2PIntakeForm, G2PIntakeFormSectionPayload
 from ..services import G2PIntakeFormService
 from ..schemas import (
     SaveIntakeFormRequest, SaveIntakeFormRequestPayload,
     FinalizeIntakeFormRequest, FinalizeIntakeFormRequestPayload,
     ApproveRejectIntakeFormRequest, ApproveRejectIntakeFormRequestPayload,
     IntakeFormResponsePayload,
+    SectionPayloadResponseItem,
     GetIntakeFormRequest, GetAllIntakeFormsRequest,
     SearchIntakeFormRequest,
 )
@@ -69,8 +70,8 @@ class G2PIntakeFormControllerService(BaseService):
         intake_form_id = get_intake_form_request.request_body.request_payload.intake_form_id
         _logger.info(f"Getting intake form with intake_form_id: {intake_form_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
-        g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.get_intake_form(intake_form_id)
-        return self._build_intake_form_response_payload(g2p_intake_form)
+        g2p_intake_form, section_payloads = await g2p_intake_form_service.get_intake_form(intake_form_id)
+        return self._build_intake_form_response_payload(g2p_intake_form, section_payloads)
 
     async def get_all_intake_forms(self, get_all_intake_forms_request: GetAllIntakeFormsRequest) -> tuple[list[IntakeFormResponsePayload], int, int]:
         payload = get_all_intake_forms_request.request_body.request_payload
@@ -109,7 +110,11 @@ class G2PIntakeFormControllerService(BaseService):
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return intake_form_response_payloads, total_items, number_of_pages
 
-    def _build_intake_form_response_payload(self, g2p_intake_form: G2PIntakeForm) -> IntakeFormResponsePayload:
+    def _build_intake_form_response_payload(
+        self,
+        g2p_intake_form: G2PIntakeForm,
+        section_payloads: list[G2PIntakeFormSectionPayload] | None = None
+    ) -> IntakeFormResponsePayload:
         return IntakeFormResponsePayload(
             intake_form_id=g2p_intake_form.intake_form_id,
             register_id=g2p_intake_form.register_id,
@@ -131,6 +136,13 @@ class G2PIntakeFormControllerService(BaseService):
             created_at=str(g2p_intake_form.created_at) if g2p_intake_form.created_at else None,
             last_updated_by=g2p_intake_form.last_updated_by,
             last_updated_at=str(g2p_intake_form.last_updated_at) if g2p_intake_form.last_updated_at else None,
+            section_payloads=[
+                SectionPayloadResponseItem(
+                    section_id=section_payload.section_id,
+                    payload_json=section_payload.intake_form_payload_json,
+                )
+                for section_payload in section_payloads
+            ] if section_payloads is not None else None,
         )
 
     def _validate_pagination_request(self, pagination):

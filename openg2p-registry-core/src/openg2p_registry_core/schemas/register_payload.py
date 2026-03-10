@@ -399,7 +399,13 @@ class IntakeFormPayload(BaseModel):
 
 class IntakeFormResponsePayload(IntakeFormData):
     """Intake form response payload."""
-    pass
+    section_payloads: Optional[List["SectionPayloadResponseItem"]] = None
+
+
+class SectionPayloadResponseItem(BaseModel):
+    """A single section payload item returned by get_intake_form."""
+    section_id: str
+    payload_json: dict
 
 
 class SectionPayloadInput(BaseModel):
