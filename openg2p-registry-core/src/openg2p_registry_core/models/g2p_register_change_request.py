@@ -35,7 +35,7 @@ class G2PRegisterChangeRequest(BaseORMModel):
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     
     change_request_source: Mapped[ChangeRequestSourceEnum] = mapped_column(String, nullable=False)
-    intake_form_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)

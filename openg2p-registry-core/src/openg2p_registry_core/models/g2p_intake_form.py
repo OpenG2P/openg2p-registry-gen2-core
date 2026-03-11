@@ -1,10 +1,10 @@
-from enum import unique, Enum
+from enum import Enum
 import json
 import uuid
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, Index
+from sqlalchemy import DateTime, Integer, String, Text, Index, BigInteger
 from sqlalchemy.orm import validates
-from sqlalchemy.orm import Mapped, mapped_column, synonym
+from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -24,9 +24,10 @@ class IntakeFormStatusEnum(Enum):
 
 
 class G2PIntakeForm(BaseORMModel):
-    __tablename__ = "g2p_intake_forms"
+    __tablename__ = "g2p_intake_form_submissions"
 
-    intake_form_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    submission_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
@@ -52,7 +53,7 @@ class G2PIntakeForm(BaseORMModel):
 
 class G2PIntakeFormSectionPayload(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_payloads"
-    intake_form_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     intake_form_payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
     intake_form_json_text: Mapped[str] = mapped_column(Text, nullable=False)

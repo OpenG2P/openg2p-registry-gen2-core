@@ -66,7 +66,7 @@ class G2PRegisterService(BaseService):
     async def _get_tab(self, tab_id: str, session):
         return await session.get(G2PRegisterUITab, tab_id)
 
-    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, intake_form_id: str = None):
+    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, submission_id: str = None):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
@@ -77,7 +77,7 @@ class G2PRegisterService(BaseService):
             # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
             # We don't validate internal_record_id existence here - it will be created when the change request is approved
 
-            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, intake_form_id)
+            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, submission_id)
 
             session.add(g2p_register_change_request)
             # Add the payload object if it exists
@@ -738,10 +738,10 @@ class G2PRegisterService(BaseService):
 
         return change_request
             
-    async def _fetch_change_requests_for_intake_form(self, intake_form_id: str, session) -> list[G2PRegisterChangeRequest]:
+    async def _fetch_change_requests_for_intake_form(self, submission_id: str, session) -> list[G2PRegisterChangeRequest]:
         result = await session.execute(
             select(G2PRegisterChangeRequest).where(
-                G2PRegisterChangeRequest.intake_form_id == intake_form_id
+                G2PRegisterChangeRequest.submission_id == submission_id
             )
         )
         return result.scalars().all()
@@ -916,7 +916,7 @@ class G2PRegisterService(BaseService):
         history_dict["internal_record_id"] = change_payload.get("internal_record_id")
         history_dict["tab_id"] = change_request.tab_id
         history_dict["section_id"] = change_request.section_id
-        history_dict["intake_form_id"] = change_request.intake_form_id
+        history_dict["submission_id"] = change_request.submission_id
         history_dict["change_request_source"] = change_request.change_request_source
         history_dict["is_primary_section"] = change_request.is_primary_section
 
@@ -1099,7 +1099,7 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, intake_form_id: str = None) -> G2PRegisterChangeRequest:
+    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, submission_id: str = None) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id if present, otherwise generate new UUID
         internal_record_id: str = None
@@ -1119,8 +1119,8 @@ class G2PRegisterService(BaseService):
             change_payload=[item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else [],
         )
 
-        # Determine change request source based on intake_form_id
-        change_request_source = ChangeRequestSourceEnum.INTAKE_FORM.value if intake_form_id else ChangeRequestSourceEnum.DIRECT.value
+        # Determine change request source based on submission_id
+        change_request_source = ChangeRequestSourceEnum.INTAKE_FORM.value if submission_id else ChangeRequestSourceEnum.DIRECT.value
         no_of_verifications_required = g2p_register_section.no_of_verifications_required if g2p_register_section else 0
 
         # Create the change request object
@@ -1133,7 +1133,7 @@ class G2PRegisterService(BaseService):
             section_register_id=change_request_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
             change_request_source=change_request_source,
-            intake_form_id=intake_form_id,
+            submission_id=submission_id,
             created_by="system",  # TODO: Replace with actual user info
             created_at=datetime.now(),
             no_of_verifications_required=no_of_verifications_required,
@@ -1959,7 +1959,7 @@ class G2PRegisterService(BaseService):
             # Also include the abstract class columns
             base_columns.update([
                 'history_record_id', 'internal_record_id', 'change_request_id', 'tab_id', 'section_id',
-                'is_primary_section', 'intake_form_id', 'change_request_source', 'created_by', 'created_at',
+                'is_primary_section', 'submission_id', 'change_request_source', 'created_by', 'created_at',
                 'approved_by', 'approved_at'
             ])
 
@@ -1977,7 +1977,7 @@ class G2PRegisterService(BaseService):
                     'tab_id': history_record.tab_id,
                     'section_id': history_record.section_id,
                     'is_primary_section': history_record.is_primary_section,
-                    'intake_form_id': history_record.intake_form_id,
+                    'submission_id': history_record.submission_id,
                     'change_request_source': history_record.change_request_source.value if history_record.change_request_source else None,
                     'created_by': history_record.created_by,
                     'created_at': history_record.created_at.isoformat() if history_record.created_at else None,
@@ -2462,7 +2462,7 @@ class G2PRegisterService(BaseService):
                         # Base history fields to exclude from current_register_data
                         history_base_fields: set = {
                             'history_record_id', 'change_request_id', 'tab_id', 'section_id',
-                            'intake_form_id', 'change_request_source', 'is_primary_section',
+                            'submission_id', 'change_request_source', 'is_primary_section',
                             'created_by', 'created_at', 'approved_by', 'approved_at', 'search_text'
                         }
 
@@ -2717,7 +2717,7 @@ class G2PRegisterService(BaseService):
         verification_service = G2PRegisterVerificationService.get_component()
         return await verification_service.get_verifications(
             change_request_id=change_request_id,
-            intake_form_id=None,
+            submission_id=None,
             current_page=current_page,
             page_size=page_size,
             sort_by=sort_by,

@@ -356,7 +356,8 @@ class ChangeRequestResponsePayload(RegisterPayload):
 
 class IntakeFormData(BaseModel):
     """Intake form data."""
-    intake_form_id: Optional[str] = None
+    submission_id: Optional[str] = None
+    submission_reference: Optional[int] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     foundational_id: Optional[str] = None
@@ -385,8 +386,8 @@ class IntakeFormData(BaseModel):
         if not isinstance(value, dict):
             return value
         mapped = dict(value)
-        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
-            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "submission_id" not in mapped and "submission_id" in mapped:
+            mapped["submission_id"] = mapped["submission_id"]
         if "intake_form_status" not in mapped and "intake_form_status" in mapped:
             mapped["intake_form_status"] = mapped["intake_form_status"]
         return mapped
@@ -397,9 +398,15 @@ class IntakeFormPayload(BaseModel):
     model_config = ConfigDict(extra="allow", from_attributes=True)
 
 
-class IntakeFormResponsePayload(IntakeFormData):
-    """Intake form response payload."""
-    pass
+class SubmissionResponsePayload(IntakeFormData):
+    """Submission response payload."""
+    section_payloads: Optional[List["SectionPayloadResponseItem"]] = None
+
+
+class SectionPayloadResponseItem(BaseModel):
+    """A single section payload item returned by get_intake_form."""
+    section_id: str
+    payload_json: dict
 
 
 class SectionPayloadInput(BaseModel):
@@ -418,9 +425,9 @@ class SectionPayloadInput(BaseModel):
         return mapped
 
 
-class SaveIntakeFormRequestPayload(BaseModel):
-    """Request payload for save_intake_form_draft (create or update, always DRAFT)."""
-    intake_form_id: Optional[str] = None
+class SaveSubmissionDraftRequestPayload(BaseModel):
+    """Request payload for save_submission_draft (create or update, always DRAFT)."""
+    submission_id: Optional[str] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     foundational_id: Optional[str] = None
@@ -434,14 +441,14 @@ class SaveIntakeFormRequestPayload(BaseModel):
         if not isinstance(value, dict):
             return value
         mapped = dict(value)
-        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
-            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "submission_id" not in mapped and "submission_id" in mapped:
+            mapped["submission_id"] = mapped["submission_id"]
         return mapped
 
 
-class FinalizeIntakeFormRequestPayload(BaseModel):
-    """Request payload for finalize_intake_form (DRAFT -> FINAL)."""
-    intake_form_id: str
+class FinalizeSubmissionRequestPayload(BaseModel):
+    """Request payload for finalize_submission (DRAFT -> FINAL)."""
+    submission_id: str
 
     @model_validator(mode="before")
     @classmethod
@@ -449,14 +456,14 @@ class FinalizeIntakeFormRequestPayload(BaseModel):
         if not isinstance(value, dict):
             return value
         mapped = dict(value)
-        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
-            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "submission_id" not in mapped and "submission_id" in mapped:
+            mapped["submission_id"] = mapped["submission_id"]
         return mapped
 
 
-class ApproveRejectIntakeFormRequestPayload(BaseModel):
-    """Request payload for approve_intake_form / reject_intake_form."""
-    intake_form_id: str
+class ApproveRejectSubmissionRequestPayload(BaseModel):
+    """Request payload for approve_submission / reject_submission."""
+    submission_id: str
 
     @model_validator(mode="before")
     @classmethod
@@ -464,14 +471,14 @@ class ApproveRejectIntakeFormRequestPayload(BaseModel):
         if not isinstance(value, dict):
             return value
         mapped = dict(value)
-        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
-            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "submission_id" not in mapped and "submission_id" in mapped:
+            mapped["submission_id"] = mapped["submission_id"]
         return mapped
 
 
-class GetIntakeFormRequestPayload(BaseModel):
-    """Get single intake form request payload."""
-    intake_form_id: str
+class GetSubmissionRequestPayload(BaseModel):
+    """Get single submission request payload."""
+    submission_id: str
 
     @model_validator(mode="before")
     @classmethod
@@ -479,19 +486,26 @@ class GetIntakeFormRequestPayload(BaseModel):
         if not isinstance(value, dict):
             return value
         mapped = dict(value)
-        if "intake_form_id" not in mapped and "intake_form_id" in mapped:
-            mapped["intake_form_id"] = mapped["intake_form_id"]
+        if "submission_id" not in mapped and "submission_id" in mapped:
+            mapped["submission_id"] = mapped["submission_id"]
         return mapped
 
 
-class GetAllIntakeFormsRequestPayload(BaseModel):
-    """Get all intake forms request payload (paginated, optional register_id filter)."""
+class SearchInSubmissionRequestPayload(BaseModel):
+    """Search in submission section payloads request payload."""
     register_id: Optional[str] = None
+    tab_id: Optional[str] = None
 
 
-class SearchIntakeFormRequestPayload(BaseModel):
-    """Search in intake form section payloads request payload."""
-    register_id: Optional[str] = None
+class IntakeFormSubmissionsSummaryData(BaseModel):
+    """Summary statistics for intake form submissions."""
+    total_submissions: int
+    total_draft_submissions: int
+    total_final_submissions: int
+    total_approval_pending_submissions: int
+    total_change_request_created_submissions: int
+    total_approved_submissions: int
+    total_rejected_submissions: int
 
 
 # =============================================================================
@@ -522,7 +536,7 @@ class RecordHistoryData(BaseModel):
     tab_id: str
     section_id: str
     is_primary_section: bool = False
-    intake_form_id: Optional[str] = None
+    submission_id: Optional[str] = None
     change_request_source: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[str] = None
@@ -668,7 +682,7 @@ class VerificationData(BaseModel):
     internal_record_id: Optional[str] = None
     section_id: Optional[str] = None
     change_request_id: Optional[str] = None
-    intake_form_id: Optional[str] = None
+    submission_id: Optional[str] = None
     verified_by: str
     verified_at: Optional[str] = None
     verification_observations: Optional[str] = None
@@ -686,7 +700,7 @@ class VerificationsData(BaseModel):
 
 
 class AddVerificationPayload(BaseModel):
-    intake_form_id: Optional[str] = None
+    submission_id: Optional[str] = None
     change_request_id: Optional[str] = None
     verification_observations: Optional[str] = None
     is_approved: bool
@@ -1000,7 +1014,7 @@ class GetSubjectRecordRequestPayload(BaseModel):
 
 class GetVerificationsRequestPayload(BaseModel):
     change_request_id: Optional[str] = None
-    intake_form_id: Optional[str] = None
+    submission_id: Optional[str] = None
 
 
 class GetDeduplicationRegisterResultsRequestPayload(BaseModel):

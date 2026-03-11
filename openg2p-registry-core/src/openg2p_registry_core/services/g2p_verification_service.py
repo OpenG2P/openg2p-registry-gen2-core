@@ -18,14 +18,14 @@ class G2PRegisterVerificationService(BaseService):
     async def get_verifications(
         self,
         change_request_id: str | None,
-        intake_form_id: str | None,
+        submission_id: str | None,
         current_page: int = 1,
         page_size: int = 10,
         sort_by: str | None = None,
         filter_by: dict | None = None,
     ) -> tuple[list[VerificationData], int]:
         """Get verifications for either a change request or an intake_form (exactly one target)."""
-        self._validate_target_ids(change_request_id, intake_form_id)
+        self._validate_target_ids(change_request_id, submission_id)
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
         async with session_maker() as session:
@@ -33,8 +33,8 @@ class G2PRegisterVerificationService(BaseService):
                 await self._validate_change_request_exists(change_request_id, session)
                 target_condition = G2PRegisterVerification.change_request_id == change_request_id
             else:
-                await self._validate_intake_form_exists(intake_form_id, session)
-                target_condition = G2PRegisterVerification.intake_form_id == intake_form_id
+                await self._validate_intake_form_exists(submission_id, session)
+                target_condition = G2PRegisterVerification.submission_id == submission_id
 
             count_query = select(func.count()).select_from(G2PRegisterVerification).where(target_condition)
             total_items = (await session.execute(count_query)).scalar() or 0
@@ -60,8 +60,8 @@ class G2PRegisterVerificationService(BaseService):
             return verifications_list, total_items
 
     async def add_verification(self, payload: AddVerificationPayload) -> VerificationData:
-        """Add verification for either change_request_id or intake_form_id (exactly one target)."""
-        self._validate_target_ids(payload.change_request_id, payload.intake_form_id)
+        """Add verification for either change_request_id or submission_id (exactly one target)."""
+        self._validate_target_ids(payload.change_request_id, payload.submission_id)
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
         async with session_maker() as session:
@@ -77,7 +77,7 @@ class G2PRegisterVerificationService(BaseService):
                     internal_record_id=change_request.internal_record_id,
                     section_id=change_request.section_id,
                     change_request_id=change_request.change_request_id,
-                    intake_form_id=None,
+                    submission_id=None,
                     verified_by="system",  # TODO: replace with authenticated user from request context
                     verified_at=now,
                     verification_observations=payload.verification_observations,
@@ -86,14 +86,14 @@ class G2PRegisterVerificationService(BaseService):
                 change_request.no_of_verifications_done = (change_request.no_of_verifications_done or 0) + 1
                 session.add(change_request)
             else:
-                intake_form = await self._validate_intake_form_exists(payload.intake_form_id, session)
+                intake_form = await self._validate_intake_form_exists(payload.submission_id, session)
                 verification = G2PRegisterVerification(
                     verification_id=verification_id,
                     register_id=intake_form.register_id,
                     internal_record_id=None,
                     section_id=None,
                     change_request_id=None,
-                    intake_form_id=intake_form.intake_form_id,
+                    submission_id=intake_form.submission_id,
                     verified_by="system",  # TODO: replace with authenticated user from request context
                     verified_at=now,
                     verification_observations=payload.verification_observations,
@@ -107,11 +107,11 @@ class G2PRegisterVerificationService(BaseService):
             await session.refresh(verification)
             return self._to_verification_data(verification)
 
-    def _validate_target_ids(self, change_request_id: str | None, intake_form_id: str | None):
-        if bool(change_request_id) == bool(intake_form_id):
+    def _validate_target_ids(self, change_request_id: str | None, submission_id: str | None):
+        if bool(change_request_id) == bool(submission_id):
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                message="Exactly one of change_request_id or intake_form_id is required",
+                message="Exactly one of change_request_id or submission_id is required",
             )
 
     async def _validate_change_request_exists(self, change_request_id: str, session) -> G2PRegisterChangeRequest:
@@ -130,12 +130,12 @@ class G2PRegisterVerificationService(BaseService):
             )
         return change_request
 
-    async def _validate_intake_form_exists(self, intake_form_id: str, session) -> G2PIntakeForm:
-        intake_form = await session.get(G2PIntakeForm, intake_form_id)
+    async def _validate_intake_form_exists(self, submission_id: str, session) -> G2PIntakeForm:
+        intake_form = await session.get(G2PIntakeForm, submission_id)
         if not intake_form:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[1],
-                message=f"{G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[0]}: {intake_form_id}",
+                message=f"{G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[0]}: {submission_id}",
             )
         return intake_form
 
@@ -146,7 +146,7 @@ class G2PRegisterVerificationService(BaseService):
             internal_record_id=verification.internal_record_id,
             section_id=verification.section_id,
             change_request_id=verification.change_request_id,
-            intake_form_id=verification.intake_form_id,
+            submission_id=verification.submission_id,
             verified_by=verification.verified_by,
             verified_at=verification.verified_at.isoformat() if verification.verified_at else None,
             verification_observations=verification.verification_observations,

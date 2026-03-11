@@ -134,7 +134,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
         verification_service = G2PRegisterVerificationService.get_component()
         verifications_list, total_items = await verification_service.get_verifications(
             change_request_id=change_request_id,
-            intake_form_id=None,
+            submission_id=None,
             current_page=pagination.current_page,
             page_size=pagination.page_size,
             sort_by=pagination.sort_by,
