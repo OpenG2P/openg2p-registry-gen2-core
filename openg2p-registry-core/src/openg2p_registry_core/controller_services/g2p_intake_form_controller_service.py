@@ -10,8 +10,9 @@ from ..schemas import (
     SubmissionResponsePayload,
     SectionPayloadResponseItem,
     GetSubmissionRequest, GetIntakeFormSubmissionsSummaryRequest,
-    SearchInSubmissionRequest,
+    SearchInSubmissionRequest, GetChangeRequestsForSubmissionRequest, GetNumberOfPendingChangeRequestsForSubmissionRequest,
     IntakeFormSubmissionsSummaryData,
+    NumberOfPendingChangeRequestsForSubmissionData,
     GetIntakeFormsForRegisterRequest, GetIntakeFormMetadataRequest,
     RegisterUITabData, RegisterSectionData,
 )
@@ -141,6 +142,43 @@ class G2PIntakeFormControllerService(BaseService):
         submission_response_payloads = [self._build_submission_response_payload(item) for item in search_results_list]
         number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
         return submission_response_payloads, total_items, number_of_pages
+
+    async def get_change_requests_for_submission(
+        self, get_change_requests_for_submission_request: GetChangeRequestsForSubmissionRequest
+    ) -> tuple[list[dict], int, int]:
+        payload = get_change_requests_for_submission_request.request_body.request_payload
+        pagination = get_change_requests_for_submission_request.request_body.pagination_request
+        self._validate_pagination_request(pagination)
+
+        _logger.info(
+            f"Getting change requests for submission_id: {payload.submission_id} through controller service"
+        )
+        g2p_intake_form_service = G2PIntakeFormService.get_component()
+        change_requests, total_items = await g2p_intake_form_service.get_change_requests_for_submission(
+            submission_id=payload.submission_id,
+            current_page=pagination.current_page,
+            page_size=pagination.page_size,
+            sort_by=pagination.sort_by,
+            filter_by=pagination.filter_by,
+        )
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
+        return change_requests, total_items, number_of_pages
+
+    async def get_number_of_pending_change_requests_for_submission(
+        self,
+        get_number_of_pending_change_requests_for_submission_request: GetNumberOfPendingChangeRequestsForSubmissionRequest
+    ) -> NumberOfPendingChangeRequestsForSubmissionData:
+        submission_id = (
+            get_number_of_pending_change_requests_for_submission_request.request_body.request_payload.submission_id
+        )
+        _logger.info(
+            f"Getting number of pending change requests for submission_id: {submission_id} through controller service"
+        )
+        g2p_intake_form_service = G2PIntakeFormService.get_component()
+        count = await g2p_intake_form_service.get_number_of_pending_change_requests_for_submission(submission_id)
+        return NumberOfPendingChangeRequestsForSubmissionData(
+            number_of_pending_change_requests=count
+        )
 
     def _build_submission_response_payload(
         self,

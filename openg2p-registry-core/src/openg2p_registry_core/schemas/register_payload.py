@@ -380,18 +380,6 @@ class IntakeFormData(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_fields(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "submission_id" not in mapped and "submission_id" in mapped:
-            mapped["submission_id"] = mapped["submission_id"]
-        if "intake_form_status" not in mapped and "intake_form_status" in mapped:
-            mapped["intake_form_status"] = mapped["intake_form_status"]
-        return mapped
-
 
 class IntakeFormPayload(BaseModel):
     """Intake form section payload (free-form JSON)."""
@@ -414,16 +402,6 @@ class SectionPayloadInput(BaseModel):
     section_id: str
     intake_form_payload_json: dict
 
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_payload_field(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "intake_form_payload_json" not in mapped and "intake_form_payload_json" in mapped:
-            mapped["intake_form_payload_json"] = mapped["intake_form_payload_json"]
-        return mapped
-
 
 class SaveSubmissionDraftRequestPayload(BaseModel):
     """Request payload for save_submission_draft (create or update, always DRAFT)."""
@@ -435,66 +413,41 @@ class SaveSubmissionDraftRequestPayload(BaseModel):
     no_of_verifications_required: Optional[int] = 0
     section_payloads: Optional[List[SectionPayloadInput]] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_fields(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "submission_id" not in mapped and "submission_id" in mapped:
-            mapped["submission_id"] = mapped["submission_id"]
-        return mapped
-
 
 class FinalizeSubmissionRequestPayload(BaseModel):
     """Request payload for finalize_submission (DRAFT -> FINAL)."""
     submission_id: str
-
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_fields(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "submission_id" not in mapped and "submission_id" in mapped:
-            mapped["submission_id"] = mapped["submission_id"]
-        return mapped
 
 
 class ApproveRejectSubmissionRequestPayload(BaseModel):
     """Request payload for approve_submission / reject_submission."""
     submission_id: str
 
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_fields(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "submission_id" not in mapped and "submission_id" in mapped:
-            mapped["submission_id"] = mapped["submission_id"]
-        return mapped
-
 
 class GetSubmissionRequestPayload(BaseModel):
     """Get single submission request payload."""
     submission_id: str
-
-    @model_validator(mode="before")
-    @classmethod
-    def map_legacy_intake_form_fields(cls, value):
-        if not isinstance(value, dict):
-            return value
-        mapped = dict(value)
-        if "submission_id" not in mapped and "submission_id" in mapped:
-            mapped["submission_id"] = mapped["submission_id"]
-        return mapped
 
 
 class SearchInSubmissionRequestPayload(BaseModel):
     """Search in submission section payloads request payload."""
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
+
+
+class GetChangeRequestsForSubmissionRequestPayload(BaseModel):
+    """Get change requests for a submission."""
+    submission_id: str
+
+
+class GetNumberOfPendingChangeRequestsForSubmissionRequestPayload(BaseModel):
+    """Get count of pending change requests for a submission."""
+    submission_id: str
+
+
+class NumberOfPendingChangeRequestsForSubmissionData(BaseModel):
+    """Pending change request count for a submission."""
+    number_of_pending_change_requests: int
 
 
 class GetIntakeFormsForRegisterRequestPayload(BaseModel):

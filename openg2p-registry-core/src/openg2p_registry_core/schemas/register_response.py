@@ -17,7 +17,7 @@ from .register_payload import (
     SectionDocumentsData, ChangeRequestDocumentsData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
     G2PAttributeValueData, AllowedParentsData,
-    SubmissionResponsePayload, IntakeFormSubmissionsSummaryData
+    SubmissionResponsePayload, IntakeFormSubmissionsSummaryData, NumberOfPendingChangeRequestsForSubmissionData
 )
 
 
@@ -74,6 +74,14 @@ class IntakeFormSubmissionsSummaryResponseBody(G2PResponseBody):
 
 class IntakeFormSubmissionsSummaryResponse(G2PResponse):
     response_body: Optional[IntakeFormSubmissionsSummaryResponseBody] = None
+
+
+class NumberOfPendingChangeRequestsForSubmissionResponseBody(G2PResponseBody):
+    response_payload: Optional[NumberOfPendingChangeRequestsForSubmissionData] = None
+
+
+class NumberOfPendingChangeRequestsForSubmissionResponse(G2PResponse):
+    response_body: Optional[NumberOfPendingChangeRequestsForSubmissionResponseBody] = None
 
 
 

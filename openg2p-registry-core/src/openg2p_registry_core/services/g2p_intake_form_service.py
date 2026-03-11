@@ -11,6 +11,9 @@ from sqlalchemy.exc import IntegrityError
 from ..models import (
     G2PIntakeForm,
     G2PIntakeFormSectionPayload,
+    G2PRegisterChangeRequest,
+    G2PRegisterChangeRequestPayload,
+    G2PRegisterSection,
     G2PRegisterUITab,
     IntakeFormStatusEnum,
     ChangeRequestStatusEnum,
@@ -330,6 +333,99 @@ class G2PIntakeFormService(BaseService):
             end = start + page_size
             return deduped[start:end], total_items
 
+    async def get_change_requests_for_submission(
+        self,
+        submission_id: str,
+        current_page: int,
+        page_size: int,
+        sort_by: str | None = None,
+        filter_by=None
+    ) -> tuple[list[dict], int]:
+        """Get paginated flattened change requests for a given submission_id."""
+        _ = filter_by
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            conditions = [G2PRegisterChangeRequest.submission_id == submission_id]
+
+            total_items = (
+                await session.execute(
+                    select(func.count()).select_from(G2PRegisterChangeRequest).where(*conditions)
+                )
+            ).scalar_one()
+
+            query = select(
+                G2PRegisterChangeRequest,
+                G2PRegisterChangeRequestPayload,
+            ).join(
+                G2PRegisterChangeRequestPayload,
+                G2PRegisterChangeRequest.change_request_id == G2PRegisterChangeRequestPayload.change_request_id,
+            ).where(*conditions)
+            query = self._apply_change_request_sort(query, sort_by)
+            query = query.offset((current_page - 1) * page_size).limit(page_size)
+            rows = (await session.execute(query)).all()
+
+            change_requests_list: list[dict] = []
+            for change_request, payload in rows:
+                created_at_str = (
+                    str(change_request.created_at.isoformat())
+                    if change_request.created_at and hasattr(change_request.created_at, "isoformat")
+                    else None
+                )
+                approved_at_str = (
+                    str(change_request.approved_at.isoformat())
+                    if change_request.approved_at and hasattr(change_request.approved_at, "isoformat")
+                    else None
+                )
+
+                g2p_register_section: G2PRegisterSection = (
+                    await session.execute(
+                        select(G2PRegisterSection).where(
+                            G2PRegisterSection.section_id == change_request.section_id
+                        )
+                    )
+                ).scalar()
+
+                change_request_data = {
+                    "change_request_id": change_request.change_request_id,
+                    "register_id": change_request.register_id,
+                    "tab_id": change_request.tab_id,
+                    "internal_record_id": change_request.internal_record_id,
+                    "section_id": change_request.section_id,
+                    "section_mnemonic": g2p_register_section.section_mnemonic if g2p_register_section else None,
+                    "source_partner_id": change_request.source_partner_id,
+                    "created_by": change_request.created_by,
+                    "created_at": created_at_str,
+                    "no_of_verifications_required": change_request.no_of_verifications_required,
+                    "no_of_verifications_done": change_request.no_of_verifications_done,
+                    "approval_status": change_request.approval_status,
+                    "approved_by": change_request.approved_by,
+                    "approved_at": approved_at_str,
+                }
+
+                change_payload = payload.change_payload if payload else {}
+                if change_payload and isinstance(change_payload, dict):
+                    for key, value in change_payload.items():
+                        if key != "internal_record_id":
+                            change_request_data[key] = value
+
+                change_requests_list.append(change_request_data)
+
+            return change_requests_list, total_items
+
+    async def get_number_of_pending_change_requests_for_submission(self, submission_id: str) -> int:
+        """Get number of pending change requests for a submission."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            total_items = (
+                await session.execute(
+                    select(func.count()).select_from(G2PRegisterChangeRequest).where(
+                        (G2PRegisterChangeRequest.submission_id == submission_id) &
+                        (G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value)
+                    )
+                )
+            ).scalar_one()
+            return total_items or 0
+
     def _apply_sort(self, query, sort_by: str | None):
         if not sort_by:
             return query.order_by(G2PIntakeForm.created_at.desc())
@@ -349,6 +445,27 @@ class G2PIntakeFormService(BaseService):
             return query.order_by(G2PIntakeForm.created_at.desc())
 
         sort_column = getattr(G2PIntakeForm, sort_field)
+        return query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
+
+    def _apply_change_request_sort(self, query, sort_by: str | None):
+        if not sort_by:
+            return query.order_by(G2PRegisterChangeRequest.created_at.desc())
+
+        sort_field = sort_by
+        sort_desc = False
+        if sort_by.startswith("-"):
+            sort_desc = True
+            sort_field = sort_by[1:]
+        elif ":" in sort_by:
+            parts = sort_by.split(":", 1)
+            sort_field = parts[0]
+            sort_desc = parts[1].lower() == "desc"
+
+        if not hasattr(G2PRegisterChangeRequest, sort_field):
+            _logger.warning(f"Invalid sort field '{sort_field}' for change request query. Using default sort.")
+            return query.order_by(G2PRegisterChangeRequest.created_at.desc())
+
+        sort_column = getattr(G2PRegisterChangeRequest, sort_field)
         return query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
 
     def _raise_intake_form_not_found(self, submission_id: str):
