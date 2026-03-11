@@ -30,92 +30,82 @@ class G2PIntakeFormService(BaseService):
         created_by: str
     ) -> G2PIntakeForm:
         """Create or update an intake form in DRAFT state and upsert section payloads."""
-        is_new_submission = submission_request_payload.submission_id is None
-        max_attempts = 3 if is_new_submission else 1
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
-        for attempt in range(max_attempts):
-            async with session_maker() as session:
-                now = datetime.now()
-                intake_form: G2PIntakeForm | None = None
+        async with session_maker() as session:
+            now = datetime.now()
+            intake_form: G2PIntakeForm | None = None
 
-                if submission_request_payload.submission_id:
-                    intake_form = await session.get(G2PIntakeForm, submission_request_payload.submission_id)
-                    if not intake_form:
-                        self._raise_intake_form_not_found(submission_request_payload.submission_id)
-                    if intake_form.intake_form_status != IntakeFormStatusEnum.DRAFT.value:
-                        self._raise_intake_form_invalid_state(
-                            f"Intake form '{intake_form.submission_id}' can only be updated in DRAFT state"
-                        )
-                else:
-                    if not submission_request_payload.register_id:
-                        self._raise_request_validation_error("register_id is required for creating a new intake form")
-                    if not submission_request_payload.tab_id:
-                        self._raise_request_validation_error("tab_id is required for creating a new intake form")
-
-                    no_of_verifications_required = (
-                        await session.execute(
-                            select(G2PRegisterUITab.no_of_verifications_required).where(
-                                G2PRegisterUITab.register_id == submission_request_payload.register_id,
-                                G2PRegisterUITab.tab_id == submission_request_payload.tab_id,
-                            ).limit(1)
-                        )
-                    ).scalar_one_or_none() or 0
-
-                    intake_form = G2PIntakeForm(
-                        register_id=submission_request_payload.register_id,
-                        tab_id=submission_request_payload.tab_id,
-                        foundational_id=submission_request_payload.foundational_id,
-                        link_foundational_id=submission_request_payload.link_foundational_id,
-                        submission_reference=submission_reference_generator.next_id(),
-                        no_of_verifications_required=no_of_verifications_required,
-                        created_by=created_by,
-                        created_at=now,
-                        last_updated_by=created_by,
-                        last_updated_at=now,
+            if submission_request_payload.submission_id:
+                intake_form = await session.get(G2PIntakeForm, submission_request_payload.submission_id)
+                if not intake_form:
+                    self._raise_intake_form_not_found(submission_request_payload.submission_id)
+                if intake_form.intake_form_status != IntakeFormStatusEnum.DRAFT.value:
+                    self._raise_intake_form_invalid_state(
+                        f"Intake form '{intake_form.submission_id}' can only be updated in DRAFT state"
                     )
-                    session.add(intake_form)
-                    await session.flush()
+            else:
+                if not submission_request_payload.register_id:
+                    self._raise_request_validation_error("register_id is required for creating a new intake form")
+                if not submission_request_payload.tab_id:
+                    self._raise_request_validation_error("tab_id is required for creating a new intake form")
 
-                if submission_request_payload.register_id:
-                    intake_form.register_id = submission_request_payload.register_id
-                if submission_request_payload.tab_id:
-                    intake_form.tab_id = submission_request_payload.tab_id
-                intake_form.foundational_id = submission_request_payload.foundational_id
-                intake_form.link_foundational_id = submission_request_payload.link_foundational_id
-                if submission_request_payload.submission_id and submission_request_payload.no_of_verifications_required is not None:
-                    intake_form.no_of_verifications_required = submission_request_payload.no_of_verifications_required
-                intake_form.last_updated_by = created_by
-                intake_form.last_updated_at = now
+                no_of_verifications_required = (
+                    await session.execute(
+                        select(G2PRegisterUITab.no_of_verifications_required).where(
+                            G2PRegisterUITab.register_id == submission_request_payload.register_id,
+                            G2PRegisterUITab.tab_id == submission_request_payload.tab_id,
+                        ).limit(1)
+                    )
+                ).scalar_one_or_none() or 0
+
+                intake_form = G2PIntakeForm(
+                    register_id=submission_request_payload.register_id,
+                    tab_id=submission_request_payload.tab_id,
+                    foundational_id=submission_request_payload.foundational_id,
+                    link_foundational_id=submission_request_payload.link_foundational_id,
+                    submission_reference=submission_reference_generator.next_id(),
+                    no_of_verifications_required=no_of_verifications_required,
+                    created_by=created_by,
+                    created_at=now,
+                    last_updated_by=created_by,
+                    last_updated_at=now,
+                )
                 session.add(intake_form)
+                await session.flush()
 
-                if submission_request_payload.section_payloads:
-                    for section_payload in submission_request_payload.section_payloads:
-                        row = await session.get(
-                            G2PIntakeFormSectionPayload,
-                            (intake_form.submission_id, section_payload.section_id),
+            if submission_request_payload.register_id:
+                intake_form.register_id = submission_request_payload.register_id
+            if submission_request_payload.tab_id:
+                intake_form.tab_id = submission_request_payload.tab_id
+            intake_form.foundational_id = submission_request_payload.foundational_id
+            intake_form.link_foundational_id = submission_request_payload.link_foundational_id
+            if submission_request_payload.submission_id and submission_request_payload.no_of_verifications_required is not None:
+                intake_form.no_of_verifications_required = submission_request_payload.no_of_verifications_required
+            intake_form.last_updated_by = created_by
+            intake_form.last_updated_at = now
+            session.add(intake_form)
+
+            if submission_request_payload.section_payloads:
+                for section_payload in submission_request_payload.section_payloads:
+                    row = await session.get(
+                        G2PIntakeFormSectionPayload,
+                        (intake_form.submission_id, section_payload.section_id),
+                    )
+                    if row:
+                        row.intake_form_payload_json = section_payload.intake_form_payload_json
+                    else:
+                        row = G2PIntakeFormSectionPayload(
+                            submission_id=intake_form.submission_id,
+                            section_id=section_payload.section_id,
+                            intake_form_payload_json=section_payload.intake_form_payload_json,
+                            intake_form_json_text="",
                         )
-                        if row:
-                            row.intake_form_payload_json = section_payload.intake_form_payload_json
-                        else:
-                            row = G2PIntakeFormSectionPayload(
-                                submission_id=intake_form.submission_id,
-                                section_id=section_payload.section_id,
-                                intake_form_payload_json=section_payload.intake_form_payload_json,
-                                intake_form_json_text="",
-                            )
-                        session.add(row)
+                    session.add(row)
 
-                try:
-                    await session.commit()
-                    await session.refresh(intake_form)
-                    return intake_form
-                except IntegrityError as integrity_error:
-                    await session.rollback()
-                    is_reference_conflict = "submission_reference" in str(integrity_error).lower()
-                    if not is_new_submission or not is_reference_conflict or attempt == max_attempts - 1:
-                        raise
-                    _logger.warning("submission_reference collision detected, retrying with a new generated value")
+            await session.commit()
+            await session.refresh(intake_form)
+            return intake_form
 
     async def finalize_submission(
         self,
