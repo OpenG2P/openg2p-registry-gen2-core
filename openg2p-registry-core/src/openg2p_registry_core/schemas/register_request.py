@@ -9,6 +9,8 @@ from .register_payload import (
     ApproveRejectSubmissionRequestPayload,
     GetSubmissionRequestPayload,
     SearchInSubmissionRequestPayload,
+    GetIntakeFormsForRegisterRequestPayload,
+    GetIntakeFormMetadataRequestPayload,
     AddVerificationPayload,
     EmptyRequestPayload,
     ChildRegisterRequestPayload,
@@ -115,6 +117,22 @@ class SearchInSubmissionRequestBody(G2PRequestBody):
 
 class SearchInSubmissionRequest(G2PRequest):
     request_body: SearchInSubmissionRequestBody
+
+
+class GetIntakeFormsForRegisterRequestBody(G2PRequestBody):
+    request_payload: GetIntakeFormsForRegisterRequestPayload
+
+
+class GetIntakeFormsForRegisterRequest(G2PRequest):
+    request_body: GetIntakeFormsForRegisterRequestBody
+
+
+class GetIntakeFormMetadataRequestBody(G2PRequestBody):
+    request_payload: GetIntakeFormMetadataRequestPayload
+
+
+class GetIntakeFormMetadataRequest(G2PRequest):
+    request_body: GetIntakeFormMetadataRequestBody
 
 
 # =============================================================================

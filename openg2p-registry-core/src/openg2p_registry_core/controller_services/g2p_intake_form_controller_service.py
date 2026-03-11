@@ -2,7 +2,7 @@ import logging
 from openg2p_fastapi_common.service import BaseService
 
 from ..models import G2PIntakeForm, G2PIntakeFormSectionPayload
-from ..services import G2PIntakeFormService
+from ..services import G2PIntakeFormService, G2PRegisterService
 from ..schemas import (
     SaveSubmissionDraftRequest, SaveSubmissionDraftRequestPayload,
     FinalizeSubmissionRequest, FinalizeSubmissionRequestPayload,
@@ -12,6 +12,8 @@ from ..schemas import (
     GetSubmissionRequest, GetIntakeFormSubmissionsSummaryRequest,
     SearchInSubmissionRequest,
     IntakeFormSubmissionsSummaryData,
+    GetIntakeFormsForRegisterRequest, GetIntakeFormMetadataRequest,
+    RegisterUITabData, RegisterSectionData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -19,7 +21,6 @@ _logger = logging.getLogger('g2p-intake-form-controller-service')
 
 
 class G2PIntakeFormControllerService(BaseService):
-
     async def save_submission_draft(self, save_submission_draft_request: SaveSubmissionDraftRequest) -> SubmissionResponsePayload:
         payload: SaveSubmissionDraftRequestPayload = save_submission_draft_request.request_body.request_payload
         created_by = save_submission_draft_request.request_header.sender_app_mnemonic
@@ -81,6 +82,44 @@ class G2PIntakeFormControllerService(BaseService):
         _logger.info("Getting intake form submissions summary through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         return await g2p_intake_form_service.get_intake_form_submissions_summary()
+
+    async def get_intake_forms_for_register(
+        self, get_intake_forms_for_register_request: GetIntakeFormsForRegisterRequest
+    ) -> tuple[list[RegisterUITabData], int, int]:
+        register_id = get_intake_forms_for_register_request.request_body.request_payload.register_id
+        pagination = get_intake_forms_for_register_request.request_body.pagination_request
+        self._validate_pagination_request(pagination)
+        _logger.info(f"Getting intake forms for register_id: {register_id} through controller service")
+        g2p_register_service = G2PRegisterService.get_component()
+        intake_forms, total_items = await g2p_register_service.get_register_tabs(
+            register_id=register_id,
+            current_page=pagination.current_page,
+            page_size=pagination.page_size,
+            used_for_new_intake_form=True,
+        )
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
+        return intake_forms, total_items, number_of_pages
+
+    async def get_intake_form_metadata(
+        self, get_intake_form_metadata_request: GetIntakeFormMetadataRequest
+    ) -> tuple[list[RegisterSectionData], int, int]:
+        payload = get_intake_form_metadata_request.request_body.request_payload
+        pagination = get_intake_form_metadata_request.request_body.pagination_request
+        self._validate_pagination_request(pagination)
+        register_id = payload.register_id
+        tab_id = payload.intake_form_id
+        _logger.info(
+            f"Getting intake form metadata for register_id: {register_id}, intake_form_id: {tab_id} through controller service"
+        )
+        g2p_register_service = G2PRegisterService.get_component()
+        sections, total_items = await g2p_register_service.get_register_tab_sections(
+            register_id=register_id,
+            tab_id=tab_id,
+            current_page=pagination.current_page,
+            page_size=pagination.page_size,
+        )
+        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
+        return sections, total_items, number_of_pages
 
     async def search_in_submission(self, search_in_submission_request: SearchInSubmissionRequest) -> tuple[list[SubmissionResponsePayload], int, int]:
         payload = search_in_submission_request.request_body.request_payload
