@@ -52,6 +52,22 @@ class SubmissionSearchResultsResponse(G2PResponse):
     response_body: Optional[SubmissionSearchResultsResponseBody] = None
 
 
+class IntakeFormsForRegisterResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterUITabData]] = None
+
+
+class IntakeFormsForRegisterResponse(G2PResponse):
+    response_body: Optional[IntakeFormsForRegisterResponseBody] = None
+
+
+class IntakeFormMetadataResponseBody(G2PResponseBody):
+    response_payload: Optional[List[RegisterSectionData]] = None
+
+
+class IntakeFormMetadataResponse(G2PResponse):
+    response_body: Optional[IntakeFormMetadataResponseBody] = None
+
+
 class IntakeFormSubmissionsSummaryResponseBody(G2PResponseBody):
     response_payload: Optional[IntakeFormSubmissionsSummaryData] = None
 

@@ -497,6 +497,15 @@ class SearchInSubmissionRequestPayload(BaseModel):
     tab_id: Optional[str] = None
 
 
+class GetIntakeFormsForRegisterRequestPayload(BaseModel):
+    register_id: str
+
+
+class GetIntakeFormMetadataRequestPayload(BaseModel):
+    register_id: str
+    intake_form_id: str
+
+
 class IntakeFormSubmissionsSummaryData(BaseModel):
     """Summary statistics for intake form submissions."""
     total_submissions: int
