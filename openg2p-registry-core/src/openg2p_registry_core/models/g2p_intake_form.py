@@ -1,9 +1,9 @@
 from enum import Enum
-import json
+import re
 import uuid
+from typing import Any
 
-from sqlalchemy import DateTime, Integer, String, Text, Index, BigInteger
-from sqlalchemy.orm import validates
+from sqlalchemy import DateTime, Integer, String, Text, Index, BigInteger, event
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 from sqlalchemy.dialects.postgresql import JSONB
@@ -55,19 +55,9 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_payloads"
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     intake_form_payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
     intake_form_json_text: Mapped[str] = mapped_column(Text, nullable=False)
-
-    @validates('intake_form_payload_json')
-    def update_intake_form_json_text(self, key, value):
-        """Automatically populate intake_form_json_text from intake_form_payload_json JSON."""
-        if value:
-            # Convert JSON to string representation for searching
-            if isinstance(value, dict):
-                self.intake_form_json_text = json.dumps(value)
-            else:
-                self.intake_form_json_text = str(value)
-        return value
 
     __table_args__ = (
         Index(
@@ -77,3 +67,43 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
             postgresql_ops={'intake_form_json_text': 'gin_trgm_ops'}
         ),
     )
+
+
+def _extract_payload_values(payload: Any) -> list[str]:
+    """Recursively flatten scalar JSON values into a list of normalized tokens."""
+    values: list[str] = []
+    if payload is None:
+        return values
+
+    if isinstance(payload, dict):
+        for value in payload.values():
+            values.extend(_extract_payload_values(value))
+        return values
+
+    if isinstance(payload, list):
+        for item in payload:
+            values.extend(_extract_payload_values(item))
+        return values
+
+    if isinstance(payload, (str, int, float, bool)):
+        token = re.sub(r"\s+", " ", str(payload)).strip()
+        if token:
+            values.append(token)
+    return values
+
+
+def _populate_intake_form_json_text(target):
+    payload_values = _extract_payload_values(target.intake_form_payload_json)
+    submission_reference = getattr(target, "submission_reference", None)
+    submission_values = [str(submission_reference)] if submission_reference is not None else []
+    target.intake_form_json_text = " ".join(payload_values + submission_values).strip()
+
+
+@event.listens_for(G2PIntakeFormSectionPayload, "before_insert")
+def populate_intake_form_json_text_on_insert(_mapper, _connection, target):
+    _populate_intake_form_json_text(target)
+
+
+@event.listens_for(G2PIntakeFormSectionPayload, "before_update")
+def populate_intake_form_json_text_on_update(_mapper, _connection, target):
+    _populate_intake_form_json_text(target)

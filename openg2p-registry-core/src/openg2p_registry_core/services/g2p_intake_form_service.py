@@ -93,13 +93,14 @@ class G2PIntakeFormService(BaseService):
                         (intake_form.submission_id, section_payload.section_id),
                     )
                     if row:
+                        row.submission_reference = intake_form.submission_reference
                         row.intake_form_payload_json = section_payload.intake_form_payload_json
                     else:
                         row = G2PIntakeFormSectionPayload(
                             submission_id=intake_form.submission_id,
                             section_id=section_payload.section_id,
+                            submission_reference=intake_form.submission_reference,
                             intake_form_payload_json=section_payload.intake_form_payload_json,
-                            intake_form_json_text="",
                         )
                     session.add(row)
 
