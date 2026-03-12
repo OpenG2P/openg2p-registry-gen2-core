@@ -29,6 +29,10 @@ class G2PRegister(BaseORMModel):
             self.record_name or "",
         ]
 
+    def get_record_name_fields(self) -> list[str]:
+        """Return fields for record_name aggregation. Child classes can override."""
+        return []
+
     @classmethod
     def __declare_last__(cls):
         """Create table-specific index and register event listeners after table is declared"""
@@ -42,14 +46,34 @@ class G2PRegister(BaseORMModel):
             idx = Index(index_name, cls.search_text, postgresql_using='gin', postgresql_ops={'search_text': 'gin_trgm_ops'})
             idx._set_parent(cls.__table__, allow_replacements=True)
             
-            # Register event listeners for automatic search_text population
+            # Register event listeners for automatic search_text and record_name population
             @event.listens_for(cls, "before_insert")
             def populate_search_text_on_insert(mapper, connection, target):
                 _populate_search_text(target)
+                _populate_record_name(target)
             
             @event.listens_for(cls, "before_update")
             def populate_search_text_on_update(mapper, connection, target):
                 _populate_search_text(target)
+                _populate_record_name(target)
+
+
+def _collect_fields(target, method_name: str) -> list[str]:
+    """Collect field values from class-specific hook methods across MRO."""
+    all_fields = []
+    for base in target.__class__.__mro__:
+        if hasattr(base, method_name) and method_name in base.__dict__:
+            try:
+                fields = getattr(base, method_name)(target)
+                if not fields:
+                    continue
+                for field in fields:
+                    if field is not None:
+                        all_fields.append(field if isinstance(field, str) else str(field))
+            except Exception:
+                # Skip if there's an error getting fields from this class
+                pass
+    return all_fields
 
 
 def _populate_search_text(target):
@@ -57,25 +81,20 @@ def _populate_search_text(target):
     Populate search_text by aggregating fields from all parent classes
     that have get_search_text_fields() method.
     """
-    all_fields = []
-    # Collect fields from all classes in the MRO that have get_search_text_fields
-    for base in target.__class__.__mro__:
-        if hasattr(base, 'get_search_text_fields') and 'get_search_text_fields' in base.__dict__:
-            try:
-                # Call the method defined in this specific class
-                fields = base.get_search_text_fields(target)
-                # Ensure all fields are strings
-                for field in fields:
-                    if field is not None:
-                        if isinstance(field, str):
-                            all_fields.append(field)
-                        else:
-                            all_fields.append(str(field))
-            except Exception:
-                # Skip if there's an error getting fields from this class
-                pass
+    all_fields = _collect_fields(target, "get_search_text_fields")
     
     target.search_text = " ".join(filter(None, all_fields)).strip() or None
+
+
+def _populate_record_name(target):
+    """
+    Populate record_name by aggregating fields from classes implementing
+    get_record_name_fields(). If computed value is empty, keep existing value.
+    """
+    all_fields = _collect_fields(target, "get_record_name_fields")
+    computed_record_name = " ".join(filter(None, all_fields)).strip()
+    if computed_record_name:
+        target.record_name = computed_record_name
 
 class MaritalStatusEnum(enum.Enum):
     SINGLE = "SINGLE"
