@@ -20,7 +20,11 @@ from ..models import (
     ApprovalStatusEnum,
 )
 from ..helpers import submission_reference_generator
-from ..schemas import SaveSubmissionDraftRequestPayload, IntakeFormSubmissionsSummaryData
+from ..schemas import (
+    SaveSubmissionDraftRequestPayload,
+    IntakeFormSubmissionsSummaryData,
+    SectionPayloadResponseItem,
+)
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-intake-form-service')
@@ -97,13 +101,13 @@ class G2PIntakeFormService(BaseService):
                     )
                     if row:
                         row.submission_reference = intake_form.submission_reference
-                        row.intake_form_payload_json = section_payload.intake_form_payload_json
+                        row.intake_form_section_payload = section_payload.intake_form_section_payload
                     else:
                         row = G2PIntakeFormSectionPayload(
                             submission_id=intake_form.submission_id,
                             section_id=section_payload.section_id,
                             submission_reference=intake_form.submission_reference,
-                            intake_form_payload_json=section_payload.intake_form_payload_json,
+                            intake_form_section_payload=section_payload.intake_form_section_payload,
                         )
                     session.add(row)
 
@@ -217,20 +221,41 @@ class G2PIntakeFormService(BaseService):
     async def get_submission(
         self,
         submission_id: str
-    ) -> tuple[G2PIntakeForm, list[G2PIntakeFormSectionPayload]]:
+    ) -> tuple[G2PIntakeForm, list[SectionPayloadResponseItem]]:
         """Fetch an intake form and its related section payload rows by submission_id."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             intake_form = await session.get(G2PIntakeForm, submission_id)
             if not intake_form:
                 self._raise_intake_form_not_found(submission_id)
-            section_payloads = (
+            section_payload_rows = (
                 await session.execute(
                     select(G2PIntakeFormSectionPayload).where(
                         G2PIntakeFormSectionPayload.submission_id == submission_id
                     )
                 )
             ).scalars().all()
+
+            section_ids = [section_payload.section_id for section_payload in section_payload_rows]
+            section_map = {}
+            if section_ids:
+                sections = (
+                    await session.execute(
+                        select(G2PRegisterSection).where(G2PRegisterSection.section_id.in_(section_ids))
+                    )
+                ).scalars().all()
+                section_map = {section.section_id: section for section in sections}
+
+            section_payloads = [
+                SectionPayloadResponseItem(
+                    section_id=section_payload.section_id,
+                    section_register_id=section_map[section_payload.section_id].section_register_id,
+                    is_list=section_map[section_payload.section_id].is_list,
+                    records=section_payload.intake_form_section_payload,
+                )
+                for section_payload in section_payload_rows
+                if section_payload.section_id in section_map
+            ]
             return intake_form, section_payloads
 
     async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:
@@ -295,7 +320,7 @@ class G2PIntakeFormService(BaseService):
         filter_by=None
     ) -> tuple[list[G2PIntakeForm], int]:
         """
-        Full-text search in G2PIntakeFormSectionPayload.intake_form_json_text.
+        Full-text search in G2PIntakeFormSectionPayload.intake_form_section_text.
         Returns full G2PIntakeForm objects.
         Returns (search_result_list, total_count).
         """
@@ -307,7 +332,7 @@ class G2PIntakeFormService(BaseService):
             if tab_id:
                 conditions.append(G2PIntakeForm.tab_id == tab_id)
             if search_text:
-                conditions.append(G2PIntakeFormSectionPayload.intake_form_json_text.ilike(f"%{search_text}%"))
+                conditions.append(G2PIntakeFormSectionPayload.intake_form_section_text.ilike(f"%{search_text}%"))
 
             query = (
                 select(G2PIntakeForm)
