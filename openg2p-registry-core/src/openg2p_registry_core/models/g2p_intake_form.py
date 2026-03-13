@@ -49,8 +49,8 @@ class G2PIntakeForm(BaseORMModel):
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    last_updated_by: Mapped[str] = mapped_column(String, nullable=False)
-    last_updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    last_updated_by: Mapped[str] = mapped_column(String, nullable=True)
+    last_updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
 
 class G2PIntakeFormSectionPayload(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_payloads"
