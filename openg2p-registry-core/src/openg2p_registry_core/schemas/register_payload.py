@@ -388,19 +388,21 @@ class IntakeFormPayload(BaseModel):
 
 class SubmissionResponsePayload(IntakeFormData):
     """Submission response payload."""
-    section_payloads: Optional[List["SectionPayloadResponseItem"]] = None
+    section_payloads: Optional[List[SectionPayloadResponseItem]] = None
 
 
 class SectionPayloadResponseItem(BaseModel):
     """A single section payload item returned by get_intake_form."""
     section_id: str
-    payload_json: dict
+    section_register_id: str
+    is_list: bool
+    records: List[IntakeFormPayload]
 
 
 class SectionPayloadInput(BaseModel):
     """A single section payload item for saving an intake form."""
     section_id: str
-    intake_form_payload_json: dict
+    intake_form_section_payload: List[IntakeFormPayload]
 
 
 class SaveSubmissionDraftRequestPayload(BaseModel):

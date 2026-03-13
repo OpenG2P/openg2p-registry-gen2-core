@@ -56,15 +56,15 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    intake_form_payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    intake_form_json_text: Mapped[str] = mapped_column(Text, nullable=False)
+    intake_form_section_payload: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    intake_form_section_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (
         Index(
-            'ix_g2p_intake_form_section_payloads_intake_form_json_text_gin',
-            'intake_form_json_text',
+            'ix_g2p_intake_form_section_payloads_intake_form_section_text_gin',
+            'intake_form_section_text',
             postgresql_using='gin',
-            postgresql_ops={'intake_form_json_text': 'gin_trgm_ops'}
+            postgresql_ops={'intake_form_section_text': 'gin_trgm_ops'}
         ),
     )
 
@@ -92,18 +92,18 @@ def _extract_payload_values(payload: Any) -> list[str]:
     return values
 
 
-def _populate_intake_form_json_text(target):
-    payload_values = _extract_payload_values(target.intake_form_payload_json)
+def _populate_intake_form_section_text(target):
+    payload_values = _extract_payload_values(target.intake_form_section_payload)
     submission_reference = getattr(target, "submission_reference", None)
     submission_values = [str(submission_reference)] if submission_reference is not None else []
-    target.intake_form_json_text = " ".join(payload_values + submission_values).strip()
+    target.intake_form_section_text = " ".join(payload_values + submission_values).strip()
 
 
 @event.listens_for(G2PIntakeFormSectionPayload, "before_insert")
-def populate_intake_form_json_text_on_insert(_mapper, _connection, target):
-    _populate_intake_form_json_text(target)
+def populate_intake_form_section_text_on_insert(_mapper, _connection, target):
+    _populate_intake_form_section_text(target)
 
 
 @event.listens_for(G2PIntakeFormSectionPayload, "before_update")
-def populate_intake_form_json_text_on_update(_mapper, _connection, target):
-    _populate_intake_form_json_text(target)
+def populate_intake_form_section_text_on_update(_mapper, _connection, target):
+    _populate_intake_form_section_text(target)

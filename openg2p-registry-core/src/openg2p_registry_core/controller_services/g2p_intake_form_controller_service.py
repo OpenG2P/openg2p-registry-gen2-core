@@ -1,7 +1,7 @@
 import logging
 from openg2p_fastapi_common.service import BaseService
 
-from ..models import G2PIntakeForm, G2PIntakeFormSectionPayload
+from ..models import G2PIntakeForm
 from ..services import G2PIntakeFormService, G2PRegisterService
 from ..schemas import (
     SaveSubmissionDraftRequest, SaveSubmissionDraftRequestPayload,
@@ -183,7 +183,7 @@ class G2PIntakeFormControllerService(BaseService):
     def _build_submission_response_payload(
         self,
         g2p_intake_form: G2PIntakeForm,
-        section_payloads: list[G2PIntakeFormSectionPayload] | None = None
+        section_payloads: list[SectionPayloadResponseItem] | None = None
     ) -> SubmissionResponsePayload:
         return SubmissionResponsePayload(
             submission_id=g2p_intake_form.submission_id,
@@ -207,13 +207,7 @@ class G2PIntakeFormControllerService(BaseService):
             created_at=str(g2p_intake_form.created_at) if g2p_intake_form.created_at else None,
             last_updated_by=g2p_intake_form.last_updated_by,
             last_updated_at=str(g2p_intake_form.last_updated_at) if g2p_intake_form.last_updated_at else None,
-            section_payloads=[
-                SectionPayloadResponseItem(
-                    section_id=section_payload.section_id,
-                    payload_json=section_payload.intake_form_payload_json,
-                )
-                for section_payload in section_payloads
-            ] if section_payloads is not None else None,
+            section_payloads=section_payloads,
         )
 
     def _validate_pagination_request(self, pagination):
