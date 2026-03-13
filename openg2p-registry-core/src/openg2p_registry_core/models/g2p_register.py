@@ -140,37 +140,6 @@ class G2PPerson(BaseORMModel):
     education_level: Mapped[str] = mapped_column(String, nullable=True)
     registration_date: Mapped[str] = mapped_column(Date, nullable=True)
 
-    # TODO: remove
-    def get_search_text_fields(self) -> list[str]:
-        """Return G2PPerson fields for search text aggregation."""
-        fields = [
-            self.foundational_id or "",
-            self.first_name or "",
-            self.middle_name or "",
-            self.last_name or "",
-            self.given_name or "",
-            self.gender if isinstance(self.gender, str) else (self.gender.value if self.gender else ""),
-            str(self.birth_date) if self.birth_date else "",
-            self.marital_status if isinstance(self.marital_status, str) else (self.marital_status.value if self.marital_status else ""),
-            self.occupation or "",
-            self.education_level or "",
-        ]
-        # Extract phone numbers from JSONB
-        if self.phone_numbers and isinstance(self.phone_numbers, list):
-            for phone in self.phone_numbers:
-                if isinstance(phone, dict):
-                    fields.append(phone.get("number", ""))
-                elif isinstance(phone, str):
-                    fields.append(phone)
-        # Extract emails from JSONB
-        if self.emails and isinstance(self.emails, list):
-            for email in self.emails:
-                if isinstance(email, dict):
-                    fields.append(email.get("address", ""))
-                elif isinstance(email, str):
-                    fields.append(email)
-        return fields
-
 
 class G2PGeo(BaseORMModel):
     __abstract__ = True
@@ -200,22 +169,6 @@ class G2PGeo(BaseORMModel):
             self.geo_code_hierarchy_json = None
         return value
 
-    def get_search_text_fields(self) -> list[str]:
-        """Return G2PGeo fields for search text aggregation."""
-        fields = [
-            self.plus_code or "",
-            self.postal_code or "",
-            self.country_code or "",
-            self.address_line_1 or "",
-            self.address_line_2 or "",
-        ]
-        # Extract searchable values from geo_code_hierarchy_json if present
-        if self.geo_code_hierarchy_json and isinstance(self.geo_code_hierarchy_json, dict):
-            hierarchy = self.geo_code_hierarchy_json.get("hierarchy", [])
-            for level in hierarchy:
-                if isinstance(level, dict):
-                    fields.append(level.get("level_value_mnemonic", ""))
-        return fields
 
 
 class ShapeTypeEnum(enum.Enum):

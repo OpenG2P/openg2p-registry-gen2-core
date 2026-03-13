@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from sqlalchemy import DateTime, Integer, String, Text, Index, BigInteger, event
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -56,8 +56,6 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_payloads"
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
-    submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    record_name: Mapped[str] = mapped_column(String, nullable=True)
     intake_form_section_payload: Mapped[list[dict]] = mapped_column(JSONB, nullable=False)
     intake_form_section_text: Mapped[str] = mapped_column(Text, nullable=False)
 

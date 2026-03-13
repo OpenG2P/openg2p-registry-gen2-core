@@ -41,7 +41,10 @@ class G2PRegisterDomainService(BaseService):
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
     
-    def construct_record_name(self, payload: dict) -> str:
+    def construct_record_name(self, payload: dict, extra: list[str] = None) -> str:
+        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
+
+    def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     async def validate_domain_attributes(self, change_request_request_payload: ChangeRequestRequestPayload):

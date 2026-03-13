@@ -27,90 +27,13 @@ from ..schemas import (
     IntakeFormSubmissionsSummaryData,
     SectionPayloadResponseItem,
 )
+from ..services import G2PRegisterDomainService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-intake-form-service')
 
 
 class G2PIntakeFormService(BaseService):
-    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str):
-        if not register_mnemonic:
-            return None
-        try:
-            module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
-            domain_factory_class_name = "G2PRegisterDomainFactory"
-            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
-            return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
-        except Exception as error:
-            _logger.warning(
-                f"Unable to resolve domain service for register mnemonic '{register_mnemonic}': {error}"
-            )
-            return None
-
-    def _normalize_section_payload_items(self, payload_items) -> list[dict]:
-        if not payload_items:
-            return []
-        if not isinstance(payload_items, list):
-            payload_items = [payload_items]
-
-        normalized_payloads: list[dict] = []
-        for payload_item in payload_items:
-            if isinstance(payload_item, dict):
-                normalized_payloads.append(payload_item)
-                continue
-
-            if hasattr(payload_item, "model_dump"):
-                normalized_payload = payload_item.model_dump()
-                if isinstance(normalized_payload, dict):
-                    normalized_payloads.append(normalized_payload)
-
-        return normalized_payloads
-
-    async def _construct_record_name_for_intake_draft(self, register_id: str, section_payloads: list | None, session) -> str | None:
-        if not register_id:
-            return None
-        register_definition: G2PRegisterDefinition = (
-            await session.execute(
-                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
-            )
-        ).scalar()
-        if not register_definition:
-            return None
-
-        domain_service = self._get_domain_service_by_register_mnemonic(register_definition.register_mnemonic)
-        if not domain_service:
-            return None
-
-        if not section_payloads:
-            return None
-
-        for section_payload in section_payloads:
-            payload_items = self._normalize_section_payload_items(
-                getattr(section_payload, "intake_form_section_payload", None)
-            )
-
-            for payload_dict in payload_items:
-                if not payload_dict:
-                    continue
-                try:
-                    record_name = domain_service.construct_record_name(payload_dict)
-                    if record_name is None:
-                        continue
-                    record_name = str(record_name).strip()
-                    if record_name:
-                        return record_name
-                except NotImplementedError:
-                    _logger.info(
-                        f"construct_record_name not implemented for register mnemonic '{register_definition.register_mnemonic}'."
-                    )
-                    return None
-                except Exception as error:
-                    _logger.warning(
-                        f"Could not construct intake draft record_name for register mnemonic '{register_definition.register_mnemonic}': {error}"
-                    )
-                    return None
-        return None
-
     async def save_submission_draft(
         self,
         submission_request_payload: SaveSubmissionDraftRequestPayload,
@@ -125,17 +48,13 @@ class G2PIntakeFormService(BaseService):
 
             if submission_request_payload.submission_id:
                 intake_form = await session.get(G2PIntakeForm, submission_request_payload.submission_id)
-                if not intake_form:
-                    self._raise_intake_form_not_found(submission_request_payload.submission_id)
                 if intake_form.intake_form_status != IntakeFormStatusEnum.DRAFT.value:
                     self._raise_intake_form_invalid_state(
                         f"Intake form '{intake_form.submission_id}' can only be updated in DRAFT state"
                     )
             else:
-                if not submission_request_payload.register_id:
-                    self._raise_request_validation_error("register_id is required for creating a new intake form")
-                if not submission_request_payload.tab_id:
-                    self._raise_request_validation_error("tab_id is required for creating a new intake form")
+                if not submission_request_payload.register_id or not submission_request_payload.tab_id:
+                    self._raise_request_validation_error("register_id and tab_id are required for creating a new intake form")
 
                 no_of_verifications_required = (
                     await session.execute(
@@ -155,66 +74,48 @@ class G2PIntakeFormService(BaseService):
                     no_of_verifications_required=no_of_verifications_required,
                     created_by=created_by,
                     created_at=now,
-                    last_updated_by=created_by,
-                    last_updated_at=now,
                 )
                 session.add(intake_form)
-                await session.flush()
 
-            effective_register_id = submission_request_payload.register_id or intake_form.register_id
-            computed_record_name = await self._construct_record_name_for_intake_draft(
-                effective_register_id,
-                submission_request_payload.section_payloads,
+            register_domain_service: G2PRegisterDomainService | None = await self._get_domain_service_for_register(
+                submission_request_payload.register_id,
                 session,
             )
 
-            if submission_request_payload.register_id:
-                intake_form.register_id = submission_request_payload.register_id
-            if submission_request_payload.tab_id:
-                intake_form.tab_id = submission_request_payload.tab_id
-            intake_form.foundational_id = submission_request_payload.foundational_id
-            intake_form.link_foundational_id = submission_request_payload.link_foundational_id
+            constructed_record_name = self._construct_record_name(
+                submission_request_payload.section_payloads,
+                register_domain_service
+            )
+            if submission_request_payload.foundational_id:
+                intake_form.foundational_id = submission_request_payload.foundational_id
+            if submission_request_payload.link_foundational_id:
+                intake_form.link_foundational_id = submission_request_payload.link_foundational_id
             if submission_request_payload.section_payloads is not None:
-                intake_form.record_name = computed_record_name
-            if submission_request_payload.submission_id and submission_request_payload.no_of_verifications_required is not None:
-                intake_form.no_of_verifications_required = submission_request_payload.no_of_verifications_required
+                intake_form.record_name = constructed_record_name
             intake_form.last_updated_by = created_by
             intake_form.last_updated_at = now
             session.add(intake_form)
 
             if submission_request_payload.section_payloads:
                 for section_payload in submission_request_payload.section_payloads:
-                    normalized_payload_items = self._normalize_section_payload_items(
-                        section_payload.intake_form_section_payload
-                    )
                     row = await session.get(
                         G2PIntakeFormSectionPayload,
                         (intake_form.submission_id, section_payload.section_id),
                     )
-                    if row:
-                        row.submission_reference = intake_form.submission_reference
-                        row.record_name = intake_form.record_name
-                        row.intake_form_section_payload = normalized_payload_items
-                    else:
+                    constructed_search_text = self._construct_search_text(
+                        section_payload.intake_form_section_payload,
+                        register_domain_service,
+                        constructed_record_name,
+                        intake_form.submission_reference,
+                    )
+                    if not row:
                         row = G2PIntakeFormSectionPayload(
                             submission_id=intake_form.submission_id,
                             section_id=section_payload.section_id,
-                            submission_reference=intake_form.submission_reference,
-                            record_name=intake_form.record_name,
-                            intake_form_section_payload=normalized_payload_items,
                         )
-                    session.add(row)
-
-            if submission_request_payload.section_payloads is not None:
-                all_section_rows = (
-                    await session.execute(
-                        select(G2PIntakeFormSectionPayload).where(
-                            G2PIntakeFormSectionPayload.submission_id == intake_form.submission_id
-                        )
-                    )
-                ).scalars().all()
-                for row in all_section_rows:
-                    row.record_name = intake_form.record_name
+                    
+                    row.intake_form_section_payload = section_payload.intake_form_section_payload
+                    row.intake_form_section_text = constructed_search_text
                     session.add(row)
 
             await session.commit()
@@ -229,6 +130,7 @@ class G2PIntakeFormService(BaseService):
         """Move an intake form from DRAFT to FINAL and keep approval pending."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            now = datetime.now()
             intake_form = await session.get(G2PIntakeForm, submission_id)
             if not intake_form:
                 self._raise_intake_form_not_found(submission_id)
@@ -236,7 +138,6 @@ class G2PIntakeFormService(BaseService):
                 self._raise_intake_form_invalid_state(
                     f"Intake form '{submission_id}' must be in DRAFT state to be finalized"
                 )
-
             section_count = (
                 await session.execute(
                     select(func.count()).select_from(G2PIntakeFormSectionPayload).where(
@@ -248,8 +149,6 @@ class G2PIntakeFormService(BaseService):
                 self._raise_request_validation_error(
                     f"Intake form '{submission_id}' has no section payloads and cannot be finalized"
                 )
-
-            now = datetime.now()
             intake_form.intake_form_status = IntakeFormStatusEnum.FINAL.value
             intake_form.approval_status = ApprovalStatusEnum.PENDING.value
             intake_form.last_updated_by = finalized_by or intake_form.last_updated_by
@@ -599,6 +498,80 @@ class G2PIntakeFormService(BaseService):
 
         sort_column = getattr(G2PRegisterChangeRequest, sort_field)
         return query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
+
+    
+    async def _get_domain_service_for_register(self, register_id: str, session):
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+            )
+        ).scalar()
+
+        domain_service = self._get_domain_service_by_register_mnemonic(register_definition.register_mnemonic)
+        return domain_service
+
+    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str):
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+            domain_factory_class_name = "G2PRegisterDomainFactory"
+            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
+        except Exception as error:
+            _logger.warning(
+                f"Unable to resolve domain service for register mnemonic '{register_mnemonic}': {error}"
+            )
+            return None
+
+    def _construct_record_name(
+        self,
+        section_payloads: list,
+        register_domain_service: G2PRegisterDomainService | None,
+    ) -> str | None:
+        if not section_payloads or not register_domain_service:
+            return None
+
+        for section_payload in section_payloads:
+            payload_records = getattr(section_payload, "intake_form_section_payload", None) or []
+            for payload_dict in payload_records:
+                if not isinstance(payload_dict, dict):
+                    continue
+                try:
+                    record_name = register_domain_service.construct_record_name(payload_dict)
+                    if record_name:
+                        return record_name
+                except NotImplementedError:
+                    _logger.info("construct_record_name not implemented for intake draft domain service.")
+                    return None
+                except Exception as error:
+                    _logger.warning(f"Could not construct intake draft record_name: {error}")
+        return None
+    
+    def _construct_search_text(
+        self,
+        section_payload,
+        register_domain_service: G2PRegisterDomainService | None,
+        *args,
+    ) -> str:
+        if not section_payload or not register_domain_service:
+            return ""
+
+        payload_records = section_payload if isinstance(section_payload, list) else [section_payload]
+        search_tokens: list[str] = []
+
+        for payload_dict in payload_records:
+            if not isinstance(payload_dict, dict):
+                continue
+            try:
+                search_text = register_domain_service.construct_search_text(payload_dict, list(args))
+                if search_text:
+                    search_tokens.append(search_text.strip())
+            except NotImplementedError:
+                _logger.info("construct_search_text not implemented for intake draft domain service.")
+                return ""
+            except Exception as error:
+                _logger.warning(f"Could not construct intake draft search_text: {error}")
+
+        return " ".join(search_tokens).strip()
 
     def _raise_intake_form_not_found(self, submission_id: str):
         raise G2PRegistryException(
