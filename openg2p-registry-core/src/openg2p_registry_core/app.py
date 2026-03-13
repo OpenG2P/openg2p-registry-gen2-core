@@ -102,10 +102,10 @@ class Initializer(BaseInitializer):
         KeymanagerCryptoHelper()
 
         # Services
+        G2PRegisterDomainService()
         G2PIngestService()
         G2PRegisterService()
         G2PRegisterHierarchicalService()
-        G2PRegisterDomainService()
         G2PIngestionConfigurationService()
         G2PIngestionDataService()
         G2POutgestionConfigurationService()
