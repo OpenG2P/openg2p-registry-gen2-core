@@ -63,7 +63,7 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
 
     __table_args__ = (
         Index(
-            'ix_g2p_intake_form_section_payloads_intake_form_section_text_gin',
+            'ix_g2p_intake_form_section_payloads_search_text_gin',
             'intake_form_section_text',
             postgresql_using='gin',
             postgresql_ops={'intake_form_section_text': 'gin_trgm_ops'}
