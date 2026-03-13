@@ -66,26 +66,30 @@ class G2PIntakeFormService(BaseService):
             return None
 
         for section_payload in section_payloads:
-            payload_dict = section_payload.intake_form_section_payload if hasattr(section_payload, "intake_form_section_payload") else None
-            if not payload_dict:
-                continue
-            try:
-                record_name = domain_service.construct_record_name(payload_dict)
-                if record_name is None:
+            payload_items = getattr(section_payload, "intake_form_section_payload", None) or []
+            if not isinstance(payload_items, list):
+                payload_items = [payload_items]
+
+            for payload_dict in payload_items:
+                if not isinstance(payload_dict, dict) or not payload_dict:
                     continue
-                record_name = str(record_name).strip()
-                if record_name:
-                    return record_name
-            except NotImplementedError:
-                _logger.info(
-                    f"construct_record_name not implemented for register mnemonic '{register_definition.register_mnemonic}'."
-                )
-                return None
-            except Exception as error:
-                _logger.warning(
-                    f"Could not construct intake draft record_name for register mnemonic '{register_definition.register_mnemonic}': {error}"
-                )
-                return None
+                try:
+                    record_name = domain_service.construct_record_name(payload_dict)
+                    if record_name is None:
+                        continue
+                    record_name = str(record_name).strip()
+                    if record_name:
+                        return record_name
+                except NotImplementedError:
+                    _logger.info(
+                        f"construct_record_name not implemented for register mnemonic '{register_definition.register_mnemonic}'."
+                    )
+                    return None
+                except Exception as error:
+                    _logger.warning(
+                        f"Could not construct intake draft record_name for register mnemonic '{register_definition.register_mnemonic}': {error}"
+                    )
+                    return None
         return None
 
     async def save_submission_draft(

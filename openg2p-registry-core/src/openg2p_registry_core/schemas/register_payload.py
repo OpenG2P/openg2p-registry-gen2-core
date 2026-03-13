@@ -388,18 +388,16 @@ class IntakeFormPayload(BaseModel):
     """Intake form section payload (free-form JSON)."""
     model_config = ConfigDict(extra="allow", from_attributes=True)
 
-
-class SubmissionResponsePayload(IntakeFormData):
-    """Submission response payload."""
-    section_payloads: Optional[List[SectionPayloadResponseItem]] = None
-
-
 class SectionPayloadResponseItem(BaseModel):
     """A single section payload item returned by get_intake_form."""
     section_id: str
     section_register_id: str
     is_list: bool
     records: List[IntakeFormPayload]
+
+class SubmissionResponsePayload(IntakeFormData):
+    """Submission response payload."""
+    section_payloads: Optional[List[SectionPayloadResponseItem]] = None
 
 
 class SectionPayloadInput(BaseModel):
