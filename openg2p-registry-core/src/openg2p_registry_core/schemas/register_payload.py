@@ -258,6 +258,7 @@ class RecordData(BaseModel):
 
 class ChangeRequestSearchResultData(BaseModel):
     change_request_id: str
+    record_name: Optional[str] = None
     register_id: str
     register_mnemonic: str
     tab_id: str
@@ -333,6 +334,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
 
 class ChangeRequestResponsePayload(RegisterPayload):
     """Response payload for change requests - returned to clients"""
+    record_name: Optional[str] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     section_id: Optional[str] = None
@@ -358,6 +360,7 @@ class IntakeFormData(BaseModel):
     """Intake form data."""
     submission_id: Optional[str] = None
     submission_reference: Optional[int] = None
+    record_name: Optional[str] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     foundational_id: Optional[str] = None
@@ -385,18 +388,16 @@ class IntakeFormPayload(BaseModel):
     """Intake form section payload (free-form JSON)."""
     model_config = ConfigDict(extra="allow", from_attributes=True)
 
-
-class SubmissionResponsePayload(IntakeFormData):
-    """Submission response payload."""
-    section_payloads: Optional[List[SectionPayloadResponseItem]] = None
-
-
 class SectionPayloadResponseItem(BaseModel):
     """A single section payload item returned by get_intake_form."""
     section_id: str
     section_register_id: str
     is_list: bool
     records: List[IntakeFormPayload]
+
+class SubmissionResponsePayload(IntakeFormData):
+    """Submission response payload."""
+    section_payloads: Optional[List[SectionPayloadResponseItem]] = None
 
 
 class SectionPayloadInput(BaseModel):
@@ -560,6 +561,7 @@ class NumberOfCrossRegisterChangesData(BaseModel):
 
 class CrossRegisterChangeRequestData(BaseModel):
     change_request_id: str
+    record_name: Optional[str] = None
     register_id: str
     register_mnemonic: str
     tab_id: str
@@ -585,6 +587,7 @@ class CrossRegisterChangesData(BaseModel):
 
 class ChangeRequestData(BaseModel):
     change_request_id: str
+    record_name: Optional[str] = None
     register_id: str
     tab_id: str
     internal_record_id: str
@@ -610,6 +613,7 @@ class ChangeRequestData(BaseModel):
 class ChangeRequestFlattenedData(BaseModel):
     """Change request data with flattened fields from change_payload"""
     change_request_id: str
+    record_name: Optional[str] = None
     register_id: str
     tab_id: str
     internal_record_id: str
@@ -875,6 +879,7 @@ class NumberOfRequestsPendingData(BaseModel):
 class EarliestPendingChangeRequestData(BaseModel):
     """Data for get_earliest_pending_change_request endpoint"""
     change_request_id: Optional[str] = None
+    record_name: Optional[str] = None
     register_id: Optional[str] = None
     tab_id: Optional[str] = None
     internal_record_id: Optional[str] = None

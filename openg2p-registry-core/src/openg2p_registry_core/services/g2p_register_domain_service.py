@@ -40,15 +40,18 @@ class G2PRegisterDomainService(BaseService):
         PHONETIC = "PHONETIC"
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
+    
+    def construct_record_name(self, payload: dict) -> str:
+        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     async def validate_domain_attributes(self, change_request_request_payload: ChangeRequestRequestPayload):
-        pass
+        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        pass
+        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        pass
+        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     def compute_deduplication_score_for_register(
         self,

@@ -77,7 +77,13 @@ class G2PRegisterService(BaseService):
             # Note: For new record creation, internal_record_id may be a new UUID that doesn't exist yet
             # We don't validate internal_record_id existence here - it will be created when the change request is approved
 
-            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(change_request_request_payload, g2p_register_section, source_partner_id, submission_id)
+            g2p_register_change_request: G2PRegisterChangeRequest = await self.construct_change_request(
+                change_request_request_payload,
+                g2p_register_section,
+                g2p_register_definition.register_mnemonic,
+                source_partner_id,
+                submission_id,
+            )
 
             session.add(g2p_register_change_request)
             # Add the payload object if it exists
@@ -1099,7 +1105,51 @@ class G2PRegisterService(BaseService):
                 message=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[0]
             )
 
-    async def construct_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_section: G2PRegisterSection, source_partner_id: str = None, submission_id: str = None) -> G2PRegisterChangeRequest:
+    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str):
+        if not register_mnemonic:
+            return None
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+            domain_factory_class_name = "G2PRegisterDomainFactory"
+            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
+        except Exception as error:
+            _logger.warning(
+                f"Unable to resolve domain service for register mnemonic '{register_mnemonic}': {error}"
+            )
+            return None
+
+    def _construct_record_name_for_change_request(self, register_mnemonic: str, payload: dict | None) -> str | None:
+        if not payload:
+            return None
+        domain_service = self._get_domain_service_by_register_mnemonic(register_mnemonic)
+        if not domain_service:
+            return None
+        try:
+            record_name = domain_service.construct_record_name(payload)
+            if record_name is None:
+                return None
+            record_name = str(record_name).strip()
+            return record_name or None
+        except NotImplementedError:
+            _logger.info(
+                f"construct_record_name not implemented for register mnemonic '{register_mnemonic}'."
+            )
+            return None
+        except Exception as error:
+            _logger.warning(
+                f"Could not construct record_name for register mnemonic '{register_mnemonic}': {error}"
+            )
+            return None
+
+    async def construct_change_request(
+        self,
+        change_request_request_payload: ChangeRequestRequestPayload,
+        g2p_register_section: G2PRegisterSection,
+        register_mnemonic: str,
+        source_partner_id: str = None,
+        submission_id: str = None,
+    ) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id if present, otherwise generate new UUID
         internal_record_id: str = None
@@ -1113,10 +1163,15 @@ class G2PRegisterService(BaseService):
                 if not item.internal_record_id and item.edit_action == EditActionEnum.ADD:
                     item.internal_record_id = str(uuid.uuid4())
 
+        serialized_payloads = [item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else []
+        first_payload = serialized_payloads[0] if serialized_payloads else None
+        record_name = self._construct_record_name_for_change_request(register_mnemonic, first_payload)
+
         # Create the payload object - change_payload is now always a list
         change_request_payload_obj = G2PRegisterChangeRequestPayload(
             change_request_id=change_request_id,
-            change_payload=[item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else [],
+            record_name=record_name,
+            change_payload=serialized_payloads,
         )
 
         # Determine change request source based on submission_id
@@ -1126,6 +1181,7 @@ class G2PRegisterService(BaseService):
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
             change_request_id=change_request_id,
+            record_name=record_name,
             register_id=change_request_request_payload.register_id,
             tab_id=change_request_request_payload.tab_id,
             internal_record_id=internal_record_id,
@@ -1772,6 +1828,7 @@ class G2PRegisterService(BaseService):
             # Create ChangeRequestSearchResultData object
             change_request_search_result: ChangeRequestSearchResultData = ChangeRequestSearchResultData(
                 change_request_id=change_request.change_request_id,
+                record_name=change_request.record_name,
                 register_id=change_request.register_id,
                 register_mnemonic=register_metadata.register_mnemonic,
                 tab_id=change_request.tab_id,
@@ -2320,6 +2377,7 @@ class G2PRegisterService(BaseService):
                 tab_label = row[2]
                 cross_register_changes.append(CrossRegisterChangeRequestData(
                     change_request_id=change_request.change_request_id,
+                    record_name=change_request.record_name,
                     register_id=change_request.register_id,
                     register_mnemonic=register_mnemonic,
                     tab_id=change_request.tab_id,
@@ -2380,6 +2438,7 @@ class G2PRegisterService(BaseService):
             # Note: current_register_data is not populated in list view for performance reasons
             change_request_data: ChangeRequestData = ChangeRequestData(
                 change_request_id=change_request.change_request_id,
+                record_name=change_request.record_name,
                 register_id=change_request.register_id,
                 tab_id=change_request.tab_id,
                 internal_record_id=change_request.internal_record_id,
@@ -2546,6 +2605,7 @@ class G2PRegisterService(BaseService):
         # Create ChangeRequestData object
         change_request_data: ChangeRequestData = ChangeRequestData(
             change_request_id=change_request.change_request_id,
+            record_name=change_request.record_name,
             register_id=change_request.register_id,
             tab_id=change_request.tab_id,
             internal_record_id=change_request.internal_record_id,
@@ -2617,6 +2677,7 @@ class G2PRegisterService(BaseService):
             # Create base ChangeRequestFlattenedData object
             change_request_data_dict = {
                 "change_request_id": change_request.change_request_id,
+                "record_name": change_request.record_name,
                 "register_id": change_request.register_id,
                 "tab_id": change_request.tab_id,
                 "internal_record_id": change_request.internal_record_id,
@@ -4080,6 +4141,7 @@ class G2PRegisterService(BaseService):
 
             return EarliestPendingChangeRequestData(
                 change_request_id=change_request.change_request_id,
+                record_name=change_request.record_name,
                 register_id=change_request.register_id,
                 tab_id=change_request.tab_id,
                 internal_record_id=change_request.internal_record_id,

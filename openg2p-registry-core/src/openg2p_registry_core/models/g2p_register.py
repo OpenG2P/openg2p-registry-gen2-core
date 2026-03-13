@@ -22,6 +22,12 @@ class G2PRegister(BaseORMModel):
     last_approved_by: Mapped[str] = mapped_column(String, nullable=False)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
+    def to_dict(self):
+        return {
+            c.name: getattr(self, c.name)
+            for c in self.__table__.columns
+        }
+
     def get_search_text_fields(self) -> list[str]:
         """Return G2PRegister fields for search text aggregation."""
         return [
@@ -66,6 +72,9 @@ def _collect_fields(target, method_name: str) -> list[str]:
             try:
                 fields = getattr(base, method_name)(target)
                 if not fields:
+                    continue
+                if isinstance(fields, str):
+                    all_fields.append(fields)
                     continue
                 for field in fields:
                     if field is not None:

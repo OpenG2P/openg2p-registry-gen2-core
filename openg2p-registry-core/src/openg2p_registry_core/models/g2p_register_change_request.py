@@ -26,6 +26,7 @@ class G2PRegisterChangeRequest(BaseORMModel):
     __tablename__ = "g2p_register_change_requests"
 
     change_request_id: Mapped[str] = mapped_column(String, primary_key=True)
+    record_name: Mapped[str] = mapped_column(String, nullable=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -68,6 +69,7 @@ class G2PRegisterChangeRequestPayload(BaseORMModel):
     __tablename__ = "g2p_register_change_request_payloads"
 
     change_request_id: Mapped[str] = mapped_column(String, primary_key=True)
+    record_name: Mapped[str] = mapped_column(String, nullable=True)
     change_payload: Mapped[JSON] = mapped_column(JSON, nullable=False)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
 
