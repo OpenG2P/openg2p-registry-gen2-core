@@ -356,6 +356,12 @@ class ChangeRequestResponsePayload(RegisterPayload):
 # Intake Form Data
 #==============================================================================
 
+class IntakeFormDocumentPayload(BaseModel):
+    """Document reference to attach to an intake form section"""
+    document_label: str
+    document_store_id: str
+
+
 class IntakeFormData(BaseModel):
     """Intake form data."""
     submission_id: Optional[str] = None
@@ -390,6 +396,7 @@ class SectionPayloadResponseItem(BaseModel):
     section_register_id: str
     is_list: bool
     records: List[dict]
+    documents: Optional[List[IntakeFormDocumentPayload]] = None
 
 class SubmissionResponsePayload(IntakeFormData):
     """Submission response payload."""
@@ -400,6 +407,7 @@ class SectionPayloadInput(BaseModel):
     """A single section payload item for saving an intake form."""
     section_id: str
     intake_form_section_payload: List[dict]
+    documents: Optional[List[IntakeFormDocumentPayload]] = None
 
 
 class SaveSubmissionDraftRequestPayload(BaseModel):

@@ -1,5 +1,7 @@
 import logging
 import importlib
+import uuid
+from collections import defaultdict
 from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
@@ -12,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from ..models import (
     G2PIntakeForm,
     G2PIntakeFormSectionPayload,
+    G2PIntakeFormSectionDocuments,
     G2PRegisterChangeRequest,
     G2PRegisterChangeRequestPayload,
     G2PRegisterDefinition,
@@ -26,6 +29,7 @@ from ..schemas import (
     SaveSubmissionDraftRequestPayload,
     IntakeFormSubmissionsSummaryData,
     SectionPayloadResponseItem,
+    IntakeFormDocumentPayload,
 )
 from .g2p_register_domain_service import G2PRegisterDomainService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -106,7 +110,7 @@ class G2PIntakeFormService(BaseService):
                         section_payload.intake_form_section_payload,
                         register_domain_service,
                         constructed_record_name,
-                        intake_form.submission_reference,
+                        str(intake_form.submission_reference),
                     )
                     if not row:
                         row = G2PIntakeFormSectionPayload(
@@ -117,6 +121,17 @@ class G2PIntakeFormService(BaseService):
                     row.intake_form_section_payload = section_payload.intake_form_section_payload
                     row.intake_form_section_text = constructed_search_text
                     session.add(row)
+
+                    # Add documents
+                    if section_payload.documents:
+                        for doc in section_payload.documents:
+                            doc_row = G2PIntakeFormSectionDocuments(
+                                submission_id=intake_form.submission_id,
+                                section_id=section_payload.section_id,
+                                document_label=doc.document_label,
+                                document_store_id=doc.document_store_id,
+                            )
+                            session.add(doc_row)
 
             await session.commit()
             await session.refresh(intake_form)
@@ -251,12 +266,31 @@ class G2PIntakeFormService(BaseService):
                 ).scalars().all()
                 section_map = {section.section_id: section for section in sections}
 
+            # Fetch documents for this submission grouped by section_id
+            documents_rows = (
+                await session.execute(
+                    select(G2PIntakeFormSectionDocuments).where(
+                        G2PIntakeFormSectionDocuments.submission_id == submission_id
+                    )
+                )
+            ).scalars().all()
+
+            documents_by_section: dict[str, list[IntakeFormDocumentPayload]] = defaultdict(list)
+            for doc in documents_rows:
+                documents_by_section[doc.section_id].append(
+                    IntakeFormDocumentPayload(
+                        document_label=doc.document_label,
+                        document_store_id=doc.document_store_id,
+                    )
+                )
+
             section_payloads = [
                 SectionPayloadResponseItem(
                     section_id=section_payload.section_id,
                     section_register_id=section_map[section_payload.section_id].section_register_id,
                     is_list=section_map[section_payload.section_id].is_list,
                     records=section_payload.intake_form_section_payload,
+                    documents=documents_by_section.get(section_payload.section_id),
                 )
                 for section_payload in section_payload_rows
                 if section_payload.section_id in section_map

@@ -72,7 +72,7 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
 class G2PIntakeFormSectionDocuments(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_documents"
     
-    document_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    document_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     submission_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
     section_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
     document_label: Mapped[str] = mapped_column(String, nullable=False)
