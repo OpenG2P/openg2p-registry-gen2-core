@@ -43,7 +43,7 @@ from ..schemas import (
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
     RegisterRelationEnum
 )
-from ..services import G2PRegisterDomainService
+from .g2p_register_domain_service import G2PRegisterDomainService
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder

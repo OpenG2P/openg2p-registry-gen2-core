@@ -27,7 +27,7 @@ from ..schemas import (
     IntakeFormSubmissionsSummaryData,
     SectionPayloadResponseItem,
 )
-from ..services import G2PRegisterDomainService
+from .g2p_register_domain_service import G2PRegisterDomainService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
 _logger = logging.getLogger('g2p-intake-form-service')
