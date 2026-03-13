@@ -17,7 +17,7 @@ class ChangeRequestStatusEnum(Enum):
     PROCESSING = "PROCESSING"
     PROCESSED = "PROCESSED"
     FAILED = "FAILED"
-   
+
 class IntakeFormStatusEnum(Enum):
     DRAFT = "DRAFT"
     FINAL = "FINAL"
@@ -69,43 +69,11 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     )
 
 
-def _extract_payload_values(payload: Any) -> list[str]:
-    """Recursively flatten scalar JSON values into a list of normalized tokens."""
-    values: list[str] = []
-    if payload is None:
-        return values
-
-    if isinstance(payload, dict):
-        for value in payload.values():
-            values.extend(_extract_payload_values(value))
-        return values
-
-    if isinstance(payload, list):
-        for item in payload:
-            values.extend(_extract_payload_values(item))
-        return values
-
-    if isinstance(payload, (str, int, float, bool)):
-        token = re.sub(r"\s+", " ", str(payload)).strip()
-        if token:
-            values.append(token)
-    return values
-
-
-def _populate_intake_form_section_text(target):
-    payload_values = _extract_payload_values(target.intake_form_section_payload)
-    submission_reference = getattr(target, "submission_reference", None)
-    record_name = getattr(target, "record_name", None)
-    submission_values = [str(submission_reference)] if submission_reference is not None else []
-    record_name_values = [str(record_name)] if record_name is not None else []
-    target.intake_form_section_text = " ".join(payload_values + submission_values + record_name_values).strip()
-
-
-@event.listens_for(G2PIntakeFormSectionPayload, "before_insert")
-def populate_intake_form_section_text_on_insert(_mapper, _connection, target):
-    _populate_intake_form_section_text(target)
-
-
-@event.listens_for(G2PIntakeFormSectionPayload, "before_update")
-def populate_intake_form_section_text_on_update(_mapper, _connection, target):
-    _populate_intake_form_section_text(target)
+class G2PIntakeFormSectionDocuments(BaseORMModel):
+    __tablename__ = "g2p_intake_form_section_documents"
+    
+    document_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    submission_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    section_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    document_label: Mapped[str] = mapped_column(String, nullable=False)
+    document_store_id: Mapped[str] = mapped_column(String, nullable=False)

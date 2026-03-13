@@ -44,7 +44,8 @@ from .g2p_intake_form import (
     G2PIntakeForm,
     G2PIntakeFormSectionPayload,
     IntakeFormStatusEnum,
-    ChangeRequestStatusEnum
+    ChangeRequestStatusEnum,
+    G2PIntakeFormSectionDocuments
 )
 from .g2p_attributes import G2PAttribute, G2PAttributeValue
 from .g2p_registry_document import G2PRegistryDocument
