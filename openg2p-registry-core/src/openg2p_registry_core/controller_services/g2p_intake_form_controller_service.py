@@ -188,6 +188,7 @@ class G2PIntakeFormControllerService(BaseService):
         return SubmissionResponsePayload(
             submission_id=g2p_intake_form.submission_id,
             submission_reference=g2p_intake_form.submission_reference,
+            record_name=g2p_intake_form.record_name,
             register_id=g2p_intake_form.register_id,
             tab_id=g2p_intake_form.tab_id,
             foundational_id=g2p_intake_form.foundational_id,

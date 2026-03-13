@@ -1,4 +1,5 @@
 import logging
+import importlib
 from datetime import datetime
 
 from openg2p_fastapi_common.service import BaseService
@@ -13,6 +14,7 @@ from ..models import (
     G2PIntakeFormSectionPayload,
     G2PRegisterChangeRequest,
     G2PRegisterChangeRequestPayload,
+    G2PRegisterDefinition,
     G2PRegisterSection,
     G2PRegisterUITab,
     IntakeFormStatusEnum,
@@ -31,6 +33,61 @@ _logger = logging.getLogger('g2p-intake-form-service')
 
 
 class G2PIntakeFormService(BaseService):
+    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str):
+        if not register_mnemonic:
+            return None
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+            domain_factory_class_name = "G2PRegisterDomainFactory"
+            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
+        except Exception as error:
+            _logger.warning(
+                f"Unable to resolve domain service for register mnemonic '{register_mnemonic}': {error}"
+            )
+            return None
+
+    async def _construct_record_name_for_intake_draft(self, register_id: str, section_payloads: list | None, session) -> str | None:
+        if not register_id:
+            return None
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+            )
+        ).scalar()
+        if not register_definition:
+            return None
+
+        domain_service = self._get_domain_service_by_register_mnemonic(register_definition.register_mnemonic)
+        if not domain_service:
+            return None
+
+        if not section_payloads:
+            return None
+
+        for section_payload in section_payloads:
+            payload_dict = section_payload.intake_form_section_payload if hasattr(section_payload, "intake_form_section_payload") else None
+            if not payload_dict:
+                continue
+            try:
+                record_name = domain_service.construct_record_name(payload_dict)
+                if record_name is None:
+                    continue
+                record_name = str(record_name).strip()
+                if record_name:
+                    return record_name
+            except NotImplementedError:
+                _logger.info(
+                    f"construct_record_name not implemented for register mnemonic '{register_definition.register_mnemonic}'."
+                )
+                return None
+            except Exception as error:
+                _logger.warning(
+                    f"Could not construct intake draft record_name for register mnemonic '{register_definition.register_mnemonic}': {error}"
+                )
+                return None
+        return None
+
     async def save_submission_draft(
         self,
         submission_request_payload: SaveSubmissionDraftRequestPayload,
@@ -81,12 +138,21 @@ class G2PIntakeFormService(BaseService):
                 session.add(intake_form)
                 await session.flush()
 
+            effective_register_id = submission_request_payload.register_id or intake_form.register_id
+            computed_record_name = await self._construct_record_name_for_intake_draft(
+                effective_register_id,
+                submission_request_payload.section_payloads,
+                session,
+            )
+
             if submission_request_payload.register_id:
                 intake_form.register_id = submission_request_payload.register_id
             if submission_request_payload.tab_id:
                 intake_form.tab_id = submission_request_payload.tab_id
             intake_form.foundational_id = submission_request_payload.foundational_id
             intake_form.link_foundational_id = submission_request_payload.link_foundational_id
+            if submission_request_payload.section_payloads is not None:
+                intake_form.record_name = computed_record_name
             if submission_request_payload.submission_id and submission_request_payload.no_of_verifications_required is not None:
                 intake_form.no_of_verifications_required = submission_request_payload.no_of_verifications_required
             intake_form.last_updated_by = created_by
@@ -101,14 +167,28 @@ class G2PIntakeFormService(BaseService):
                     )
                     if row:
                         row.submission_reference = intake_form.submission_reference
+                        row.record_name = intake_form.record_name
                         row.intake_form_section_payload = section_payload.intake_form_section_payload
                     else:
                         row = G2PIntakeFormSectionPayload(
                             submission_id=intake_form.submission_id,
                             section_id=section_payload.section_id,
                             submission_reference=intake_form.submission_reference,
+                            record_name=intake_form.record_name,
                             intake_form_section_payload=section_payload.intake_form_section_payload,
                         )
+                    session.add(row)
+
+            if submission_request_payload.section_payloads is not None:
+                all_section_rows = (
+                    await session.execute(
+                        select(G2PIntakeFormSectionPayload).where(
+                            G2PIntakeFormSectionPayload.submission_id == intake_form.submission_id
+                        )
+                    )
+                ).scalars().all()
+                for row in all_section_rows:
+                    row.record_name = intake_form.record_name
                     session.add(row)
 
             await session.commit()
@@ -412,6 +492,7 @@ class G2PIntakeFormService(BaseService):
 
                 change_request_data = {
                     "change_request_id": change_request.change_request_id,
+                    "record_name": change_request.record_name,
                     "register_id": change_request.register_id,
                     "tab_id": change_request.tab_id,
                     "internal_record_id": change_request.internal_record_id,

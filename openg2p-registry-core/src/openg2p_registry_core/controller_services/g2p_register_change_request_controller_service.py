@@ -109,6 +109,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
 
     def _build_change_request_response_payload(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_change_request: G2PRegisterChangeRequest) -> ChangeRequestResponsePayload:
         return ChangeRequestResponsePayload(
+            record_name=g2p_register_change_request.record_name,
             register_id=change_request_request_payload.register_id if change_request_request_payload else g2p_register_change_request.register_id,
             tab_id=g2p_register_change_request.tab_id,
             section_id=change_request_request_payload.section_id if change_request_request_payload else g2p_register_change_request.section_id,

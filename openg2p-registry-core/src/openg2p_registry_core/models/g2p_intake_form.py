@@ -28,6 +28,7 @@ class G2PIntakeForm(BaseORMModel):
 
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True, index=True)
+    record_name: Mapped[str] = mapped_column(String, nullable=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
@@ -56,6 +57,7 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    record_name: Mapped[str] = mapped_column(String, nullable=True)
     intake_form_section_payload: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
     intake_form_section_text: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -95,8 +97,10 @@ def _extract_payload_values(payload: Any) -> list[str]:
 def _populate_intake_form_section_text(target):
     payload_values = _extract_payload_values(target.intake_form_section_payload)
     submission_reference = getattr(target, "submission_reference", None)
+    record_name = getattr(target, "record_name", None)
     submission_values = [str(submission_reference)] if submission_reference is not None else []
-    target.intake_form_section_text = " ".join(payload_values + submission_values).strip()
+    record_name_values = [str(record_name)] if record_name is not None else []
+    target.intake_form_section_text = " ".join(payload_values + submission_values + record_name_values).strip()
 
 
 @event.listens_for(G2PIntakeFormSectionPayload, "before_insert")
