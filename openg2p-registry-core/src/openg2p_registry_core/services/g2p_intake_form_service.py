@@ -47,6 +47,25 @@ class G2PIntakeFormService(BaseService):
             )
             return None
 
+    def _normalize_section_payload_items(self, payload_items) -> list[dict]:
+        if not payload_items:
+            return []
+        if not isinstance(payload_items, list):
+            payload_items = [payload_items]
+
+        normalized_payloads: list[dict] = []
+        for payload_item in payload_items:
+            if isinstance(payload_item, dict):
+                normalized_payloads.append(payload_item)
+                continue
+
+            if hasattr(payload_item, "model_dump"):
+                normalized_payload = payload_item.model_dump()
+                if isinstance(normalized_payload, dict):
+                    normalized_payloads.append(normalized_payload)
+
+        return normalized_payloads
+
     async def _construct_record_name_for_intake_draft(self, register_id: str, section_payloads: list | None, session) -> str | None:
         if not register_id:
             return None
@@ -66,12 +85,12 @@ class G2PIntakeFormService(BaseService):
             return None
 
         for section_payload in section_payloads:
-            payload_items = getattr(section_payload, "intake_form_section_payload", None) or []
-            if not isinstance(payload_items, list):
-                payload_items = [payload_items]
+            payload_items = self._normalize_section_payload_items(
+                getattr(section_payload, "intake_form_section_payload", None)
+            )
 
             for payload_dict in payload_items:
-                if not isinstance(payload_dict, dict) or not payload_dict:
+                if not payload_dict:
                     continue
                 try:
                     record_name = domain_service.construct_record_name(payload_dict)
@@ -165,6 +184,9 @@ class G2PIntakeFormService(BaseService):
 
             if submission_request_payload.section_payloads:
                 for section_payload in submission_request_payload.section_payloads:
+                    normalized_payload_items = self._normalize_section_payload_items(
+                        section_payload.intake_form_section_payload
+                    )
                     row = await session.get(
                         G2PIntakeFormSectionPayload,
                         (intake_form.submission_id, section_payload.section_id),
@@ -172,14 +194,14 @@ class G2PIntakeFormService(BaseService):
                     if row:
                         row.submission_reference = intake_form.submission_reference
                         row.record_name = intake_form.record_name
-                        row.intake_form_section_payload = section_payload.intake_form_section_payload
+                        row.intake_form_section_payload = normalized_payload_items
                     else:
                         row = G2PIntakeFormSectionPayload(
                             submission_id=intake_form.submission_id,
                             section_id=section_payload.section_id,
                             submission_reference=intake_form.submission_reference,
                             record_name=intake_form.record_name,
-                            intake_form_section_payload=section_payload.intake_form_section_payload,
+                            intake_form_section_payload=normalized_payload_items,
                         )
                     session.add(row)
 

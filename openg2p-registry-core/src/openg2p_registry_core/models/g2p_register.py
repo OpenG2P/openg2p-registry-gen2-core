@@ -140,6 +140,7 @@ class G2PPerson(BaseORMModel):
     education_level: Mapped[str] = mapped_column(String, nullable=True)
     registration_date: Mapped[str] = mapped_column(Date, nullable=True)
 
+    # TODO: remove
     def get_search_text_fields(self) -> list[str]:
         """Return G2PPerson fields for search text aggregation."""
         fields = [

@@ -58,7 +58,7 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
-    intake_form_section_payload: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    intake_form_section_payload: Mapped[list[dict]] = mapped_column(JSONB, nullable=False)
     intake_form_section_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (
