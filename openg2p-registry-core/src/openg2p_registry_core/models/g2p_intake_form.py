@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from sqlalchemy import DateTime, Integer, String, Text, Index, BigInteger, event
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -17,7 +17,7 @@ class ChangeRequestStatusEnum(Enum):
     PROCESSING = "PROCESSING"
     PROCESSED = "PROCESSED"
     FAILED = "FAILED"
-   
+
 class IntakeFormStatusEnum(Enum):
     DRAFT = "DRAFT"
     FINAL = "FINAL"
@@ -49,21 +49,19 @@ class G2PIntakeForm(BaseORMModel):
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    last_updated_by: Mapped[str] = mapped_column(String, nullable=False)
-    last_updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    last_updated_by: Mapped[str] = mapped_column(String, nullable=True)
+    last_updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
 
 class G2PIntakeFormSectionPayload(BaseORMModel):
     __tablename__ = "g2p_intake_form_section_payloads"
     submission_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     section_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
-    submission_reference: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    record_name: Mapped[str] = mapped_column(String, nullable=True)
-    intake_form_section_payload: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    intake_form_section_payload: Mapped[list[dict]] = mapped_column(JSONB, nullable=False)
     intake_form_section_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (
         Index(
-            'ix_g2p_intake_form_section_payloads_intake_form_section_text_gin',
+            'ix_g2p_intake_form_section_payloads_search_text_gin',
             'intake_form_section_text',
             postgresql_using='gin',
             postgresql_ops={'intake_form_section_text': 'gin_trgm_ops'}
@@ -71,43 +69,11 @@ class G2PIntakeFormSectionPayload(BaseORMModel):
     )
 
 
-def _extract_payload_values(payload: Any) -> list[str]:
-    """Recursively flatten scalar JSON values into a list of normalized tokens."""
-    values: list[str] = []
-    if payload is None:
-        return values
-
-    if isinstance(payload, dict):
-        for value in payload.values():
-            values.extend(_extract_payload_values(value))
-        return values
-
-    if isinstance(payload, list):
-        for item in payload:
-            values.extend(_extract_payload_values(item))
-        return values
-
-    if isinstance(payload, (str, int, float, bool)):
-        token = re.sub(r"\s+", " ", str(payload)).strip()
-        if token:
-            values.append(token)
-    return values
-
-
-def _populate_intake_form_section_text(target):
-    payload_values = _extract_payload_values(target.intake_form_section_payload)
-    submission_reference = getattr(target, "submission_reference", None)
-    record_name = getattr(target, "record_name", None)
-    submission_values = [str(submission_reference)] if submission_reference is not None else []
-    record_name_values = [str(record_name)] if record_name is not None else []
-    target.intake_form_section_text = " ".join(payload_values + submission_values + record_name_values).strip()
-
-
-@event.listens_for(G2PIntakeFormSectionPayload, "before_insert")
-def populate_intake_form_section_text_on_insert(_mapper, _connection, target):
-    _populate_intake_form_section_text(target)
-
-
-@event.listens_for(G2PIntakeFormSectionPayload, "before_update")
-def populate_intake_form_section_text_on_update(_mapper, _connection, target):
-    _populate_intake_form_section_text(target)
+class G2PIntakeFormSectionDocuments(BaseORMModel):
+    __tablename__ = "g2p_intake_form_section_documents"
+    
+    document_id: Mapped[str] = mapped_column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    submission_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    section_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    document_label: Mapped[str] = mapped_column(String, nullable=False)
+    document_store_id: Mapped[str] = mapped_column(String, nullable=False)

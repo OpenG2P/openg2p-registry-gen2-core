@@ -356,6 +356,12 @@ class ChangeRequestResponsePayload(RegisterPayload):
 # Intake Form Data
 #==============================================================================
 
+class IntakeFormDocumentPayload(BaseModel):
+    """Document reference to attach to an intake form section"""
+    document_label: str
+    document_store_id: str
+
+
 class IntakeFormData(BaseModel):
     """Intake form data."""
     submission_id: Optional[str] = None
@@ -384,16 +390,13 @@ class IntakeFormData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class IntakeFormPayload(BaseModel):
-    """Intake form section payload (free-form JSON)."""
-    model_config = ConfigDict(extra="allow", from_attributes=True)
-
 class SectionPayloadResponseItem(BaseModel):
     """A single section payload item returned by get_intake_form."""
     section_id: str
     section_register_id: str
     is_list: bool
-    records: List[IntakeFormPayload]
+    records: List[dict]
+    documents: Optional[List[IntakeFormDocumentPayload]] = None
 
 class SubmissionResponsePayload(IntakeFormData):
     """Submission response payload."""
@@ -403,14 +406,15 @@ class SubmissionResponsePayload(IntakeFormData):
 class SectionPayloadInput(BaseModel):
     """A single section payload item for saving an intake form."""
     section_id: str
-    intake_form_section_payload: List[IntakeFormPayload]
+    intake_form_section_payload: List[dict]
+    documents: Optional[List[IntakeFormDocumentPayload]] = None
 
 
 class SaveSubmissionDraftRequestPayload(BaseModel):
     """Request payload for save_submission_draft (create or update, always DRAFT)."""
     submission_id: Optional[str] = None
-    register_id: Optional[str] = None
-    tab_id: Optional[str] = None
+    register_id: str
+    tab_id: str
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
     no_of_verifications_required: Optional[int] = 0

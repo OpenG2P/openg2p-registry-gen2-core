@@ -69,7 +69,8 @@ from .models import (
     G2PAttributeValue,
     G2PRegistryDocument,
     G2PRegistryVcConfiguration,
-    G2PInputMechanism
+    G2PInputMechanism,
+    G2PIntakeFormSectionDocuments
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
@@ -101,10 +102,10 @@ class Initializer(BaseInitializer):
         KeymanagerCryptoHelper()
 
         # Services
+        G2PRegisterDomainService()
         G2PIngestService()
         G2PRegisterService()
         G2PRegisterHierarchicalService()
-        G2PRegisterDomainService()
         G2PIngestionConfigurationService()
         G2PIngestionDataService()
         G2POutgestionConfigurationService()
@@ -150,6 +151,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterDocumentHistory.create_migrate()
             await G2PRegisterSectionDocument.create_migrate()
             await G2PIntakeFormSectionPayload.create_migrate()
+            await G2PIntakeFormSectionDocuments.create_migrate()
             await G2PRegisterChangeRequestPayload.create_migrate()
             await G2PRegisterChangeRequestDocument.create_migrate()
             await G2PRegistryDocument.create_migrate()

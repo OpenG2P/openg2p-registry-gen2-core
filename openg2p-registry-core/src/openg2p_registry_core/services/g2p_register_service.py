@@ -43,6 +43,7 @@ from ..schemas import (
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
     RegisterRelationEnum
 )
+from .g2p_register_domain_service import G2PRegisterDomainService
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder
@@ -1119,29 +1120,6 @@ class G2PRegisterService(BaseService):
             )
             return None
 
-    def _construct_record_name_for_change_request(self, register_mnemonic: str, payload: dict | None) -> str | None:
-        if not payload:
-            return None
-        domain_service = self._get_domain_service_by_register_mnemonic(register_mnemonic)
-        if not domain_service:
-            return None
-        try:
-            record_name = domain_service.construct_record_name(payload)
-            if record_name is None:
-                return None
-            record_name = str(record_name).strip()
-            return record_name or None
-        except NotImplementedError:
-            _logger.info(
-                f"construct_record_name not implemented for register mnemonic '{register_mnemonic}'."
-            )
-            return None
-        except Exception as error:
-            _logger.warning(
-                f"Could not construct record_name for register mnemonic '{register_mnemonic}': {error}"
-            )
-            return None
-
     async def construct_change_request(
         self,
         change_request_request_payload: ChangeRequestRequestPayload,
@@ -1164,14 +1142,22 @@ class G2PRegisterService(BaseService):
                     item.internal_record_id = str(uuid.uuid4())
 
         serialized_payloads = [item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else []
-        first_payload = serialized_payloads[0] if serialized_payloads else None
-        record_name = self._construct_record_name_for_change_request(register_mnemonic, first_payload)
+
+        register_domian_service: G2PRegisterDomainService | None = self._get_domain_service_by_register_mnemonic(register_mnemonic)
+        
+        constructed_record_name = self._construct_record_name_for_change_request(register_domian_service, serialized_payloads)
+
+        constructed_search_text = self._construct_search_text_for_change_request(
+            register_domian_service,
+            serialized_payloads,
+            constructed_record_name,
+        )
 
         # Create the payload object - change_payload is now always a list
         change_request_payload_obj = G2PRegisterChangeRequestPayload(
             change_request_id=change_request_id,
-            record_name=record_name,
             change_payload=serialized_payloads,
+            search_text=constructed_search_text,
         )
 
         # Determine change request source based on submission_id
@@ -1181,7 +1167,7 @@ class G2PRegisterService(BaseService):
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
             change_request_id=change_request_id,
-            record_name=record_name,
+            record_name=constructed_record_name,
             register_id=change_request_request_payload.register_id,
             tab_id=change_request_request_payload.tab_id,
             internal_record_id=internal_record_id,
@@ -4290,3 +4276,66 @@ class G2PRegisterService(BaseService):
             current_ids = child_ids
         
         return current_ids
+
+    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str) -> G2PRegisterDomainService | None:
+        """Resolve the domain service for a given register mnemonic via the domain factory."""
+        try:
+            module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+            domain_factory_class_name = "G2PRegisterDomainFactory"
+            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
+        except Exception as error:
+            _logger.warning(
+                f"Unable to resolve domain service for register mnemonic '{register_mnemonic}': {error}"
+            )
+            return None
+
+    def _construct_record_name_for_change_request(
+        self,
+        register_domian_service: G2PRegisterDomainService | None,
+        payload: list[dict],
+    ) -> str | None:
+        """Construct the record_name for a change request using the domain service."""
+        for payload_dict in payload:
+            if not isinstance(payload_dict, dict):
+                continue
+            try:
+                record_name = register_domain_service.construct_record_name(payload_dict)
+                if record_name:
+                    return record_name
+            except NotImplementedError:
+                _logger.info("construct_record_name not implemented for change request domain service.")
+                return None
+            except Exception as error:
+                _logger.warning(f"Could not construct change request record_name: {error}")
+                return None
+        return None
+
+    def _construct_search_text_for_change_request(
+        self,
+        register_domian_service: G2PRegisterDomainService | None,
+        serialized_payloads: list[dict],
+        *args,
+    ) -> str:
+        """Construct the search_text for a change request payload using the domain service.
+
+        Mirrors the pattern used in G2PIntakeFormService._construct_search_text.
+        Extra positional args (e.g. record_name, change_request_id) are forwarded
+        to the domain service's construct_search_text as the `extra` list.
+        """
+        if not serialized_payloads or not register_domian_service:
+            return ""
+        search_tokens: list[str] = []
+        for payload_dict in serialized_payloads:
+            if not isinstance(payload_dict, dict):
+                continue
+            try:
+                search_text = register_domian_service.construct_search_text(payload_dict, list(args))
+                if search_text:
+                    search_tokens.append(search_text.strip())
+            except NotImplementedError:
+                _logger.info("construct_search_text not implemented for change request domain service.")
+                return ""
+            except Exception as error:
+                _logger.warning(f"Could not construct change request search_text: {error}")
+        return " ".join(search_tokens).strip()
