@@ -80,6 +80,7 @@ class G2PIntakeFormService(BaseService):
                     created_at=now,
                 )
                 session.add(intake_form)
+            
 
             register_domain_service: G2PRegisterDomainService | None = await self._get_domain_service_for_register(
                 submission_request_payload.register_id,
@@ -105,6 +106,14 @@ class G2PIntakeFormService(BaseService):
                     row = await session.get(
                         G2PIntakeFormSectionPayload,
                         (intake_form.submission_id, section_payload.section_id),
+                    )
+                    register_id = await self._get_section_register_id_for_section(
+                        section_payload.section_id,
+                        session
+                    )
+                    register_domain_service: G2PRegisterDomainService | None = await self._get_domain_service_for_register(
+                        register_id,
+                        session,
                     )
                     constructed_search_text = self._construct_search_text(
                         section_payload.intake_form_section_payload,
@@ -533,8 +542,15 @@ class G2PIntakeFormService(BaseService):
         sort_column = getattr(G2PRegisterChangeRequest, sort_field)
         return query.order_by(sort_column.desc() if sort_desc else sort_column.asc())
 
+    async def _get_section_register_id_for_section(self, section_id: str, session) -> str | None:
+        register_id = (
+            await session.execute(
+                select(G2PRegisterSection.register_id).where(G2PRegisterSection.section_id == section_id)
+            )
+        ).scalar_one_or_none()
+        return register_id
     
-    async def _get_domain_service_for_register(self, register_id: str, session):
+    async def _get_domain_service_for_register(self, register_id: str, session) -> G2PRegisterDomainService | None:
         register_definition: G2PRegisterDefinition = (
             await session.execute(
                 select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
@@ -544,7 +560,7 @@ class G2PIntakeFormService(BaseService):
         domain_service = self._get_domain_service_by_register_mnemonic(register_definition.register_mnemonic)
         return domain_service
 
-    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str):
+    def _get_domain_service_by_register_mnemonic(self, register_mnemonic: str) -> G2PRegisterDomainService | None:
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
             domain_factory_class_name = "G2PRegisterDomainFactory"
