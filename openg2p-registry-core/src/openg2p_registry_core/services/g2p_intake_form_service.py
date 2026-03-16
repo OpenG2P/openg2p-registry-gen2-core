@@ -545,7 +545,7 @@ class G2PIntakeFormService(BaseService):
     async def _get_section_register_id_for_section(self, section_id: str, session) -> str | None:
         register_id = (
             await session.execute(
-                select(G2PRegisterSection.register_id).where(G2PRegisterSection.section_id == section_id)
+                select(G2PRegisterSection.section_register_id).where(G2PRegisterSection.section_id == section_id)
             )
         ).scalar_one_or_none()
         return register_id
