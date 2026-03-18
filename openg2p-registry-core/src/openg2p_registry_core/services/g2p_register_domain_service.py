@@ -51,10 +51,10 @@ class G2PRegisterDomainService(BaseService):
         raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
 
     async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
+        pass
 
     async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
+        pass
 
     def compute_deduplication_score_for_register(
         self,
