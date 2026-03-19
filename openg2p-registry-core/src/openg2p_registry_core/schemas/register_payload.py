@@ -303,8 +303,8 @@ class RegisterRelationEnum(str, Enum):
 
 
 class ChangePayload(BaseChangePayload):
-    internal_record_id: str
-    edit_action: EditActionEnum
+    internal_record_id: Optional[str] = None
+    edit_action: Optional[EditActionEnum] = None
     class Config:
         from_attributes: bool = True
         extra = "allow"  # Allow extra fields to be preserved and accessible
@@ -372,7 +372,7 @@ class IntakeFormData(BaseModel):
     tab_id: Optional[str] = None
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
-    edit_action: Optional[EditActionEnum] = None
+    edit_action: EditActionEnum = EditActionEnum.ADD
     internal_record_id: Optional[str] = None
     intake_form_status: Optional[str] = None
     change_request_submission_status: Optional[str] = None

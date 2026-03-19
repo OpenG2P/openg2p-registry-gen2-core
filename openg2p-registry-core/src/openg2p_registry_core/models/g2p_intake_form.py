@@ -36,7 +36,7 @@ class G2PIntakeForm(BaseORMModel):
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    edit_action: Mapped[EditActionEnum] = mapped_column(String, nullable=False)
+    edit_action: Mapped[EditActionEnum] = mapped_column(String, nullable=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
