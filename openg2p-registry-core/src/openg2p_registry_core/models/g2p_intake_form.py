@@ -10,6 +10,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from .g2p_register_change_request import ApprovalStatusEnum
 
+class EditActionEnum(Enum):
+    ADD = "ADD"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+    NO_CHANGE = "NO_CHANGE"
 
 class ChangeRequestStatusEnum(Enum):
     NOT_APPLICABLE = "NOT_APPLICABLE"
@@ -31,6 +36,8 @@ class G2PIntakeForm(BaseORMModel):
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    edit_action: Mapped[EditActionEnum] = mapped_column(String, nullable=False)
+    internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     intake_form_status: Mapped[IntakeFormStatusEnum] = mapped_column(String, nullable=False, default=IntakeFormStatusEnum.DRAFT.value)

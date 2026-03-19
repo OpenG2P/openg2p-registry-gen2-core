@@ -193,6 +193,8 @@ class G2PIntakeFormControllerService(BaseService):
             tab_id=g2p_intake_form.tab_id,
             foundational_id=g2p_intake_form.foundational_id,
             link_foundational_id=g2p_intake_form.link_foundational_id,
+            edit_action=g2p_intake_form.edit_action,
+            internal_record_id=g2p_intake_form.internal_record_id,
             intake_form_status=g2p_intake_form.intake_form_status,
             change_request_submission_status=g2p_intake_form.change_request_submission_status,
             change_request_id=g2p_intake_form.change_request_id,

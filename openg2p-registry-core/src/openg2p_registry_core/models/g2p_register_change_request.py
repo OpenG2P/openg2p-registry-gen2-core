@@ -33,6 +33,8 @@ class G2PRegisterChangeRequest(BaseORMModel):
     section_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+
+    edit_action: Mapped[str] = mapped_column(String, nullable=False)
     
     change_request_source: Mapped[ChangeRequestSourceEnum] = mapped_column(String, nullable=False)
     submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
