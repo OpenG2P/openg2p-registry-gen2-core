@@ -802,8 +802,14 @@ class G2PRegisterService(BaseService):
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
-        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
 
@@ -834,8 +840,14 @@ class G2PRegisterService(BaseService):
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
-        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
 
@@ -881,15 +893,15 @@ class G2PRegisterService(BaseService):
         ).scalar()
 
         if change_request.edit_action == EditActionEnum.ADD.value:
-            subject_internal_record_id = str(uuid.uuid4())
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["internal_record_id"] = subject_internal_record_id
             schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
+
+            subject_internal_record_id = schema_dict.get("internal_record_id")
             
             # Convert date strings to date objects before creating the instance
             schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
@@ -949,8 +961,14 @@ class G2PRegisterService(BaseService):
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
-        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
 
@@ -1045,8 +1063,14 @@ class G2PRegisterService(BaseService):
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
-        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # Celery workers may not have initialized components; fall back to instantiating.
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
 
@@ -1563,6 +1587,7 @@ class G2PRegisterService(BaseService):
             record_name=constructed_record_name,
             register_id=change_request_request_payload.register_id,
             tab_id=change_request_request_payload.tab_id,
+            edit_action=change_request_request_payload.edit_action.value,
             internal_record_id=internal_record_id,
             section_id=change_request_request_payload.section_id,
             section_register_id=change_request_request_payload.section_register_id,
@@ -4675,7 +4700,10 @@ class G2PRegisterService(BaseService):
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
             domain_factory_class_name = "G2PRegisterDomainFactory"
-            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            domain_factory_class = getattr(module, domain_factory_class_name)
+            g2p_registry_domain_factory = domain_factory_class.get_component()
+            if not g2p_registry_domain_factory:
+                g2p_registry_domain_factory = domain_factory_class()
             return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
         except Exception as error:
             _logger.warning(

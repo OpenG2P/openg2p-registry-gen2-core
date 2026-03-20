@@ -112,6 +112,11 @@ class G2PChangeRequestWorkerService(BaseService):
 
         Returns: (subject_internal_record_id, approved_count, last_attempted_change_request_id)
         """
+        _logger.debug("Change Request Ids=%s", change_request_ids)
+        _logger.debug("Session Type=%s", type(session))
+        _logger.debug("Submission Id=%s", submission_id)
+        _logger.debug("Fallback Subject Internal Record Id=%s", fallback_subject_internal_record_id)
+        
         approved_count = 0
         subject_internal_record_id: Optional[str] = None
         last_attempted_change_request_id: Optional[str] = None
@@ -122,7 +127,9 @@ class G2PChangeRequestWorkerService(BaseService):
 
         # Classify by section type.
         for change_request_id in change_request_ids:
+            _logger.debug("Processing change_request_id=%s", change_request_id)
             cr: G2PRegisterChangeRequest | None = await session.get(G2PRegisterChangeRequest, change_request_id)
+            _logger.debug("Fetched change request edit_action=%s", getattr(cr, "edit_action", None))
             if not cr:
                 continue
             section: G2PRegisterSection | None = await session.get(G2PRegisterSection, cr.section_id)
@@ -135,6 +142,10 @@ class G2PChangeRequestWorkerService(BaseService):
                 non_primary_master_ids.append(change_request_id)
             else:
                 child_ids.append(change_request_id)
+            
+        _logger.info("Primary master ids=%s", primary_master_ids)
+        _logger.info("Non primary master_ids=%s", non_primary_master_ids)
+        _logger.info("Child ids=%s", child_ids)
 
         if submission_id:
             _logger.info(
@@ -157,8 +168,10 @@ class G2PChangeRequestWorkerService(BaseService):
                 change_request_id=change_request_id, session=session
             )
             approved_count += 1
+            _logger.info("Approved primary master section change request: %s", change_request_id)
 
         subject_internal_record_id = subject_internal_record_id or fallback_subject_internal_record_id
+        _logger.debug("Final subject_internal_record_id=%s", subject_internal_record_id)
 
         # 2. Non-primary master sections
         if non_primary_master_ids:
