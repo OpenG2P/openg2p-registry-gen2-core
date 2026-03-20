@@ -76,6 +76,8 @@ class G2PIntakeFormService(BaseService):
                     link_foundational_id=submission_request_payload.link_foundational_id,
                     submission_reference=submission_reference_generator.next_id(),
                     no_of_verifications_required=no_of_verifications_required,
+                    edit_action=submission_request_payload.edit_action,
+                    internal_record_id=submission_request_payload.internal_record_id,
                     created_by=created_by,
                     created_at=now,
                 )
@@ -95,6 +97,9 @@ class G2PIntakeFormService(BaseService):
                 intake_form.foundational_id = submission_request_payload.foundational_id
             if submission_request_payload.link_foundational_id:
                 intake_form.link_foundational_id = submission_request_payload.link_foundational_id
+            if submission_request_payload.edit_action:
+                intake_form.edit_action = submission_request_payload.edit_action
+                intake_form.internal_record_id = submission_request_payload.internal_record_id
             if submission_request_payload.section_payloads is not None:
                 intake_form.record_name = constructed_record_name
             intake_form.last_updated_by = created_by

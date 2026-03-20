@@ -669,10 +669,35 @@ class G2PRegisterService(BaseService):
         # Always approve only the requested change request ID.
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_request = await self._approve_change_request_core(
-                change_request_id=change_request_id,
-                session=session,
-            )
+            change_request = await session.get(G2PRegisterChangeRequest, change_request_id)
+            if not change_request:
+                raise ValueError(f"Change request with ID {change_request_id} does not exist.")
+            
+            section = await session.get(G2PRegisterSection, change_request.section_id)
+            if not section:
+                raise ValueError(f"Section with ID {change_request.section_id} does not exist.")
+            
+            if section.is_primary_section and section.section_register_id == section.register_id:
+                change_request, _ = await self.approve_primary_master_section_change_request(
+                    change_request_id=change_request_id,
+                    session=session,
+                    skip_verification=False,
+                )
+            elif section.section_register_id == section.register_id:
+                change_request = await self.approve_non_primary_master_section_change_request(
+                    change_request_id=change_request_id,
+                    subject_internal_record_id=change_request.internal_record_id,
+                    session=session,
+                    skip_verification=False,
+                )
+            else:
+                change_request = await self.approve_child_section_change_request(
+                    change_request_id=change_request_id,
+                    subject_internal_record_id=change_request.internal_record_id,
+                    session=session,
+                    skip_verification=False,
+                )
+                
             _logger.info(f"Approved change request: {change_request_id}")
             await session.commit()
             await session.refresh(change_request)
@@ -686,13 +711,52 @@ class G2PRegisterService(BaseService):
                 change_request_id=change_request_id,
                 session=session,
                 skip_verification=True,
-                skip_sequence_check=True
             )
             _logger.info(f"Auto-approved change request: {change_request_id}")
             await session.commit()
             await session.refresh(change_request)
             return change_request
 
+    async def auto_approve_primary_master_section_change_request(self, change_request_id: str) -> tuple[G2PRegisterChangeRequest, str]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request, subject_internal_record_id = await self.approve_primary_master_section_change_request(
+                change_request_id=change_request_id,
+                session=session,
+                skip_verification=True,
+            )
+            _logger.info(f"Auto-approved primary master section change request: {change_request_id}")
+            await session.commit()
+            await session.refresh(change_request)
+            return change_request, subject_internal_record_id
+
+    async def auto_approve_non_primary_master_section_change_request(self, change_request_id: str, subject_internal_record_id: str) -> G2PRegisterChangeRequest:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = await self.approve_non_primary_master_section_change_request(
+                change_request_id=change_request_id,
+                subject_internal_record_id=subject_internal_record_id,
+                session=session,
+                skip_verification=True,
+            )
+            _logger.info(f"Auto-approved non-primary master section change request: {change_request_id}")
+            await session.commit()
+            await session.refresh(change_request)
+            return change_request
+
+    async def auto_approve_child_section_change_request(self, change_request_id: str, subject_internal_record_id: str) -> G2PRegisterChangeRequest:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = await self.approve_child_section_change_request(
+                change_request_id=change_request_id,
+                subject_internal_record_id=subject_internal_record_id,
+                session=session,
+                skip_verification=True,
+            )
+            _logger.info(f"Auto-approved child section change request: {change_request_id}")
+            await session.commit()
+            await session.refresh(change_request)
+            return change_request
 
     async def approve_single_change_request(self, change_request_id: str, session):
         return await self._approve_change_request_core(
@@ -738,12 +802,361 @@ class G2PRegisterService(BaseService):
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
-        g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
+
+        await domain_service.post_approve(change_request, session)
+
+        return change_request        
+    
+    async def approve_primary_master_section_change_request(self, change_request_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> tuple[G2PRegisterChangeRequest, str]:
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
+        
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_at = datetime.now()
+        session.add(change_request)
+
+        _logger.info(f"Approving primary master section change request: {change_request}")
+        g2p_register_section = await self.validate_change_request_core(change_request, session, skip_verification, skip_sequence_check)
+        
+        # In case of approval, insert data into register_history
+        await self.insert_into_register_history(change_request, session)
+        # Upsert data into register
+        subject_internal_record_id = await self.insert_primary_master_section_into_register(change_request, session)
+        # Handle documents if section.documents_required is True
+        if g2p_register_section and g2p_register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, g2p_register_section, session)
+        
+        # Handle POST APPROVAL domain service operation
+        from ..services import G2PRegisterDomainService
+        g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
+
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+        domain_factory_class_name = "G2PRegisterDomainFactory"
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
+        domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
+
+        await domain_service.post_approve(change_request, session)
+
+        return change_request, subject_internal_record_id
+    
+    async def insert_primary_master_section_into_register(self, change_request: G2PRegisterChangeRequest, session) -> str:
+        subject_internal_record_id: str | None = None
+
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == change_request.section_register_id
+                )
+            )
+        ).scalar()
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+        register_class_prefix = "G2PRegister"
+        implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+        register_class = getattr(module, implementation_class_name)
+
+        schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
+        schema_class_prefix = "G2PRegisterSchema"
+        schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
+        schema_class = getattr(schema_module, schema_class_name)
+
+        # Fetch the payload from the database
+        payload_result = await session.execute(
+            select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
+            )
+        )
+        payload = payload_result.scalar()
+        change_payload = payload.change_payload[0]
+
+        register_schema_instance = schema_class(**(change_payload or {}))
+
+        existing = (
+            await session.execute(
+                select(register_class).where(
+                    register_class.internal_record_id == change_request.internal_record_id
+                )
+            )
+        ).scalar()
+
+        if change_request.edit_action == EditActionEnum.ADD.value:
+            # Build the payload dict excluding None values from schema, then add base fields
+            schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
+            schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
+            schema_dict["created_by"] = change_request.created_by
+            schema_dict["created_at"] = change_request.created_at
+            schema_dict["last_approved_at"] = change_request.approved_at
+            schema_dict["last_approved_by"] = "system"
+
+            subject_internal_record_id = schema_dict.get("internal_record_id")
+            
+            # Convert date strings to date objects before creating the instance
+            schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
+            
+            new_instance = register_class(**schema_dict)
+            session.add(new_instance)
+        elif change_request.edit_action == EditActionEnum.UPDATE.value and existing:
+            subject_internal_record_id = existing.internal_record_id
+            mapper = inspect(register_class)
+            for key, value in register_schema_instance.dict().items():
+                # Only update values in change request payload
+                if key in change_payload:
+                    # Convert date strings to date objects if needed
+                    if value is not None and key in mapper.columns:
+                        column = mapper.columns[key]
+                        if isinstance(column.type, SQLDate):
+                            if isinstance(value, str):
+                                try:
+                                    value = datetime.strptime(value, '%Y-%m-%d').date()
+                                except (ValueError, TypeError):
+                                    pass
+                            elif isinstance(value, datetime):
+                                value = value.date()
+                    setattr(existing, key, value)
+            setattr(existing, "last_approved_at", datetime.now())
+            setattr(existing, "last_approved_by", "system")
+        else:
+            _logger.error(f"Unknown edit action '{change_request.edit_action}' for change request '{change_request.change_request_id}'")
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
+                message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
+            )
+        return subject_internal_record_id
+
+    async def approve_non_primary_master_section_change_request(self, change_request_id: str, subject_internal_record_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> G2PRegisterChangeRequest:
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
+        
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_at = datetime.now()
+        session.add(change_request)
+
+        _logger.info(f"Approving primary master section change request: {change_request}")
+        g2p_register_section = await self.validate_change_request_core(change_request, session, skip_verification, skip_sequence_check)
+        
+        # In case of approval, insert data into register_history
+        await self.insert_into_register_history(change_request, session)
+        # Upsert data into register
+        await self.insert_non_primary_master_section_into_register(change_request, subject_internal_record_id, session)
+        # Handle documents if section.documents_required is True
+        if g2p_register_section and g2p_register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, g2p_register_section, session)
+        
+        # Handle POST APPROVAL domain service operation
+        from ..services import G2PRegisterDomainService
+        g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
+
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+        domain_factory_class_name = "G2PRegisterDomainFactory"
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # fall back initialization
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
+        domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
 
         return change_request
+    
+    async def insert_non_primary_master_section_into_register(self, change_request: G2PRegisterChangeRequest, subject_internal_record_id: str, session):
+
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == change_request.section_register_id
+                )
+            )
+        ).scalar()
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+        register_class_prefix = "G2PRegister"
+        implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+        register_class = getattr(module, implementation_class_name)
+
+        schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
+        schema_class_prefix = "G2PRegisterSchema"
+        schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
+        schema_class = getattr(schema_module, schema_class_name)
+
+        # Fetch the payload from the database
+        payload_result = await session.execute(
+            select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
+            )
+        )
+        payload = payload_result.scalar()
+        
+        for change_payload in payload.change_payload:
+            register_schema_instance = schema_class(**(change_payload or {}))
+
+            existing = (
+                await session.execute(
+                    select(register_class).where(
+                        register_class.internal_record_id == subject_internal_record_id
+                    )
+                )
+            ).scalar()
+
+            if change_payload.get("edit_action") == EditActionEnum.ADD.value or change_payload.get("edit_action") == EditActionEnum.UPDATE.value:
+                mapper = inspect(register_class)
+                for key, value in register_schema_instance.dict().items():
+                    # Only update values in change request payload
+                    if key in change_payload:
+                        # Convert date strings to date objects if needed
+                        if value is not None and key in mapper.columns:
+                            column = mapper.columns[key]
+                            if isinstance(column.type, SQLDate):
+                                if isinstance(value, str):
+                                    try:
+                                        value = datetime.strptime(value, '%Y-%m-%d').date()
+                                    except (ValueError, TypeError):
+                                        pass
+                                elif isinstance(value, datetime):
+                                    value = value.date()
+                        setattr(existing, key, value)
+                setattr(existing, "last_approved_at", datetime.now())
+                setattr(existing, "last_approved_by", "system")
+            else:
+                _logger.error(f"Unknown edit action '{change_request.edit_action}' for change request '{change_request.change_request_id}'")
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
+                    message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
+                )
+    
+    async def approve_child_section_change_request(self, change_request_id: str, subject_internal_record_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> G2PRegisterChangeRequest:
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
+        
+        change_request.approval_status = ApprovalStatusEnum.APPROVED.value
+        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_at = datetime.now()
+        session.add(change_request)
+
+        _logger.info(f"Approving primary master section change request: {change_request}")
+        g2p_register_section = await self.validate_change_request_core(change_request, session, skip_verification, skip_sequence_check)
+        
+        # In case of approval, insert data into register_history
+        await self.insert_into_register_history(change_request, session)
+        # Upsert data into register
+        subject_internal_record_id = await self.insert_child_section_into_register(change_request, subject_internal_record_id, session)
+        # Handle documents if section.documents_required is True
+        if g2p_register_section and g2p_register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, g2p_register_section, session)
+        
+        # Handle POST APPROVAL domain service operation
+        from ..services import G2PRegisterDomainService
+        g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
+
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
+        domain_factory_class_name = "G2PRegisterDomainFactory"
+        domain_factory_class = getattr(module, domain_factory_class_name)
+        g2p_registry_domain_factory = domain_factory_class.get_component()
+        # Celery workers may not have initialized components; fall back to instantiating.
+        if not g2p_registry_domain_factory:
+            g2p_registry_domain_factory = domain_factory_class()
+        domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(g2p_register_definition.register_mnemonic)
+        if not domain_service:
+            raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
+
+        await domain_service.post_approve(change_request, session)
+
+        return change_request
+
+    async def insert_child_section_into_register(self, change_request: G2PRegisterChangeRequest, subject_internal_record_id: str, session):
+        register_definition: G2PRegisterDefinition = (
+            await session.execute(
+                select(G2PRegisterDefinition).where(
+                    G2PRegisterDefinition.register_id == change_request.section_register_id
+                )
+            )
+        ).scalar()
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+        register_class_prefix = "G2PRegister"
+        implementation_class_name = f"{register_class_prefix}{register_definition.register_mnemonic}"
+        register_class = getattr(module, implementation_class_name)
+
+        schema_module = importlib.import_module("openg2p_registry_extensions.register_domain.schemas")
+        schema_class_prefix = "G2PRegisterSchema"
+        schema_class_name = f"{schema_class_prefix}{register_definition.register_mnemonic}"
+        schema_class = getattr(schema_module, schema_class_name)
+
+        # Fetch the payload from the database
+        payload_result = await session.execute(
+            select(G2PRegisterChangeRequestPayload).where(
+                G2PRegisterChangeRequestPayload.change_request_id == change_request.change_request_id
+            )
+        )
+        payload = payload_result.scalar()
+
+        # change_payload is now always a list
+        for change_payload in payload.change_payload:
+            register_schema_instance = schema_class(**(change_payload or {}))
+        
+            existing = (
+                await session.execute(
+                    select(register_class).where(
+                        register_class.internal_record_id == change_payload.get("internal_record_id")
+                    )
+                )
+            ).scalar()
+
+            if change_payload.get("edit_action") == EditActionEnum.UPDATE.value and existing:
+                mapper = inspect(register_class)
+                for key, value in register_schema_instance.dict().items():
+                    # Only update values in change request payload
+                    if key in change_payload:
+                        # Convert date strings to date objects if needed
+                        if value is not None and key in mapper.columns:
+                            column = mapper.columns[key]
+                            if isinstance(column.type, SQLDate):
+                                if isinstance(value, str):
+                                    try:
+                                        value = datetime.strptime(value, '%Y-%m-%d').date()
+                                    except (ValueError, TypeError):
+                                        pass
+                                elif isinstance(value, datetime):
+                                    value = value.date()
+                        setattr(existing, key, value)
+                setattr(existing, "last_approved_at", datetime.now())
+                setattr(existing, "last_approved_by", "system")
+            elif change_payload.get("edit_action") == EditActionEnum.ADD.value:
+                # Build the payload dict excluding None values from schema, then add base fields
+                schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
+                schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
+                schema_dict["created_by"] = change_request.created_by
+                schema_dict["created_at"] = change_request.created_at
+                schema_dict["last_approved_at"] = change_request.approved_at
+                schema_dict["last_approved_by"] = "system"
+                
+                # Convert date strings to date objects before creating the instance
+                schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
+                
+                new_instance = register_class(**schema_dict)
+                session.add(new_instance)
+            elif change_payload.get("edit_action") == EditActionEnum.DELETE.value and existing:
+                await session.delete(existing)
+            elif change_payload.get("edit_action") == EditActionEnum.NO_CHANGE.value and existing:
+                _logger.info(f"No change action for change request '{change_request.change_request_id}', skipping register update.")
+            else:
+                _logger.error(f"Unknown edit action '{change_payload.get('edit_action')}' for change request '{change_request.change_request_id}'")
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[1],
+                    message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
+                )
             
     async def _fetch_change_requests_for_intake_form(self, submission_id: str, session) -> list[G2PRegisterChangeRequest]:
         result = await session.execute(
@@ -767,6 +1180,22 @@ class G2PRegisterService(BaseService):
             await session.commit()
             await session.refresh(change_request)
             return change_request
+
+    async def validate_change_request_core(
+        self,
+        change_request: G2PRegisterChangeRequest,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+    ) -> G2PRegisterSection:
+        g2p_register_section = await self.validate_change_request_section(change_request, session)
+        # Validate whether verifications are done
+        if not skip_verification:
+            await self.validate_change_request_verifications(change_request, session)
+        # Ensure there are no earlier change requests for the internal_record_id pending approval
+        if not skip_sequence_check:
+            await self.validate_change_request_sequence(change_request, session)
+        return g2p_register_section
 
     async def validate_change_request_section(self, g2p_register_change_request: G2PRegisterChangeRequest, session) -> G2PRegisterSection:
         g2p_register_section: G2PRegisterSection = (
@@ -824,6 +1253,7 @@ class G2PRegisterService(BaseService):
             )
 
     async def validate_change_request_sequence(self, change_request: G2PRegisterChangeRequest, session) -> None:
+        # TODO: check internal_record_id != null
         earlier_pending = (
             await session.execute(
                 select(G2PRegisterChangeRequest).where(
@@ -978,6 +1408,7 @@ class G2PRegisterService(BaseService):
                     session=session
                 )
 
+    # TODO: _create_or_update_child_register_record
     async def _create_or_update_register_record(self, change_request: G2PRegisterChangeRequest, change_payload: ChangePayload,  schema_class, register_class, session) -> None:
         """Helper method to create or update a register record"""
         # Serialize change request payload to register schema for validation
@@ -1156,6 +1587,7 @@ class G2PRegisterService(BaseService):
             record_name=constructed_record_name,
             register_id=change_request_request_payload.register_id,
             tab_id=change_request_request_payload.tab_id,
+            edit_action=change_request_request_payload.edit_action,
             internal_record_id=internal_record_id,
             section_id=change_request_request_payload.section_id,
             section_register_id=change_request_request_payload.section_register_id,
@@ -4268,7 +4700,10 @@ class G2PRegisterService(BaseService):
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
             domain_factory_class_name = "G2PRegisterDomainFactory"
-            g2p_registry_domain_factory = getattr(module, domain_factory_class_name).get_component()
+            domain_factory_class = getattr(module, domain_factory_class_name)
+            g2p_registry_domain_factory = domain_factory_class.get_component()
+            if not g2p_registry_domain_factory:
+                g2p_registry_domain_factory = domain_factory_class()
             return g2p_registry_domain_factory.get_domain_service(register_mnemonic)
         except Exception as error:
             _logger.warning(
