@@ -420,7 +420,7 @@ class SaveSubmissionDraftRequestPayload(BaseModel):
     tab_id: str
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
-    edit_action: Optional[str] = None
+    edit_action: str = EditActionEnum.ADD.value
     internal_record_id: Optional[str] = None
     no_of_verifications_required: Optional[int] = 0
     section_payloads: Optional[List[SectionPayloadInput]] = None
