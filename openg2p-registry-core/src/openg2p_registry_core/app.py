@@ -18,6 +18,7 @@ from .services import (
     G2PUIHelperService,
     G2PIntakeFormService,
     G2PRegisterVerificationService,
+    G2PChangeRequestWorkerService
 )
 from .controller_services import (
     G2PRegisterDataControllerService,
@@ -70,7 +71,7 @@ from .models import (
     G2PRegistryDocument,
     G2PRegistryVcConfiguration,
     G2PInputMechanism,
-    G2PIntakeFormSectionDocuments
+    G2PIntakeFormSectionDocuments,
 )
 
 from .helpers import PatternMatcher, TemplateHelper, MinioClient
@@ -115,6 +116,7 @@ class Initializer(BaseInitializer):
         G2PUIHelperService()
         G2PIntakeFormService()
         G2PRegisterVerificationService()
+        G2PChangeRequestWorkerService()
 
         # Controller Services
         G2PIngestControllerService()
