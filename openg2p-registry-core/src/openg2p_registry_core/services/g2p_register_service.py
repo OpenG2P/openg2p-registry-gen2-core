@@ -1587,7 +1587,7 @@ class G2PRegisterService(BaseService):
             record_name=constructed_record_name,
             register_id=change_request_request_payload.register_id,
             tab_id=change_request_request_payload.tab_id,
-            edit_action=change_request_request_payload.edit_action.value,
+            edit_action=change_request_request_payload.edit_action,
             internal_record_id=internal_record_id,
             section_id=change_request_request_payload.section_id,
             section_register_id=change_request_request_payload.section_register_id,

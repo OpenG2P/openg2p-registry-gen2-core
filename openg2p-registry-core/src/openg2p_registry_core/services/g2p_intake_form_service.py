@@ -98,8 +98,7 @@ class G2PIntakeFormService(BaseService):
             if submission_request_payload.link_foundational_id:
                 intake_form.link_foundational_id = submission_request_payload.link_foundational_id
             if submission_request_payload.edit_action:
-                intake_form.edit_action = submission_request_payload.edit_action.value if hasattr(submission_request_payload.edit_action, 'value') else submission_request_payload.edit_action
-            if submission_request_payload.internal_record_id:
+                intake_form.edit_action = submission_request_payload.edit_action
                 intake_form.internal_record_id = submission_request_payload.internal_record_id
             if submission_request_payload.section_payloads is not None:
                 intake_form.record_name = constructed_record_name
