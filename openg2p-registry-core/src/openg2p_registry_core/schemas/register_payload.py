@@ -304,7 +304,7 @@ class RegisterRelationEnum(str, Enum):
 
 class ChangePayload(BaseChangePayload):
     internal_record_id: Optional[str] = None
-    edit_action: Optional[EditActionEnum] = None
+    edit_action: str = EditActionEnum.ADD.value
     class Config:
         from_attributes: bool = True
         extra = "allow"  # Allow extra fields to be preserved and accessible
@@ -321,7 +321,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
     tab_id: Optional[str] = None
-    edit_action: EditActionEnum = EditActionEnum.ADD
+    edit_action: str = EditActionEnum.ADD.value
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
     internal_record_id: Optional[str] = None
@@ -372,7 +372,7 @@ class IntakeFormData(BaseModel):
     tab_id: Optional[str] = None
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
-    edit_action: EditActionEnum = EditActionEnum.ADD
+    edit_action: str = EditActionEnum.ADD.value
     internal_record_id: Optional[str] = None
     intake_form_status: Optional[str] = None
     change_request_submission_status: Optional[str] = None
@@ -420,7 +420,7 @@ class SaveSubmissionDraftRequestPayload(BaseModel):
     tab_id: str
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
-    edit_action: Optional[EditActionEnum] = None
+    edit_action: Optional[str] = None
     internal_record_id: Optional[str] = None
     no_of_verifications_required: Optional[int] = 0
     section_payloads: Optional[List[SectionPayloadInput]] = None
