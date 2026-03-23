@@ -254,6 +254,8 @@ class G2PRegisterDomainService(BaseService):
                 incoming_value = incoming_data.get(field_name)
                 candidate_value = getattr(candidate_record, field_name, None)
 
+                total_weight += weight
+
                 if not incoming_value or not candidate_value:
                     continue
 
@@ -265,7 +267,6 @@ class G2PRegisterDomainService(BaseService):
 
                 if field_similarity >= similarity_threshold:
                     total_weighted_score += field_similarity * weight
-                    total_weight += weight
 
             if total_weight == 0:
                 return 0.0
