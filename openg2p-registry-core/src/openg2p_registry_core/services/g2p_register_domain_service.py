@@ -40,6 +40,19 @@ class G2PRegisterDomainService(BaseService):
         PHONETIC = "PHONETIC"
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
+
+    @classmethod
+    def _normalize_match_type(cls, match_type: Optional[str]) -> str:
+        """Normalize persisted match type values to enum-compatible constants."""
+        if not match_type:
+            return cls.DeduplicationMatchType.EXACT.value
+
+        normalized_value = str(match_type).strip().replace("-", "_").upper()
+        alias_map = {
+            "NUMERIC": cls.DeduplicationMatchType.NUMERIC_RANGE.value,
+            "DATE": cls.DeduplicationMatchType.DATE_RANGE.value,
+        }
+        return alias_map.get(normalized_value, normalized_value)
     
     def construct_record_name(self, payload: dict, extra: list[str] = None) -> str:
         raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
@@ -232,7 +245,9 @@ class G2PRegisterDomainService(BaseService):
 
             for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
                 weight = dedup_field.get("weight", 1.0)
                 similarity_threshold = dedup_field.get("similarity_threshold", 0.7)
 
@@ -283,7 +298,9 @@ class G2PRegisterDomainService(BaseService):
             for dedup_field in deduplicate_schema:
 
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
 
                 incoming_value = incoming_data.get(field_name)
                 if not incoming_value or not hasattr(register_class, field_name):
@@ -350,7 +367,9 @@ class G2PRegisterDomainService(BaseService):
 
             for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
 
                 incoming_value = incoming_data.get(field_name)
                 candidate_value = getattr(candidate_record, field_name, None)
