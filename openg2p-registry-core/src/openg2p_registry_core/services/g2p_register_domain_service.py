@@ -68,6 +68,13 @@ class G2PRegisterDomainService(BaseService):
         Returns list of matching records with scores.
         """
         try:
+            incoming_data = self._normalize_dedup_input(
+                incoming_data,
+                context=f"register/change_request_id={change_request_id}",
+            )
+            if not incoming_data:
+                return []
+
             # Get register definition with dedup config
             register_definition: G2PRegisterDefinition = (
                 session.execute(
@@ -142,6 +149,13 @@ class G2PRegisterDomainService(BaseService):
         Returns list of matching change_request records with scores.
         """
         try:
+            incoming_data = self._normalize_dedup_input(
+                incoming_data,
+                context=f"change_request/change_request_id={change_request_id}",
+            )
+            if not incoming_data:
+                return []
+
             # Get register definition with dedup config
             register_definition: G2PRegisterDefinition = (
                 session.execute(
@@ -169,9 +183,17 @@ class G2PRegisterDomainService(BaseService):
             ) or []
 
             results = []
+            other_change_requests = other_change_requests or []
             for other_change_request in other_change_requests:
+                candidate_id = other_change_request.get("change_request_id")
+                normalized_payload = self._normalize_dedup_input(
+                    other_change_request.get("change_payload"),
+                    context=f"candidate_change_request_id={candidate_id}",
+                )
+                if not normalized_payload:
+                    continue
                 # Create a simple object from the other payload for field matching
-                other_obj = type('obj', (object,), other_change_request.get('change_payload', {}))()
+                other_obj = type('obj', (object,), normalized_payload)()
 
                 score = self._compute_score(
                     incoming_data,
@@ -398,3 +420,31 @@ class G2PRegisterDomainService(BaseService):
         except Exception as e:
             _logger.error(f"Error computing field similarity: {str(e)}")
             return 0.0
+
+    def _normalize_dedup_input(self, payload, *, context: str) -> dict:
+        """Normalize payload variants to the dict shape expected by dedup scoring."""
+        if isinstance(payload, dict):
+            return payload
+
+        if isinstance(payload, list):
+            if not payload:
+                _logger.info(f"Empty payload list for dedup input ({context}); dedup will produce no matches.")
+                return {}
+            first_item = payload[0]
+            if isinstance(first_item, dict):
+                _logger.info(f"Normalized payload list to first item for dedup input ({context}).")
+                return first_item
+            _logger.warning(
+                f"Unsupported first list item type for dedup input ({context}): {type(first_item).__name__}; "
+                "dedup will produce no matches."
+            )
+            return {}
+
+        if payload is None:
+            _logger.info(f"Missing dedup payload input ({context}); dedup will produce no matches.")
+            return {}
+
+        _logger.warning(
+            f"Unsupported dedup payload input type ({context}): {type(payload).__name__}; dedup will produce no matches."
+        )
+        return {}
