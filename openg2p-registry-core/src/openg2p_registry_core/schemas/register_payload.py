@@ -207,7 +207,7 @@ class DisplayField(BaseModel):
 
 class SearchResultData(BaseModel):
     internal_record_id: str
-    functional_record_id: str
+    functional_record_id: Optional[str] = None
     link_internal_record_id: Optional[str] = None
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None
@@ -224,7 +224,7 @@ class SearchResultData(BaseModel):
 
 class DeepSearchResultData(BaseModel):
     internal_record_id: str
-    functional_record_id: str
+    functional_record_id: Optional[str] = None
     link_internal_record_id: Optional[str] = None
     foundational_id: Optional[str] = None
     link_foundational_id: Optional[str] = None

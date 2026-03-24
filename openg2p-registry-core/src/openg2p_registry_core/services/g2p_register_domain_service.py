@@ -40,6 +40,19 @@ class G2PRegisterDomainService(BaseService):
         PHONETIC = "PHONETIC"
         NUMERIC_RANGE = "NUMERIC_RANGE"
         DATE_RANGE = "DATE_RANGE"
+
+    @classmethod
+    def _normalize_match_type(cls, match_type: Optional[str]) -> str:
+        """Normalize persisted match type values to enum-compatible constants."""
+        if not match_type:
+            return cls.DeduplicationMatchType.EXACT.value
+
+        normalized_value = str(match_type).strip().replace("-", "_").upper()
+        alias_map = {
+            "NUMERIC": cls.DeduplicationMatchType.NUMERIC_RANGE.value,
+            "DATE": cls.DeduplicationMatchType.DATE_RANGE.value,
+        }
+        return alias_map.get(normalized_value, normalized_value)
     
     def construct_record_name(self, payload: dict, extra: list[str] = None) -> str:
         raise NotImplementedError("Register Domain Service should be overridden by the domain service implementation")
@@ -68,6 +81,13 @@ class G2PRegisterDomainService(BaseService):
         Returns list of matching records with scores.
         """
         try:
+            incoming_data = self._normalize_dedup_input(
+                incoming_data,
+                context=f"register/change_request_id={change_request_id}",
+            )
+            if not incoming_data:
+                return []
+
             # Get register definition with dedup config
             register_definition: G2PRegisterDefinition = (
                 session.execute(
@@ -142,6 +162,13 @@ class G2PRegisterDomainService(BaseService):
         Returns list of matching change_request records with scores.
         """
         try:
+            incoming_data = self._normalize_dedup_input(
+                incoming_data,
+                context=f"change_request/change_request_id={change_request_id}",
+            )
+            if not incoming_data:
+                return []
+
             # Get register definition with dedup config
             register_definition: G2PRegisterDefinition = (
                 session.execute(
@@ -169,9 +196,17 @@ class G2PRegisterDomainService(BaseService):
             ) or []
 
             results = []
+            other_change_requests = other_change_requests or []
             for other_change_request in other_change_requests:
+                candidate_id = other_change_request.get("change_request_id")
+                normalized_payload = self._normalize_dedup_input(
+                    other_change_request.get("change_payload"),
+                    context=f"candidate_change_request_id={candidate_id}",
+                )
+                if not normalized_payload:
+                    continue
                 # Create a simple object from the other payload for field matching
-                other_obj = type('obj', (object,), other_change_request.get('change_payload', {}))()
+                other_obj = type('obj', (object,), normalized_payload)()
 
                 score = self._compute_score(
                     incoming_data,
@@ -210,12 +245,16 @@ class G2PRegisterDomainService(BaseService):
 
             for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
                 weight = dedup_field.get("weight", 1.0)
                 similarity_threshold = dedup_field.get("similarity_threshold", 0.7)
 
                 incoming_value = incoming_data.get(field_name)
                 candidate_value = getattr(candidate_record, field_name, None)
+
+                total_weight += weight
 
                 if not incoming_value or not candidate_value:
                     continue
@@ -228,7 +267,6 @@ class G2PRegisterDomainService(BaseService):
 
                 if field_similarity >= similarity_threshold:
                     total_weighted_score += field_similarity * weight
-                    total_weight += weight
 
             if total_weight == 0:
                 return 0.0
@@ -261,7 +299,9 @@ class G2PRegisterDomainService(BaseService):
             for dedup_field in deduplicate_schema:
 
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
 
                 incoming_value = incoming_data.get(field_name)
                 if not incoming_value or not hasattr(register_class, field_name):
@@ -328,7 +368,9 @@ class G2PRegisterDomainService(BaseService):
 
             for dedup_field in deduplicate_schema:
                 field_name = dedup_field.get("field_name")
-                match_type = dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                match_type = self._normalize_match_type(
+                    dedup_field.get("match_type", self.DeduplicationMatchType.EXACT.value)
+                )
 
                 incoming_value = incoming_data.get(field_name)
                 candidate_value = getattr(candidate_record, field_name, None)
@@ -398,3 +440,31 @@ class G2PRegisterDomainService(BaseService):
         except Exception as e:
             _logger.error(f"Error computing field similarity: {str(e)}")
             return 0.0
+
+    def _normalize_dedup_input(self, payload, *, context: str) -> dict:
+        """Normalize payload variants to the dict shape expected by dedup scoring."""
+        if isinstance(payload, dict):
+            return payload
+
+        if isinstance(payload, list):
+            if not payload:
+                _logger.info(f"Empty payload list for dedup input ({context}); dedup will produce no matches.")
+                return {}
+            first_item = payload[0]
+            if isinstance(first_item, dict):
+                _logger.info(f"Normalized payload list to first item for dedup input ({context}).")
+                return first_item
+            _logger.warning(
+                f"Unsupported first list item type for dedup input ({context}): {type(first_item).__name__}; "
+                "dedup will produce no matches."
+            )
+            return {}
+
+        if payload is None:
+            _logger.info(f"Missing dedup payload input ({context}); dedup will produce no matches.")
+            return {}
+
+        _logger.warning(
+            f"Unsupported dedup payload input type ({context}): {type(payload).__name__}; dedup will produce no matches."
+        )
+        return {}
