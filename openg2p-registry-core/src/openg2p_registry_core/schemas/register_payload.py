@@ -750,6 +750,10 @@ class RegisterSectionData(BaseModel):
     register_id: str
     section_id: str
     tab_id: str
+    used_for_new_intake_form: bool = False
+    tab_label: Optional[str] = None
+    intake_form_name: Optional[str] = None
+    intake_form_description: Optional[str] = None
     section_mnemonic: str
     section_description: Optional[str] = None
     documents_required: bool = False
