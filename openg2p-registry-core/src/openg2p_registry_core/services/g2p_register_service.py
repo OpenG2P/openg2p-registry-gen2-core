@@ -4622,19 +4622,26 @@ class G2PRegisterService(BaseService):
         register_relation: RegisterRelationEnum | None = None,
     ) -> RegisterSectionData:
         """Build RegisterSectionData and enrich it with tab metadata via tab_id."""
-        tab: G2PRegisterUITab | None = None
+        tab: G2PRegisterUITab | dict | None = None
         if section.tab_id:
             tab = await self._get_tab(section.tab_id, session)
+
+        def _tab_value(field_name: str, default=None):
+            if tab is None:
+                return default
+            if isinstance(tab, dict):
+                return tab.get(field_name, default)
+            return getattr(tab, field_name, default)
 
         return RegisterSectionData(
             section_register_id=section.section_register_id,
             register_id=section.register_id,
             section_id=section.section_id,
             tab_id=section.tab_id,
-            used_for_new_intake_form=tab.used_for_new_intake_form if tab else False,
-            tab_label=tab.tab_label if tab else None,
-            intake_form_name=tab.intake_form_name if tab else None,
-            intake_form_description=tab.intake_form_description if tab else None,
+            used_for_new_intake_form=bool(_tab_value("used_for_new_intake_form", False)),
+            tab_label=_tab_value("tab_label"),
+            intake_form_name=_tab_value("intake_form_name"),
+            intake_form_description=_tab_value("intake_form_description"),
             section_mnemonic=section.section_mnemonic,
             section_description=section.section_description,
             documents_required=section.documents_required,
