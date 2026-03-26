@@ -348,6 +348,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_intake_form: bool = False,
         is_list: bool = False,
         is_primary_section: bool = False,
+        is_core_section: bool = False,
         section_ui_schema: dict = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -359,7 +360,7 @@ class G2PRegisterService(BaseService):
                 documents_required, no_of_verifications_required, auto_approval,
                 cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
                 cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
-                is_list, is_primary_section, section_ui_schema, session
+                is_list, is_primary_section, is_core_section, section_ui_schema, session
             )
             return section_data
 
@@ -388,6 +389,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_intake_form: bool,
         is_list: bool,
         is_primary_section: bool,
+        is_core_section: bool,
         section_ui_schema: dict,
         session
     ) -> RegisterSectionData:
@@ -407,6 +409,7 @@ class G2PRegisterService(BaseService):
             cr_auto_approve_for_intake_form=cr_auto_approve_for_intake_form,
             is_list=is_list,
             is_primary_section=is_primary_section,
+            is_core_section=is_core_section,
             section_ui_schema=section_ui_schema
         )
         session.add(new_section)
@@ -447,7 +450,8 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_staff_portal: bool = None,
         cr_auto_approve_for_partner: bool = None,
         cr_auto_approve_for_intake_form: bool = None,
-        is_primary_section: bool = None
+        is_primary_section: bool = None,
+        is_core_section: bool = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -456,7 +460,7 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required, documents_required, auto_approval,
                 cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
                 cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
-                is_primary_section, session
+                is_primary_section, is_core_section, session
             )
             return section_data
 
@@ -474,6 +478,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_partner: bool,
         cr_auto_approve_for_intake_form: bool,
         is_primary_section: bool,
+        is_core_section: bool,
         session
     ) -> RegisterSectionData:
         section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
@@ -514,6 +519,8 @@ class G2PRegisterService(BaseService):
                 if existing_primary:
                     existing_primary.is_primary_section = False
             section.is_primary_section = is_primary_section
+        if is_core_section is not None:
+            section.is_core_section = is_core_section
 
         await session.commit()
         await session.refresh(section)
@@ -4655,6 +4662,7 @@ class G2PRegisterService(BaseService):
             is_list=section.is_list,
             register_purpose=register_purpose,
             is_primary_section=section.is_primary_section,
+            is_core_section=section.is_core_section,
             section_order=getattr(section, "section_order", 0),
             section_ui_schema=section.section_ui_schema,
             register_relation=register_relation,
