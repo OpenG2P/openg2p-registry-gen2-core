@@ -25,7 +25,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration, G2PRegistryDocument
+    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
@@ -831,7 +831,18 @@ class G2PRegisterService(BaseService):
         if change_request.edit_action == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
+            generate_functional_record_id: bool = await self._check_functional_record_id_generation_required(
+                register_definition
+            )
+            if generate_functional_record_id:
+                await self._handle_functional_record_id_generation(
+                    register_id=register_definition.register_id,
+                    internal_record_id=change_request.internal_record_id,
+                    session=session,
+                )
+            schema_dict["functional_record_id"] = (
+                "generating..." if generate_functional_record_id else change_payload.get("functional_record_id")
+            )
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
@@ -1277,6 +1288,24 @@ class G2PRegisterService(BaseService):
                         converted_dict[key] = value.date()
         
         return converted_dict
+
+    async def _check_functional_record_id_generation_required(
+        self, register_definition: G2PRegisterDefinition
+    ) -> bool:
+        return (
+            bool(register_definition)
+            and register_definition.functional_id_generation_required is True
+            and register_definition.register_purpose == RegisterPurposeEnum.REGISTER.value
+        )
+
+    async def _handle_functional_record_id_generation(
+        self, register_id: str, internal_record_id: str, session
+    ) -> None:
+        queue_record = G2PFunctionalIdGenerationQueue(
+            register_id=register_id,
+            internal_record_id=internal_record_id,
+        )
+        session.add(queue_record)
 
     def _create_history_record(self, change_payload: ChangePayload, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""

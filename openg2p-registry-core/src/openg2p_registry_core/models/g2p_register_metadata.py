@@ -21,6 +21,9 @@ class G2PRegisterDefinition(BaseORMModel):
     master_register_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     register_rank: Mapped[int] = mapped_column(Integer, nullable=True)
 
+    # ID generation
+    functional_id_generation_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     # Register type flags
     register_purpose: Mapped[RegisterPurposeEnum] = mapped_column(String, nullable=False)
     program_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
