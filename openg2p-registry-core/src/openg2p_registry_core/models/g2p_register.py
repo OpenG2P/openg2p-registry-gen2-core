@@ -7,6 +7,25 @@ from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 
+class G2PTable(BaseORMModel):
+    __abstract__ = True
+
+    internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True) # Link to internal_record_id of the parent
+
+class G2PProgramRegister(BaseORMModel):
+    __abstract__ = True
+
+    internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    foundational_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
+    link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
+
+class RecordStatusEnum(enum.Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    ARCHIVED = "ARCHIVED"
+
 class G2PRegister(BaseORMModel):
     __abstract__ = True
 
@@ -21,6 +40,9 @@ class G2PRegister(BaseORMModel):
     last_approved_at: Mapped[str] = mapped_column(DateTime, nullable=False)
     last_approved_by: Mapped[str] = mapped_column(String, nullable=False)
     search_text: Mapped[str] = mapped_column(Text, nullable=True)
+
+    record_status: Mapped[RecordStatusEnum] = mapped_column(String, nullable=False, default=RecordStatusEnum.ACTIVE.value)
+    record_status_reason: Mapped[str] = mapped_column(String, nullable=True)
 
     def to_dict(self):
         return {

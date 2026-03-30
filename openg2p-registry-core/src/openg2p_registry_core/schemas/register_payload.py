@@ -750,6 +750,10 @@ class RegisterSectionData(BaseModel):
     register_id: str
     section_id: str
     tab_id: str
+    used_for_new_intake_form: bool = False
+    tab_label: Optional[str] = None
+    intake_form_name: Optional[str] = None
+    intake_form_description: Optional[str] = None
     section_mnemonic: str
     section_description: Optional[str] = None
     documents_required: bool = False
@@ -763,6 +767,7 @@ class RegisterSectionData(BaseModel):
     is_list: bool = False
     register_purpose: Optional[str] = None
     is_primary_section: bool = False
+    is_core_section: Optional[bool] = False
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
     register_relation: Optional[RegisterRelationEnum] = None
@@ -1070,6 +1075,7 @@ class AddRegisterSectionRequestPayload(BaseModel):
     cr_auto_approve_for_intake_form: bool = False
     is_list: bool = False
     is_primary_section: bool = False
+    is_core_section: Optional[bool] = False
     section_ui_schema: Optional[dict] = None
 
 
@@ -1104,6 +1110,7 @@ class UpdateRegisterSectionRequestPayload(BaseModel):
     cr_auto_approve_for_partner: Optional[bool] = None
     cr_auto_approve_for_intake_form: Optional[bool] = None
     is_primary_section: Optional[bool] = None
+    is_core_section: Optional[bool] = None
 
 
 class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):
