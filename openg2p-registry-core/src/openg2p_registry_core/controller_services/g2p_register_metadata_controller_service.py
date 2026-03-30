@@ -351,7 +351,8 @@ class G2PRegisterMetadataControllerService(BaseService):
             dedup_threshold_score=payload.dedup_threshold_score,
             register_icon=payload.register_icon,
             register_rank=payload.register_rank,
-            register_purpose=payload.register_purpose
+            register_purpose=payload.register_purpose,
+            functional_id_generation_required=payload.functional_id_generation_required,
         )
         return register_data
 
@@ -372,7 +373,8 @@ class G2PRegisterMetadataControllerService(BaseService):
             dedup_threshold_score=payload.dedup_threshold_score,
             register_icon=payload.register_icon,
             register_rank=payload.register_rank,
-            register_purpose=payload.register_purpose
+            register_purpose=payload.register_purpose,
+            functional_id_generation_required=payload.functional_id_generation_required,
         )
         return register_data
 
