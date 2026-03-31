@@ -158,6 +158,7 @@ class RegisterData(BaseModel):
     register_purpose: Optional[str] = None
     register_rank: Optional[int] = None
     register_icon: Optional[str] = None
+    functional_id_generation_required: bool = False
 
 
 class AllRegistersRegisterData(RegisterData):
@@ -173,6 +174,7 @@ class AllRegistersRegisterData(RegisterData):
     has_image: bool = False
     dedup_is_enabled: bool = False
     dedup_threshold_score: Optional[float] = None
+    functional_id_generation_required: bool = False
 
 
 class ChildRegisterData(BaseModel):
@@ -1128,6 +1130,7 @@ class CreateRegisterRequestPayload(BaseModel):
     register_icon: Optional[str] = None
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
+    functional_id_generation_required: bool = False
 
 
 class EditRegisterRequestPayload(BaseModel):
@@ -1140,6 +1143,7 @@ class EditRegisterRequestPayload(BaseModel):
     register_icon: Optional[str] = None
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
+    functional_id_generation_required: Optional[bool] = None
 
 
 class DeleteRegisterRequestPayload(BaseModel):

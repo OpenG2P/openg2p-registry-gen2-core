@@ -1722,7 +1722,8 @@ class G2PRegisterService(BaseService):
                 register_icon=register_definition.register_icon,
                 has_image=register_definition.has_image,
                 dedup_is_enabled=register_definition.dedup_is_enabled,
-                dedup_threshold_score=register_definition.dedup_threshold_score
+                dedup_threshold_score=register_definition.dedup_threshold_score,
+                functional_id_generation_required=register_definition.functional_id_generation_required,
             )
             all_registers_list.append(register_data)
 
@@ -1775,7 +1776,8 @@ class G2PRegisterService(BaseService):
                 register_mnemonic=register_definition.register_mnemonic,
                 register_subject=register_definition.register_subject,
                 register_description=register_definition.register_description,
-                master_register_id=register_definition.master_register_id
+                master_register_id=register_definition.master_register_id,
+                functional_id_generation_required=register_definition.functional_id_generation_required,
             )
             dashboard_registers_list.append(register_data)
 
@@ -1824,7 +1826,8 @@ class G2PRegisterService(BaseService):
             register_mnemonic=master_register_definition.register_mnemonic,
             register_subject=master_register_definition.register_subject,
             register_description=master_register_definition.register_description,
-            master_register_id=master_register_definition.master_register_id
+            master_register_id=master_register_definition.master_register_id,
+            functional_id_generation_required=master_register_definition.functional_id_generation_required,
         )
         return master_register_data
 
@@ -3678,7 +3681,8 @@ class G2PRegisterService(BaseService):
         dedup_threshold_score: float | None = None,
         register_icon: str | None = None,
         register_rank: int | None = None,
-        register_purpose: str | None = None
+        register_purpose: str | None = None,
+        functional_id_generation_required: bool = False,
     ) -> RegisterData:
         """
         Create a new register definition and a null register schema record.
@@ -3709,7 +3713,8 @@ class G2PRegisterService(BaseService):
                 dedup_threshold_score=dedup_threshold_score,
                 register_icon=register_icon,
                 register_rank=register_rank,
-                register_purpose=register_purpose if register_purpose else RegisterPurposeEnum.REGISTER.value
+                register_purpose=register_purpose if register_purpose else RegisterPurposeEnum.REGISTER.value,
+                functional_id_generation_required=functional_id_generation_required,
             )
             session.add(register_definition)
 
@@ -3734,7 +3739,8 @@ class G2PRegisterService(BaseService):
                 master_register_id=master_register_id,
                 register_purpose=register_definition.register_purpose,
                 register_rank=register_definition.register_rank,
-                register_icon=register_definition.register_icon
+                register_icon=register_definition.register_icon,
+                functional_id_generation_required=register_definition.functional_id_generation_required,
             )
 
     async def edit_register(
@@ -3747,7 +3753,8 @@ class G2PRegisterService(BaseService):
         dedup_threshold_score: float | None = None,
         register_icon: str | None = None,
         register_rank: int | None = None,
-        register_purpose: str | None = None
+        register_purpose: str | None = None,
+        functional_id_generation_required: bool | None = None,
     ) -> RegisterData:
         """
         Edit an existing register definition.
@@ -3817,6 +3824,9 @@ class G2PRegisterService(BaseService):
                 if register_purpose is not None:
                     register_definition.register_purpose = register_purpose
 
+                if functional_id_generation_required is not None:
+                    register_definition.functional_id_generation_required = functional_id_generation_required
+
             await session.commit()
             await session.refresh(register_definition)
 
@@ -3830,7 +3840,8 @@ class G2PRegisterService(BaseService):
                 master_register_id=register_definition.master_register_id,
                 register_purpose=register_definition.register_purpose,
                 register_rank=register_definition.register_rank,
-                register_icon=register_definition.register_icon
+                register_icon=register_definition.register_icon,
+                functional_id_generation_required=register_definition.functional_id_generation_required,
             )
 
     async def delete_register(self, register_id: str) -> RegisterData:
@@ -3860,7 +3871,8 @@ class G2PRegisterService(BaseService):
                 master_register_id=register_definition.master_register_id,
                 register_purpose=register_definition.register_purpose,
                 register_rank=register_definition.register_rank,
-                register_icon=register_definition.register_icon
+                register_icon=register_definition.register_icon,
+                functional_id_generation_required=register_definition.functional_id_generation_required,
             )
 
             # Delete associated register schema
