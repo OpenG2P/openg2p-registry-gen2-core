@@ -25,7 +25,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration, G2PRegistryDocument
+    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
@@ -348,6 +348,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_intake_form: bool = False,
         is_list: bool = False,
         is_primary_section: bool = False,
+        is_core_section: bool = False,
         section_ui_schema: dict = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -359,7 +360,7 @@ class G2PRegisterService(BaseService):
                 documents_required, no_of_verifications_required, auto_approval,
                 cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
                 cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
-                is_list, is_primary_section, section_ui_schema, session
+                is_list, is_primary_section, is_core_section, section_ui_schema, session
             )
             return section_data
 
@@ -388,6 +389,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_intake_form: bool,
         is_list: bool,
         is_primary_section: bool,
+        is_core_section: bool,
         section_ui_schema: dict,
         session
     ) -> RegisterSectionData:
@@ -407,31 +409,14 @@ class G2PRegisterService(BaseService):
             cr_auto_approve_for_intake_form=cr_auto_approve_for_intake_form,
             is_list=is_list,
             is_primary_section=is_primary_section,
+            is_core_section=is_core_section,
             section_ui_schema=section_ui_schema
         )
         session.add(new_section)
         await session.commit()
         await session.refresh(new_section)
 
-        section_data: RegisterSectionData = RegisterSectionData(
-            section_register_id=new_section.section_register_id,
-            register_id=new_section.register_id,
-            section_id=new_section.section_id,
-            tab_id=new_section.tab_id,
-            section_mnemonic=new_section.section_mnemonic,
-            section_description=new_section.section_description,
-            documents_required=new_section.documents_required,
-            no_of_verifications_required=new_section.no_of_verifications_required,
-            auto_approval=new_section.auto_approval,
-            cr_auto_approve_for_bene_portal=new_section.cr_auto_approve_for_bene_portal,
-            cr_auto_approve_for_agent_portal=new_section.cr_auto_approve_for_agent_portal,
-            cr_auto_approve_for_staff_portal=new_section.cr_auto_approve_for_staff_portal,
-            cr_auto_approve_for_partner=new_section.cr_auto_approve_for_partner,
-            cr_auto_approve_for_intake_form=new_section.cr_auto_approve_for_intake_form,
-            is_list=new_section.is_list,
-            is_primary_section=new_section.is_primary_section,
-            section_ui_schema=new_section.section_ui_schema
-        )
+        section_data: RegisterSectionData = await self._build_register_section_data(new_section, session)
         return section_data
 
     async def delete_register_section(self, section_id: str) -> RegisterSectionData:
@@ -445,25 +430,7 @@ class G2PRegisterService(BaseService):
         if not section:
             raise ValueError(f"Section with section_id '{section_id}' not found.")
 
-        section_data: RegisterSectionData = RegisterSectionData(
-            section_register_id=section.section_register_id,
-            register_id=section.register_id,
-            section_id=section.section_id,
-            tab_id=section.tab_id,
-            section_mnemonic=section.section_mnemonic,
-            section_description=section.section_description,
-            documents_required=section.documents_required,
-            no_of_verifications_required=section.no_of_verifications_required,
-            auto_approval=section.auto_approval,
-            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-            is_list=section.is_list,
-            is_primary_section=section.is_primary_section,
-            section_ui_schema=section.section_ui_schema
-        )
+        section_data: RegisterSectionData = await self._build_register_section_data(section, session)
 
         await session.delete(section)
         await session.commit()
@@ -483,7 +450,8 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_staff_portal: bool = None,
         cr_auto_approve_for_partner: bool = None,
         cr_auto_approve_for_intake_form: bool = None,
-        is_primary_section: bool = None
+        is_primary_section: bool = None,
+        is_core_section: bool = None
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -492,7 +460,7 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required, documents_required, auto_approval,
                 cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
                 cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
-                is_primary_section, session
+                is_primary_section, is_core_section, session
             )
             return section_data
 
@@ -510,6 +478,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_partner: bool,
         cr_auto_approve_for_intake_form: bool,
         is_primary_section: bool,
+        is_core_section: bool,
         session
     ) -> RegisterSectionData:
         section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
@@ -550,29 +519,13 @@ class G2PRegisterService(BaseService):
                 if existing_primary:
                     existing_primary.is_primary_section = False
             section.is_primary_section = is_primary_section
+        if is_core_section is not None:
+            section.is_core_section = is_core_section
 
         await session.commit()
         await session.refresh(section)
 
-        section_data: RegisterSectionData = RegisterSectionData(
-            section_register_id=section.section_register_id,
-            register_id=section.register_id,
-            section_id=section.section_id,
-            tab_id=section.tab_id,
-            section_mnemonic=section.section_mnemonic,
-            section_description=section.section_description,
-            documents_required=section.documents_required,
-            no_of_verifications_required=section.no_of_verifications_required,
-            auto_approval=section.auto_approval,
-            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-            is_list=section.is_list,
-            is_primary_section=section.is_primary_section,
-            section_ui_schema=section.section_ui_schema
-        )
+        section_data: RegisterSectionData = await self._build_register_section_data(section, session)
         return section_data
 
     async def update_register_section_ui_schema(
@@ -604,24 +557,7 @@ class G2PRegisterService(BaseService):
         await session.commit()
         await session.refresh(section)
 
-        section_data: RegisterSectionData = RegisterSectionData(
-            section_register_id=section.section_register_id,
-            register_id=section.register_id,
-            section_id=section.section_id,
-            tab_id=section.tab_id,
-            section_mnemonic=section.section_mnemonic,
-            section_description=section.section_description,
-            documents_required=section.documents_required,
-            no_of_verifications_required=section.no_of_verifications_required,
-            auto_approval=section.auto_approval,
-            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-            is_list=section.is_list,
-            section_ui_schema=section.section_ui_schema
-        )
+        section_data: RegisterSectionData = await self._build_register_section_data(section, session)
         return section_data
 
     async def search_in_a_register(self, register_id: str, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[SearchResultData], int]:
@@ -895,7 +831,18 @@ class G2PRegisterService(BaseService):
         if change_request.edit_action == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
-            schema_dict["functional_record_id"] = change_payload.get("functional_record_id") 
+            generate_functional_record_id: bool = await self._check_functional_record_id_generation_required(
+                register_definition
+            )
+            if generate_functional_record_id:
+                await self._handle_functional_record_id_generation(
+                    register_id=register_definition.register_id,
+                    internal_record_id=change_request.internal_record_id,
+                    session=session,
+                )
+            schema_dict["functional_record_id"] = (
+                "generating..." if generate_functional_record_id else change_payload.get("functional_record_id")
+            )
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
@@ -1341,6 +1288,24 @@ class G2PRegisterService(BaseService):
                         converted_dict[key] = value.date()
         
         return converted_dict
+
+    async def _check_functional_record_id_generation_required(
+        self, register_definition: G2PRegisterDefinition
+    ) -> bool:
+        return (
+            bool(register_definition)
+            and register_definition.functional_id_generation_required is True
+            and register_definition.register_purpose == RegisterPurposeEnum.REGISTER.value
+        )
+
+    async def _handle_functional_record_id_generation(
+        self, register_id: str, internal_record_id: str, session
+    ) -> None:
+        queue_record = G2PFunctionalIdGenerationQueue(
+            register_id=register_id,
+            internal_record_id=internal_record_id,
+        )
+        session.add(queue_record)
 
     def _create_history_record(self, change_payload: ChangePayload, change_request: G2PRegisterChangeRequest, history_schema_class, history_class, session) -> None:
         """Helper method to create and add a history record to the session"""
@@ -3409,24 +3374,10 @@ class G2PRegisterService(BaseService):
                 section_register_definition=section_register_definition,
                 session=session
             )
-            section_data = RegisterSectionData(
-                section_register_id=section.section_register_id,
-                register_id=section.register_id,
-                section_id=section.section_id,
-                tab_id=section.tab_id,
-                section_mnemonic=section.section_mnemonic,
-                section_description=section.section_description,
-                documents_required=section.documents_required,
-                no_of_verifications_required=section.no_of_verifications_required,
-                auto_approval=section.auto_approval,
-                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-                is_list=section.is_list,
+            section_data = await self._build_register_section_data(
+                section=section,
+                session=session,
                 register_purpose=section_register_definition.register_purpose,
-                section_ui_schema=section.section_ui_schema,
                 register_relation=register_relation,
             )
             sections_list.append(section_data)
@@ -3584,26 +3535,11 @@ class G2PRegisterService(BaseService):
                 session=session
             )
 
-            section_data = RegisterSectionData(
-                section_register_id=section.section_register_id,
-                register_id=section.register_id,
-                section_id=section.section_id,
-                tab_id=section.tab_id,
-                section_mnemonic=section.section_mnemonic,
-                section_description=section.section_description,
-                documents_required=section.documents_required,
-                no_of_verifications_required=section.no_of_verifications_required,
-                auto_approval=section.auto_approval,
-                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-                is_list=section.is_list,
+            section_data = await self._build_register_section_data(
+                section=section,
+                session=session,
                 register_purpose=section_register_definition.register_purpose,
-                section_order=section.section_order,
-                section_ui_schema=section.section_ui_schema,
-                register_relation=register_relation
+                register_relation=register_relation,
             )
             sections_list.append(section_data)
 
@@ -3675,26 +3611,11 @@ class G2PRegisterService(BaseService):
                 session=session
             )
 
-            section_data = RegisterSectionData(
-                section_register_id=section.section_register_id,
-                register_id=section.register_id,
-                section_id=section.section_id,
-                tab_id=section.tab_id,
-                section_mnemonic=section.section_mnemonic,
-                section_description=section.section_description,
-                documents_required=section.documents_required,
-                no_of_verifications_required=section.no_of_verifications_required,
-                auto_approval=section.auto_approval,
-                cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-                cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-                cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-                cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-                cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-                is_list=section.is_list,
+            section_data = await self._build_register_section_data(
+                section=section,
+                session=session,
                 register_purpose=section_register_definition.register_purpose,
-                section_order=section.section_order,
-                section_ui_schema=section.section_ui_schema,
-                register_relation=register_relation
+                register_relation=register_relation,
             )
             sections_list.append(section_data)
 
@@ -3741,24 +3662,10 @@ class G2PRegisterService(BaseService):
                 session=session
             )
 
-        return RegisterSectionData(
-            section_register_id=section.section_register_id,
-            register_id=section.register_id,
-            section_id=section.section_id,
-            tab_id=section.tab_id,
-            section_mnemonic=section.section_mnemonic,
-            section_description=section.section_description,
-            documents_required=section.documents_required,
-            no_of_verifications_required=section.no_of_verifications_required,
-            auto_approval=section.auto_approval,
-            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
-            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
-            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
-            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
-            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
-            is_list=section.is_list,
+        return await self._build_register_section_data(
+            section=section,
+            session=session,
             register_purpose=section_register_definition.register_purpose,
-            section_ui_schema=section.section_ui_schema,
             register_relation=register_relation,
         )
 
@@ -4154,25 +4061,7 @@ class G2PRegisterService(BaseService):
             if not primary_section:
                 return None
 
-            return RegisterSectionData(
-                section_register_id=primary_section.section_register_id,
-                register_id=primary_section.register_id,
-                tab_id=primary_section.tab_id,
-                section_id=primary_section.section_id,
-                section_mnemonic=primary_section.section_mnemonic,
-                section_description=primary_section.section_description,
-                documents_required=primary_section.documents_required,
-                no_of_verifications_required=primary_section.no_of_verifications_required,
-                auto_approval=primary_section.auto_approval,
-                cr_auto_approve_for_bene_portal=primary_section.cr_auto_approve_for_bene_portal,
-                cr_auto_approve_for_agent_portal=primary_section.cr_auto_approve_for_agent_portal,
-                cr_auto_approve_for_staff_portal=primary_section.cr_auto_approve_for_staff_portal,
-                cr_auto_approve_for_partner=primary_section.cr_auto_approve_for_partner,
-                cr_auto_approve_for_intake_form=primary_section.cr_auto_approve_for_intake_form,
-                is_list=primary_section.is_list,
-                is_primary_section=primary_section.is_primary_section,
-                section_ui_schema=primary_section.section_ui_schema
-            )
+            return await self._build_register_section_data(primary_section, session)
 
     # =========================================================================
     # Document Upload and Handling Methods
@@ -4760,3 +4649,50 @@ class G2PRegisterService(BaseService):
             except Exception as error:
                 _logger.warning(f"Could not construct change request search_text: {error}")
         return " ".join(search_tokens).strip()
+
+    async def _build_register_section_data(
+        self,
+        section: G2PRegisterSection,
+        session,
+        register_purpose: str | None = None,
+        register_relation: RegisterRelationEnum | None = None,
+    ) -> RegisterSectionData:
+        """Build RegisterSectionData and enrich it with tab metadata via tab_id."""
+        tab: G2PRegisterUITab | dict | None = None
+        if section.tab_id:
+            tab = await self._get_tab(section.tab_id, session)
+
+        def _tab_value(field_name: str, default=None):
+            if tab is None:
+                return default
+            if isinstance(tab, dict):
+                return tab.get(field_name, default)
+            return getattr(tab, field_name, default)
+
+        return RegisterSectionData(
+            section_register_id=section.section_register_id,
+            register_id=section.register_id,
+            section_id=section.section_id,
+            tab_id=section.tab_id,
+            used_for_new_intake_form=bool(_tab_value("used_for_new_intake_form", False)),
+            tab_label=_tab_value("tab_label"),
+            intake_form_name=_tab_value("intake_form_name"),
+            intake_form_description=_tab_value("intake_form_description"),
+            section_mnemonic=section.section_mnemonic,
+            section_description=section.section_description,
+            documents_required=section.documents_required,
+            no_of_verifications_required=section.no_of_verifications_required,
+            auto_approval=section.auto_approval,
+            cr_auto_approve_for_bene_portal=section.cr_auto_approve_for_bene_portal,
+            cr_auto_approve_for_agent_portal=section.cr_auto_approve_for_agent_portal,
+            cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
+            cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
+            cr_auto_approve_for_intake_form=section.cr_auto_approve_for_intake_form,
+            is_list=section.is_list,
+            register_purpose=register_purpose,
+            is_primary_section=section.is_primary_section,
+            is_core_section=section.is_core_section,
+            section_order=getattr(section, "section_order", 0),
+            section_ui_schema=section.section_ui_schema,
+            register_relation=register_relation,
+        )

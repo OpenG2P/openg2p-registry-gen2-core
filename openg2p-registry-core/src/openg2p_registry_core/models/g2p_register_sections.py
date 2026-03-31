@@ -35,6 +35,7 @@ class G2PRegisterSection(BaseORMModel):
         index=True,
     )
     is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_core_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     section_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     section_mnemonic: Mapped[str] = mapped_column(String, nullable=False, index=True)

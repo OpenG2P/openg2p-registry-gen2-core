@@ -270,6 +270,7 @@ class G2PRegisterMetadataControllerService(BaseService):
             cr_auto_approve_for_intake_form=payload.cr_auto_approve_for_intake_form,
             is_list=payload.is_list,
             is_primary_section=is_primary_section,
+            is_core_section=payload.is_core_section,
             section_ui_schema=payload.section_ui_schema
         )
         return section_data
@@ -305,7 +306,8 @@ class G2PRegisterMetadataControllerService(BaseService):
             cr_auto_approve_for_staff_portal=payload.cr_auto_approve_for_staff_portal,
             cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
             cr_auto_approve_for_intake_form=payload.cr_auto_approve_for_intake_form,
-            is_primary_section=payload.is_primary_section
+            is_primary_section=payload.is_primary_section,
+            is_core_section=payload.is_core_section
         )
         return section_data
 

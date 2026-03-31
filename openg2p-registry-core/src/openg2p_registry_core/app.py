@@ -4,80 +4,81 @@ import logging
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
-from .services import (
-    G2PRegisterDomainService,
-    G2PRegisterService,
-    G2PRegisterHierarchicalService,
-    G2PIngestService,
-    G2PIngestionConfigurationService,
-    G2POutgestionConfigurationService,
-    G2PTemplateService,
-    G2PAttributeService,
-    G2PIngestionDataService,
-    G2PVcConfigurationService,
-    G2PUIHelperService,
-    G2PIntakeFormService,
-    G2PRegisterVerificationService,
-    G2PChangeRequestWorkerService
-)
+
+from .cache import init_cache
+from .config import Settings
 from .controller_services import (
-    G2PRegisterDataControllerService,
-    G2PRegisterChangerequestControllerService,
-    G2PRegisterMetadataControllerService,
+    G2PAttributeControllerService,
+    G2PDocumentControllerService,
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
-    G2POutgestionConfigurationControllerService,
-    G2PDocumentControllerService,
-    G2PRegistryConfigurationControllerService,
-    G2PAttributeControllerService,
     G2PIngestionDataControllerService,
-    G2PVcConfigurationControllerService,
-    G2PUIHelperControllerService,
     G2PIntakeFormControllerService,
+    G2POutgestionConfigurationControllerService,
+    G2PRegisterChangerequestControllerService,
+    G2PChangeRequestCoreControllerService,
+    G2PRegisterDataControllerService,
+    G2PRegisterMetadataControllerService,
+    G2PRegistryConfigurationControllerService,
+    G2PUIHelperControllerService,
+    G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
 )
+from .helpers import MinioClient, PatternMatcher, TemplateHelper
 from .models import (
     DataModel,
-    G2PRegisterUITab,
-    G2PRegisterSchema,
-    G2PRegistryConfiguration,
-    G2PRegisterDocumentHistory,
-    G2PRegisterDefinition,
-    G2PRegisterSection,
-    G2PRegisterVerification,
-    G2PRegisterChangeRequest,
-    G2PRegisterChangeRequestPayload,
-    G2PRegisterChangeRequestDocument,
-    IncomingClassifiedData,
-    IncomingEnrichedTransformedData,
-    IncomingRawData,
-    IncomingRawDataPayload,
-    IncomingModelSemanticPattern,
-    IncomingModelKeyPath,
-    IncomingTemplate,
-    OutgoingTopic,
-    OutgoingTemplate,
-    OutgoingRawData,
-    OutgoingRawDataPayload,
-    OutgoingTransformedDataPayload,
-    G2PRegisterSectionDocument,
-    SubscriptionActivityLog,
-    G2PIntakeForm,
-    G2PIntakeFormSectionPayload,
-    DeduplicationRegisterResult,
     DeduplicationChangerequestResult,
+    DeduplicationRegisterResult,
     G2PAttribute,
     G2PAttributeValue,
+    G2PInputMechanism,
+    G2PIntakeForm,
+    G2PIntakeFormSectionDocuments,
+    G2PIntakeFormSectionPayload,
+    G2PRegisterChangeRequest,
+    G2PRegisterChangeRequestDocument,
+    G2PRegisterChangeRequestPayload,
+    G2PRegisterDefinition,
+    G2PRegisterDocumentHistory,
+    G2PRegisterSchema,
+    G2PRegisterSection,
+    G2PRegisterSectionDocument,
+    G2PRegisterUITab,
+    G2PRegisterVerification,
+    G2PRegistryConfiguration,
     G2PRegistryDocument,
     G2PRegistryVcConfiguration,
-    G2PInputMechanism,
-    G2PIntakeFormSectionDocuments,
+    IncomingClassifiedData,
+    IncomingEnrichedTransformedData,
+    IncomingModelKeyPath,
+    IncomingModelSemanticPattern,
+    IncomingRawData,
+    IncomingRawDataPayload,
+    IncomingTemplate,
+    OutgoingRawData,
+    OutgoingRawDataPayload,
+    OutgoingTemplate,
+    OutgoingTopic,
+    OutgoingTransformedDataPayload,
+    SubscriptionActivityLog,
 )
-
-from .helpers import PatternMatcher, TemplateHelper, MinioClient
-from .cache import init_cache
-
-from .config import Settings
+from .services import (
+    G2PAttributeService,
+    G2PChangeRequestWorkerService,
+    G2PIngestionConfigurationService,
+    G2PIngestionDataService,
+    G2PIngestService,
+    G2PIntakeFormService,
+    G2POutgestionConfigurationService,
+    G2PRegisterDomainService,
+    G2PRegisterHierarchicalService,
+    G2PRegisterService,
+    G2PRegisterVerificationService,
+    G2PTemplateService,
+    G2PUIHelperService,
+    G2PVcConfigurationService,
+    G2PChangeRequestCoreService,
+)
 
 _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
@@ -116,12 +117,14 @@ class Initializer(BaseInitializer):
         G2PUIHelperService()
         G2PIntakeFormService()
         G2PRegisterVerificationService()
+        G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
 
         # Controller Services
         G2PIngestControllerService()
         G2PRegisterDataControllerService()
         G2PRegisterChangerequestControllerService()
+        G2PChangeRequestCoreControllerService()
         G2PRegisterMetadataControllerService()
         G2PIngestionConfigurationControllerService()
         G2PIngestionDataControllerService()

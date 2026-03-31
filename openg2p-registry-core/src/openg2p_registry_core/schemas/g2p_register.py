@@ -3,6 +3,21 @@ from datetime import datetime, date
 from typing import Optional
 
 
+class G2PTableBaseSchema(BaseModel):
+    """Base schema for G2PTable fields."""
+
+    internal_record_id: Optional[str] = None
+    link_internal_record_id: Optional[str] = None
+
+
+class G2PProgramRegisterBaseSchema(BaseModel):
+    """Base schema for G2PProgramRegister fields."""
+
+    internal_record_id: Optional[str] = None
+    foundational_id: Optional[str] = None
+    link_foundational_id: Optional[str] = None
+
+
 class G2PRegisterBaseSchema(BaseModel):
     """Base schema for G2PRegister fields."""
 

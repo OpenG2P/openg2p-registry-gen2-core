@@ -3,6 +3,23 @@ from datetime import datetime, date
 from typing import Optional
 
 
+class G2PTableHistorySchema(BaseModel):
+    """Base schema for G2PTableHistory fields."""
+
+    history_record_id: Optional[str] = None
+    internal_record_id: Optional[str] = None
+    link_internal_record_id: Optional[str] = None
+
+
+class G2PProgramRegisterHistorySchema(BaseModel):
+    """Base schema for G2PProgramRegisterHistory fields."""
+
+    history_record_id: Optional[str] = None
+    internal_record_id: Optional[str] = None
+    foundational_id: Optional[str] = None
+    link_foundational_id: Optional[str] = None
+
+
 class G2PRegisterHistorySchema(BaseModel):
     """Base schema for G2PRegisterHistory fields."""
 

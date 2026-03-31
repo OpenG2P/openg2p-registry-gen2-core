@@ -1,10 +1,11 @@
 from openg2p_fastapi_common.config import Settings as BaseSettings
+from iam_core.user_auth.config import Settings as IamSettings
 from pydantic_settings import SettingsConfigDict
 
 from . import __version__
 
 
-class Settings(BaseSettings):
+class Settings(IamSettings):
     model_config = SettingsConfigDict(
         env_prefix="registry_core_", env_file=".env", extra="allow"
     )

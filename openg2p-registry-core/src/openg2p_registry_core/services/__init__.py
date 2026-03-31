@@ -14,3 +14,4 @@ from .g2p_ui_helper_service import G2PUIHelperService
 from .g2p_intake_form_service import G2PIntakeFormService
 from .g2p_verification_service import G2PRegisterVerificationService
 from .g2p_change_request_worker_service import G2PChangeRequestWorkerService
+from .g2p_change_request_core_service import G2PChangeRequestCoreService
