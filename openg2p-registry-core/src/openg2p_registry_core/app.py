@@ -61,6 +61,7 @@ from .models import (
     OutgoingTopic,
     OutgoingTransformedDataPayload,
     SubscriptionActivityLog,
+    G2PFunctionalIdGenerationQueue
 )
 from .services import (
     G2PAttributeService,
@@ -189,5 +190,8 @@ class Initializer(BaseInitializer):
             # VC Configuration Models
             await G2PInputMechanism.create_migrate()
             await G2PRegistryVcConfiguration.create_migrate()
+
+            # Id Generation Queue Models
+            await G2PFunctionalIdGenerationQueue.create_migrate()
 
         asyncio.run(migrate())
