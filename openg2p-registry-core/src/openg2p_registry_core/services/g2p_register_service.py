@@ -848,7 +848,8 @@ class G2PRegisterService(BaseService):
             schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = "system"
 
-            subject_internal_record_id = schema_dict.get("internal_record_id")
+            # Primary master section establishes the stable subject id for dependent sections.
+            subject_internal_record_id = schema_dict.get("internal_record_id") or change_request.internal_record_id
             
             # Convert date strings to date objects before creating the instance
             schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
@@ -891,7 +892,7 @@ class G2PRegisterService(BaseService):
         change_request.approved_at = datetime.now()
         session.add(change_request)
 
-        _logger.info(f"Approving primary master section change request: {change_request}")
+        _logger.info(f"Approving non primary master section change request: {change_request}")
         g2p_register_section = await self.validate_change_request_core(change_request, session, skip_verification, skip_sequence_check)
         
         # In case of approval, insert data into register_history
@@ -959,11 +960,23 @@ class G2PRegisterService(BaseService):
                 )
             ).scalar()
 
+            if not existing:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTER_DATA_NOT_FOUND.value[1],
+                    message=(
+                        f"Subject record not found for internal_record_id '{subject_internal_record_id}' "
+                        f"while approving change request '{change_request.change_request_id}'."
+                    ),
+                )
+
             if change_payload.get("edit_action") == EditActionEnum.ADD.value or change_payload.get("edit_action") == EditActionEnum.UPDATE.value:
                 mapper = inspect(register_class)
                 for key, value in register_schema_instance.dict().items():
                     # Only update values in change request payload
                     if key in change_payload:
+                        # Keep subject identity immutable across non-primary section approvals.
+                        if key in {"internal_record_id", "link_internal_record_id"}:
+                            continue
                         # Convert date strings to date objects if needed
                         if value is not None and key in mapper.columns:
                             column = mapper.columns[key]
@@ -993,7 +1006,7 @@ class G2PRegisterService(BaseService):
         change_request.approved_at = datetime.now()
         session.add(change_request)
 
-        _logger.info(f"Approving primary master section change request: {change_request}")
+        _logger.info(f"Approving child section change request: {change_request}")
         g2p_register_section = await self.validate_change_request_core(change_request, session, skip_verification, skip_sequence_check)
         
         # In case of approval, insert data into register_history
