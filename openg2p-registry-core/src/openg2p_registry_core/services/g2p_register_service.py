@@ -3803,6 +3803,13 @@ class G2PRegisterService(BaseService):
 
                 if register_rank is not None:
                     register_definition.register_rank = register_rank
+                
+                if dedup_is_enabled is not None:
+                    register_definition.dedup_is_enabled = dedup_is_enabled
+
+                if dedup_threshold_score is not None:
+                    register_definition.dedup_threshold_score = dedup_threshold_score
+
             else:
                 # Allow editing all fields
                 if register_mnemonic is not None:
