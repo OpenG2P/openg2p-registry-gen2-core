@@ -605,6 +605,8 @@ class ChangeRequestData(BaseModel):
     section_id: str
     section_mnemonic: str
     is_list: bool = False
+    is_primary_section: bool = False
+    is_core_section: bool = False
     section_register_id: str
     source_partner_id: str
     created_by: str
@@ -630,6 +632,8 @@ class ChangeRequestFlattenedData(BaseModel):
     internal_record_id: str
     section_id: str
     section_mnemonic: str
+    is_primary_section: bool = False
+    is_core_section: bool = False
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None

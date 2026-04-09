@@ -30,6 +30,7 @@ class G2PRegisterChangeRequest(BaseORMModel):
     tab_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_core_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     section_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
