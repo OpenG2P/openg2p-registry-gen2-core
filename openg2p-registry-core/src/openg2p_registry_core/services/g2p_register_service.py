@@ -505,22 +505,22 @@ class G2PRegisterService(BaseService):
             section.cr_auto_approve_for_partner = cr_auto_approve_for_partner
         if cr_auto_approve_for_intake_form is not None:
             section.cr_auto_approve_for_intake_form = cr_auto_approve_for_intake_form
+        if is_core_section is not None:
+            section.is_core_section = is_core_section
         if is_primary_section is not None:
             # If setting to primary, unset any other primary section under the same tab_id
             if is_primary_section:
                 existing_primary_result = await session.execute(
                     select(G2PRegisterSection).where(
                         G2PRegisterSection.tab_id == section.tab_id,
-                        G2PRegisterSection.is_primary_section == True,
+                        G2PRegisterSection.is_primary_section.is_(True),
                         G2PRegisterSection.section_id != section_id
                     )
                 )
-                existing_primary = existing_primary_result.scalar()
-                if existing_primary:
+                existing_primary_sections = existing_primary_result.scalars().all()
+                for existing_primary in existing_primary_sections:
                     existing_primary.is_primary_section = False
             section.is_primary_section = is_primary_section
-        if is_core_section is not None:
-            section.is_core_section = is_core_section
 
         await session.commit()
         await session.refresh(section)
