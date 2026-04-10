@@ -1,4 +1,5 @@
 import logging
+import json
 import uuid
 import importlib
 from datetime import datetime, date
@@ -2043,6 +2044,10 @@ class G2PRegisterService(BaseService):
         # Build base filter condition (search text)
         filter_conditions: list = [implementation_class.search_text.ilike(search_query)]
 
+        # Default to ACTIVE records unless the caller explicitly filters on record_status.
+        if not self._has_explicit_record_status_filter(filter_by):
+            filter_conditions.append(implementation_class.record_status == "ACTIVE")
+
         # Build filter conditions using FilterBuilder (with security validations)
         if filter_by:
             filter_builder = FilterBuilder(filter_schema)
@@ -2132,6 +2137,19 @@ class G2PRegisterService(BaseService):
             search_results_list.append(search_result_data)
 
         return search_results_list, total_items
+
+    def _has_explicit_record_status_filter(self, filter_by: dict | str | None) -> bool:
+        """Return True when filter_by explicitly includes record_status."""
+        if not filter_by:
+            return False
+
+        if isinstance(filter_by, str):
+            try:
+                filter_by = json.loads(filter_by)
+            except json.JSONDecodeError:
+                return False
+
+        return isinstance(filter_by, dict) and "record_status" in filter_by
 
     async def search_in_change_request(self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestSearchResultData], int]:
         """Search in change requests using search_text field with pagination"""
