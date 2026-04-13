@@ -15,6 +15,7 @@ from .controller_services import (
     G2PIngestionDataControllerService,
     G2PIntakeFormControllerService,
     G2POutgestionConfigurationControllerService,
+    G2PTemplateFileControllerService,
     G2PRegisterChangerequestControllerService,
     G2PChangeRequestCoreControllerService,
     G2PRegisterDataControllerService,
@@ -76,6 +77,7 @@ from .services import (
     G2PRegisterService,
     G2PRegisterVerificationService,
     G2PTemplateService,
+    G2PTemplateFileService,
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
@@ -100,7 +102,9 @@ class Initializer(BaseInitializer):
             _config.minio_secure,
             _config.minio_bucket_name,
         )
-        TemplateHelper()
+        TemplateHelper(
+            _config.template_bucket_name
+        )
         PatternMatcher()
         KeymanagerCryptoHelper()
 
@@ -113,6 +117,7 @@ class Initializer(BaseInitializer):
         G2PIngestionDataService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
+        G2PTemplateFileService()
         G2PAttributeService()
         G2PVcConfigurationService()
         G2PUIHelperService()
@@ -131,6 +136,7 @@ class Initializer(BaseInitializer):
         G2PIngestionDataControllerService()
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
+        G2PTemplateFileControllerService()
         G2PRegistryConfigurationControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()

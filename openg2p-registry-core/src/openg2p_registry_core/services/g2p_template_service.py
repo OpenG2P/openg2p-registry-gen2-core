@@ -1,10 +1,10 @@
 import logging
 import uuid
-import io
 from datetime import datetime
-from fastapi import UploadFile
 from typing import Optional
+
 import httpx
+from fastapi import UploadFile
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -244,6 +244,11 @@ class G2PTemplateService(BaseService):
             template=template_text
         )
         return file_id
+
+    async def get_template_file_url(self, template_file_id: str) -> str:
+        minio_client = MinioClient.get_component()
+        template_helper = TemplateHelper.get_component()
+        return template_helper.get_template_url(minio_client, template_file_id)
     
     async def delete_template_file(self, template_file_id: str) -> None:
         minio_client = MinioClient.get_component()
