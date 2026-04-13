@@ -138,13 +138,15 @@ class G2PIngestionConfigurationService(BaseService):
             await session.refresh(pattern_obj)
             return IncomingModelKeyPathData.model_validate(pattern_obj)
 
-    async def delete_incoming_key_path(self, key_path_id: str) -> None:
-        """Delete incoming key path"""
+    async def delete_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
+        """Delete incoming key path and return deleted data."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern_obj = await self._get_incoming_key_path(session, key_path_id)
+            deleted_pattern_data = IncomingModelKeyPathData.model_validate(pattern_obj)
             await session.delete(pattern_obj)
             await session.commit()
+            return deleted_pattern_data
 
     async def _get_incoming_key_path(
         self, session: AsyncSession, key_path_id: str
@@ -310,13 +312,17 @@ class G2PIngestionConfigurationService(BaseService):
             await session.refresh(pattern_obj)
             return IncomingModelSemanticPatternData.model_validate(pattern_obj)
 
-    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> None:
-        """Delete semantic pattern by ID"""
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> IncomingModelSemanticPatternData:
+        """Delete semantic pattern by ID and return deleted data."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
+            deleted_pattern_data = await self._build_semantic_pattern_data_with_mnemonics(
+                session, pattern_obj
+            )
             await session.delete(pattern_obj)
             await session.commit()
+            return deleted_pattern_data
 
     async def _get_semantic_pattern(
         self, session: AsyncSession, semantic_pattern_id: str
@@ -427,13 +433,17 @@ class G2PIngestionConfigurationService(BaseService):
             await session.refresh(template_obj)
             return await self._build_template_data_with_mnemonics(session, template_obj)
 
-    async def delete_template(self, template_id: str) -> None:
-        """Delete template by ID"""
+    async def delete_template(self, template_id: str) -> IncomingTemplateData:
+        """Delete template by ID and return deleted data."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             template_obj: IncomingTemplate = await self._get_incoming_template(session, template_id)
+            deleted_template_data = await self._build_template_data_with_mnemonics(
+                session, template_obj
+            )
             await session.delete(template_obj)
             await session.commit()
+            return deleted_template_data
 
     async def _get_incoming_template(self, session: AsyncSession, template_id: str) -> IncomingTemplate:
         """Get incoming template by ID - helper method"""

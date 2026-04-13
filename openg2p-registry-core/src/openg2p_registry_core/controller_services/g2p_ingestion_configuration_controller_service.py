@@ -56,7 +56,7 @@ class G2PIngestionConfigurationControllerService(BaseService):
             key_path_id, pattern_payload
         )
 
-    async def delete_incoming_key_path(self, key_path_id: str) -> None:
+    async def delete_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
         """Delete incoming key path"""
         return await self.g2p_ingestion_configuration_service.delete_incoming_key_path(
             key_path_id
@@ -90,7 +90,7 @@ class G2PIngestionConfigurationControllerService(BaseService):
             semantic_pattern_id, pattern_payload
         )
 
-    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> None:
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> IncomingModelSemanticPatternData:
         """Delete semantic pattern"""
         return await self.g2p_ingestion_configuration_service.delete_semantic_pattern(
             semantic_pattern_id
@@ -120,7 +120,7 @@ class G2PIngestionConfigurationControllerService(BaseService):
             template_update_payload
         )
 
-    async def delete_template(self, template_id: str) -> None:
+    async def delete_template(self, template_id: str) -> IncomingTemplateData:
         """Delete template"""
         return await self.g2p_ingestion_configuration_service.delete_template(template_id)
 
