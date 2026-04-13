@@ -8,6 +8,7 @@ from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 from .cache import init_cache
 from .config import Settings
 from .controller_services import (
+    G2PDataModelControllerService,
     G2PAttributeControllerService,
     G2PDocumentControllerService,
     G2PIngestControllerService,
@@ -65,6 +66,7 @@ from .models import (
     G2PFunctionalIdGenerationQueue
 )
 from .services import (
+    G2PDataModelService,
     G2PAttributeService,
     G2PChangeRequestWorkerService,
     G2PIngestionConfigurationService,
@@ -109,6 +111,7 @@ class Initializer(BaseInitializer):
         KeymanagerCryptoHelper()
 
         # Services
+        G2PDataModelService()
         G2PRegisterDomainService()
         G2PIngestService()
         G2PRegisterService()
@@ -127,6 +130,7 @@ class Initializer(BaseInitializer):
         G2PChangeRequestWorkerService()
 
         # Controller Services
+        G2PDataModelControllerService()
         G2PIngestControllerService()
         G2PRegisterDataControllerService()
         G2PRegisterChangerequestControllerService()
