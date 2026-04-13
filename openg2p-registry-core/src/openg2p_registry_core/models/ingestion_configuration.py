@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Boolean, DateTime, String, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
@@ -16,7 +17,7 @@ class IncomingModelKeyPath(BaseORMModel):
 
     __tablename__ = "incoming_model_key_paths"
 
-    key_path_id: Mapped[str] = mapped_column(String, primary_key=True)
+    key_path_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     key_path_for_message_id: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
@@ -29,7 +30,7 @@ class IncomingModelSemanticPattern(BaseORMModel):
 
     __tablename__ = "incoming_model_semantic_patterns"
 
-    semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
+    semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False)
     section_id: Mapped[str] = mapped_column(String, nullable=False)

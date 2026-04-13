@@ -8,15 +8,9 @@ from .ingest_payload import (
     GetIngestionDataRequestPayload,
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
+    GetIncomingKeyPathPayload,
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
-    EditKeyPathForMessageIdPayload,
-    EditKeyPathForSenderPayload,
-    EditKeyPathForSignaturePayload,
-    EditKeyPathForSignaturePayloadPayload,
-    EditIsListPayload,
-    EditKeyPathForListElementsPayload,
-    DeleteIncomingKeyPathPayload,
     IncomingModelSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingTemplatePayload,
@@ -108,6 +102,14 @@ class IncomingModelKeyPathRequest(G2PRequest):
     request_body: IncomingModelKeyPathRequestBody
 
 
+class IncomingModelKeyPathIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingKeyPathPayload
+
+
+class IncomingModelKeyPathIdRequest(G2PRequest):
+    request_body: IncomingModelKeyPathIdRequestBody
+
+
 class IncomingModelKeyPathUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingModelKeyPathUpdatePayload
 
@@ -116,61 +118,12 @@ class IncomingModelKeyPathUpdateRequest(G2PRequest):
     request_body: IncomingModelKeyPathUpdateRequestBody
 
 
-# Individual edit requests for IncomingModelKeyPath
-class EditKeyPathForMessageIdRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForMessageIdPayload
+class GetAllIncomingKeyPathsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
 
 
-class EditKeyPathForMessageIdRequest(G2PRequest):
-    request_body: EditKeyPathForMessageIdRequestBody
-
-
-class EditKeyPathForSenderRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSenderPayload
-
-
-class EditKeyPathForSenderRequest(G2PRequest):
-    request_body: EditKeyPathForSenderRequestBody
-
-
-class EditKeyPathForSignatureRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSignaturePayload
-
-
-class EditKeyPathForSignatureRequest(G2PRequest):
-    request_body: EditKeyPathForSignatureRequestBody
-
-
-class EditKeyPathForSignaturePayloadRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSignaturePayloadPayload
-
-
-class EditKeyPathForSignaturePayloadRequest(G2PRequest):
-    request_body: EditKeyPathForSignaturePayloadRequestBody
-
-
-class EditIsListRequestBody(G2PRequestBody):
-    request_payload: EditIsListPayload
-
-
-class EditIsListRequest(G2PRequest):
-    request_body: EditIsListRequestBody
-
-
-class EditKeyPathForListElementsRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForListElementsPayload
-
-
-class EditKeyPathForListElementsRequest(G2PRequest):
-    request_body: EditKeyPathForListElementsRequestBody
-
-
-class DeleteIncomingKeyPathRequestBody(G2PRequestBody):
-    request_payload: DeleteIncomingKeyPathPayload
-
-
-class DeleteIncomingKeyPathRequest(G2PRequest):
-    request_body: DeleteIncomingKeyPathRequestBody
+class GetAllIncomingKeyPathsRequest(G2PRequest):
+    request_body: GetAllIncomingKeyPathsRequestBody
 
 
 # =============================================================================
