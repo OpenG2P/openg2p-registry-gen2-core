@@ -1,10 +1,9 @@
 import logging
 import uuid
-from typing import List
 
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.service import BaseService
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
@@ -41,12 +40,26 @@ class G2PDataModelService(BaseService):
             data_model = await self._get_data_model(session, data_model_id)
             return DataModelData.model_validate(data_model)
 
-    async def get_all_data_models(self) -> List[DataModelData]:
+    async def get_all_data_models(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[DataModelData], int, int]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            result = await session.execute(select(DataModel))
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(DataModel)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(DataModel)
+                .order_by(DataModel.data_model_id)
+                .offset(offset)
+                .limit(page_size)
+            )
             data_models = result.scalars().all()
-            return [DataModelData.model_validate(data_model) for data_model in data_models]
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return [DataModelData.model_validate(data_model) for data_model in data_models], total_items, number_of_pages
 
     async def update_data_model(
         self, data_model_id: str, data_model_payload: DataModelUpdatePayload

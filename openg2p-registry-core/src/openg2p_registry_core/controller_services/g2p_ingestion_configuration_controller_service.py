@@ -44,9 +44,13 @@ class G2PIngestionConfigurationControllerService(BaseService):
             key_path_id
         )
 
-    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
-        """Get all incoming key paths"""
-        return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths()
+    async def get_all_incoming_key_paths(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelKeyPathListData], int, int]:
+        """Get paginated incoming key paths."""
+        return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths(
+            current_page, page_size
+        )
 
     async def update_incoming_key_path(
         self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
@@ -78,9 +82,13 @@ class G2PIngestionConfigurationControllerService(BaseService):
             semantic_pattern_id
         )
 
-    async def get_all_semantic_patterns(self) -> list[IncomingModelSemanticPatternData]:
-        """Get all semantic patterns"""
-        return await self.g2p_ingestion_configuration_service.get_all_semantic_patterns()
+    async def get_all_semantic_patterns(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelSemanticPatternData], int, int]:
+        """Get paginated semantic patterns."""
+        return await self.g2p_ingestion_configuration_service.get_all_semantic_patterns(
+            current_page, page_size
+        )
 
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
@@ -108,9 +116,13 @@ class G2PIngestionConfigurationControllerService(BaseService):
         """Get template by ID"""
         return await self.g2p_ingestion_configuration_service.get_template(template_id)
 
-    async def get_all_templates(self) -> list[IncomingTemplateData]:
-        """Get all templates"""
-        return await self.g2p_ingestion_configuration_service.get_all_templates()
+    async def get_all_templates(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingTemplateData], int, int]:
+        """Get paginated templates."""
+        return await self.g2p_ingestion_configuration_service.get_all_templates(
+            current_page, page_size
+        )
 
     async def update_template(
         self, template_update_payload: IncomingTemplateUpdatePayload
@@ -184,6 +196,10 @@ class G2PIngestionConfigurationControllerService(BaseService):
             partner_id
         )
 
-    async def get_all_subscription_activity_logs(self) -> list[SubscriptionActivityLogData]:
-        """Get all subscription activity logs"""
-        return await self.g2p_ingestion_configuration_service.get_all_subscription_activity_logs()
+    async def get_all_subscription_activity_logs(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[SubscriptionActivityLogData], int, int]:
+        """Get paginated subscription activity logs."""
+        return await self.g2p_ingestion_configuration_service.get_all_subscription_activity_logs(
+            current_page, page_size
+        )

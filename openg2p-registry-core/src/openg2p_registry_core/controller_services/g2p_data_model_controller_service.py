@@ -19,8 +19,12 @@ class G2PDataModelControllerService(BaseService):
     async def get_data_model(self, data_model_id: str) -> DataModelData:
         return await self.g2p_data_model_service.get_data_model(data_model_id)
 
-    async def get_all_data_models(self) -> list[DataModelData]:
-        return await self.g2p_data_model_service.get_all_data_models()
+    async def get_all_data_models(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[DataModelData], int, int]:
+        return await self.g2p_data_model_service.get_all_data_models(
+            current_page, page_size
+        )
 
     async def update_data_model(
         self, data_model_id: str, data_model_payload: DataModelUpdatePayload

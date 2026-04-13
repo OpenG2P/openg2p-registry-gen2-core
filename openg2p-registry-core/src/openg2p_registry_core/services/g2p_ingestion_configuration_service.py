@@ -8,7 +8,7 @@ from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from ..models import (
     IncomingModelKeyPath,
@@ -75,12 +75,23 @@ class G2PIngestionConfigurationService(BaseService):
             return IncomingModelKeyPathData.model_validate(pattern)
 
 
-    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
-        """Get all incoming key paths with data_model_mnemonic"""
+    async def get_all_incoming_key_paths(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelKeyPathListData], int, int]:
+        """Get paginated incoming key paths with data_model_mnemonic."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingModelKeyPath)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
             result = await session.execute(
                 select(IncomingModelKeyPath)
+                .order_by(IncomingModelKeyPath.key_path_id)
+                .offset(offset)
+                .limit(page_size)
             )
             key_paths = result.scalars().all()
 
@@ -100,7 +111,8 @@ class G2PIngestionConfigurationService(BaseService):
                     data_model_mnemonic=data_model_mnemonic,
                     is_list=key_path.is_list,
                 ))
-            return key_path_list
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return key_path_list, total_items, number_of_pages
 
     async def get_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
         """Get incoming key path by ID"""
@@ -278,18 +290,32 @@ class G2PIngestionConfigurationService(BaseService):
             pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
             return await self._build_semantic_pattern_data_with_mnemonics(session, pattern_obj)
 
-    async def get_all_semantic_patterns(self) -> list[IncomingModelSemanticPatternData]:
-        """Get all semantic patterns"""
+    async def get_all_semantic_patterns(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelSemanticPatternData], int, int]:
+        """Get paginated semantic patterns."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            result = await session.execute(select(IncomingModelSemanticPattern))
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingModelSemanticPattern)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(IncomingModelSemanticPattern)
+                .order_by(IncomingModelSemanticPattern.semantic_pattern_id)
+                .offset(offset)
+                .limit(page_size)
+            )
             patterns = result.scalars().all()
             semantic_patterns: list[IncomingModelSemanticPatternData] = []
             for pattern in patterns:
                 semantic_patterns.append(
                     await self._build_semantic_pattern_data_with_mnemonics(session, pattern)
                 )
-            return semantic_patterns
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return semantic_patterns, total_items, number_of_pages
 
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
@@ -398,11 +424,24 @@ class G2PIngestionConfigurationService(BaseService):
             template_obj: IncomingTemplate = await self._get_incoming_template(session, template_id)
             return await self._build_template_data_with_mnemonics(session, template_obj)
 
-    async def get_all_templates(self) -> list[IncomingTemplateData]:
-        """Get all templates"""
+    async def get_all_templates(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingTemplateData], int, int]:
+        """Get paginated templates."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            result = await session.execute(select(IncomingTemplate))
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingTemplate)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(IncomingTemplate)
+                .order_by(IncomingTemplate.template_id)
+                .offset(offset)
+                .limit(page_size)
+            )
             templates = result.scalars().all()
 
             template_data_list: list[IncomingTemplateData] = []
@@ -410,7 +449,8 @@ class G2PIngestionConfigurationService(BaseService):
                 template_data_list.append(
                     await self._build_template_data_with_mnemonics(session, template)
                 )
-            return template_data_list
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return template_data_list, total_items, number_of_pages
 
     async def update_template(
         self, template_update_payload: IncomingTemplateUpdatePayload
@@ -719,17 +759,28 @@ class G2PIngestionConfigurationService(BaseService):
             activity_logs = result.scalars().all()
             return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
 
-    async def get_all_subscription_activity_logs(self) -> list[SubscriptionActivityLogData]:
-        """Get all subscription activity logs"""
+    async def get_all_subscription_activity_logs(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[SubscriptionActivityLogData], int, int]:
+        """Get paginated subscription activity logs."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(SubscriptionActivityLog)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
             result = await session.execute(
                 select(SubscriptionActivityLog).order_by(
                     SubscriptionActivityLog.date_time.desc()
                 )
+                .offset(offset)
+                .limit(page_size)
             )
             activity_logs = result.scalars().all()
-            return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs], total_items, number_of_pages
 
 
     async def _upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str] = None) -> str:
