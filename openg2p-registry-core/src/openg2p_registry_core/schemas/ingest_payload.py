@@ -213,19 +213,28 @@ class IncomingModelSemanticPatternData(BaseModel):
 # =============================================================================
 
 class IncomingTemplatePayload(BaseModel):
-    template_id: Optional[str] = None
     register_id: str
     data_model_id: str
-    template_file_id: Optional[str] = None
+    template_file_id: str
+    jsonld_expansion_required: bool = False
 
     class Config:
         from_attributes: bool = True
 
 
 class IncomingTemplateUpdatePayload(BaseModel):
-    """Update payload for IncomingTemplate - only allows updating specific fields"""
+    """Update payload for IncomingTemplate - only allows updating specific fields."""
     template_id: str
     template_file_id: Optional[str] = None
+    jsonld_expansion_required: Optional[bool] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class GetIncomingTemplatePayload(BaseModel):
+    """Get/Delete payload for IncomingTemplate."""
+    template_id: str
 
     class Config:
         from_attributes: bool = True
@@ -234,8 +243,11 @@ class IncomingTemplateUpdatePayload(BaseModel):
 class IncomingTemplateData(BaseModel):
     template_id: str
     register_id: str
+    register_mnemonic: Optional[str] = None
     data_model_id: str
+    data_model_mnemonic: Optional[str] = None
     template_file_id: str
+    jsonld_expansion_required: bool
 
     class Config:
         from_attributes: bool = True

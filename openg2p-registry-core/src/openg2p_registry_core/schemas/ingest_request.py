@@ -15,6 +15,7 @@ from .ingest_payload import (
     GetIncomingSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingTemplatePayload,
+    GetIncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     DataModelPayload,
     DataModelIdPayload,
@@ -175,12 +176,28 @@ class IncomingTemplateRequest(G2PRequest):
     request_body: IncomingTemplateRequestBody
 
 
+class IncomingTemplateIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingTemplatePayload
+
+
+class IncomingTemplateIdRequest(G2PRequest):
+    request_body: IncomingTemplateIdRequestBody
+
+
 class IncomingTemplateUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingTemplateUpdatePayload
 
 
 class IncomingTemplateUpdateRequest(G2PRequest):
     request_body: IncomingTemplateUpdateRequestBody
+
+
+class GetAllIncomingTemplatesRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllIncomingTemplatesRequest(G2PRequest):
+    request_body: GetAllIncomingTemplatesRequestBody
 
 
 # =============================================================================

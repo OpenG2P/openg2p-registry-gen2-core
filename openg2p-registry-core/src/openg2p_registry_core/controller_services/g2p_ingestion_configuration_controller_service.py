@@ -1,9 +1,7 @@
 import logging
-from typing import Optional
-from fastapi import UploadFile
 from openg2p_fastapi_common.service import BaseService
 
-from ..services import G2PIngestionConfigurationService, G2PTemplateService
+from ..services import G2PIngestionConfigurationService
 from ..schemas import (
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
@@ -30,7 +28,6 @@ class G2PIngestionConfigurationControllerService(BaseService):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.g2p_ingestion_configuration_service = G2PIngestionConfigurationService.get_component()
-        self.g2p_template_service = G2PTemplateService.get_component()
 
     # IncomingModelKeyPath Methods
     async def create_incoming_key_path(
@@ -100,28 +97,32 @@ class G2PIngestionConfigurationControllerService(BaseService):
         )
 
     async def create_template(
-        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
+        self, template_payload: IncomingTemplatePayload
     ) -> IncomingTemplateData:
         """Create a new template"""
-        return await self.g2p_template_service.create_incoming_template(
-            template_payload, template_file
+        return await self.g2p_ingestion_configuration_service.create_template(
+            template_payload
         )
 
     async def get_template(self, template_id: str) -> IncomingTemplateData:
         """Get template by ID"""
-        return await self.g2p_template_service.get_incoming_template(template_id)
+        return await self.g2p_ingestion_configuration_service.get_template(template_id)
+
+    async def get_all_templates(self) -> list[IncomingTemplateData]:
+        """Get all templates"""
+        return await self.g2p_ingestion_configuration_service.get_all_templates()
 
     async def update_template(
-        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
+        self, template_update_payload: IncomingTemplateUpdatePayload
     ) -> IncomingTemplateData:
         """Update template"""
-        return await self.g2p_template_service.update_incoming_template(
-            template_update_payload, template_file
+        return await self.g2p_ingestion_configuration_service.update_template(
+            template_update_payload
         )
 
-    async def delete_template(self, template_delete_payload: IncomingTemplateUpdatePayload) -> IncomingTemplateData:
+    async def delete_template(self, template_id: str) -> None:
         """Delete template"""
-        return await self.g2p_template_service.delete_incoming_template(template_delete_payload.template_id)
+        return await self.g2p_ingestion_configuration_service.delete_template(template_id)
 
     async def create_data_model(
         self, data_model_payload: DataModelPayload, response_template_file=None
