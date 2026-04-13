@@ -159,7 +159,6 @@ class IncomingModelKeyPathListData(BaseModel):
 # =============================================================================
 
 class IncomingModelSemanticPatternPayload(BaseModel):
-    semantic_pattern_id: Optional[str] = None
     data_model_id: str
     register_id: str
     section_id: str
@@ -174,10 +173,19 @@ class IncomingModelSemanticPatternPayload(BaseModel):
 
 class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
+    semantic_pattern_id: str
     pattern_for_register: Optional[str] = None
     pattern_for_section: Optional[str] = None
     key_path_for_business_payload: Optional[str] = None
     raw_payload_enricher_class: Optional[str] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class GetIncomingSemanticPatternPayload(BaseModel):
+    """Get/Delete payload for IncomingModelSemanticPattern"""
+    semantic_pattern_id: str
 
     class Config:
         from_attributes: bool = True

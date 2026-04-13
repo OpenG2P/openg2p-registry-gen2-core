@@ -12,6 +12,7 @@ from .ingest_payload import (
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
     IncomingModelSemanticPatternPayload,
+    GetIncomingSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
@@ -138,12 +139,28 @@ class IncomingModelSemanticPatternRequest(G2PRequest):
     request_body: IncomingModelSemanticPatternRequestBody
 
 
+class IncomingModelSemanticPatternIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingSemanticPatternPayload
+
+
+class IncomingModelSemanticPatternIdRequest(G2PRequest):
+    request_body: IncomingModelSemanticPatternIdRequestBody
+
+
 class IncomingModelSemanticPatternUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingModelSemanticPatternUpdatePayload
 
 
 class IncomingModelSemanticPatternUpdateRequest(G2PRequest):
     request_body: IncomingModelSemanticPatternUpdateRequestBody
+
+
+class GetAllIncomingSemanticPatternsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllIncomingSemanticPatternsRequest(G2PRequest):
+    request_body: GetAllIncomingSemanticPatternsRequestBody
 
 
 # =============================================================================

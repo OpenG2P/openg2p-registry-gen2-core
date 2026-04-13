@@ -17,6 +17,8 @@ from ..models import (
     IncomingTemplate,
     DataModel,
     SubscriptionActivityLog,
+    G2PRegisterDefinition,
+    G2PRegisterSection,
 )
 from ..schemas import (
     IncomingModelKeyPathPayload,
@@ -194,6 +196,34 @@ class G2PIngestionConfigurationService(BaseService):
                 code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
             )
+    
+    async def _validate_register_id_exists(
+        self, session: AsyncSession, register_id: str
+    ) -> None:
+        """Raise an exception if the provided register_id does not exist."""
+        existing = await session.execute(
+            select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+        )
+        if not existing.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0],
+            )
+    
+    async def _validate_section_id_exists(
+        self, session: AsyncSession, section_id: str
+    ) -> None:
+        """Raise an exception if the provided section_id does not exist"""
+        existing = await session.execute(
+            select(G2PRegisterSection).where(
+                G2PRegisterSection.section_id == section_id
+            )
+        )
+        if not existing.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0],
+            )
 
     async def _check_incoming_key_path_data_model_exists(
         self, session: AsyncSession, data_model_id: str
@@ -217,15 +247,17 @@ class G2PIngestionConfigurationService(BaseService):
         """Create a new semantic pattern"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern_id = pattern_payload.semantic_pattern_id or str(uuid.uuid4())
+            await self._validate_data_model_id_exists(session, pattern_payload.data_model_id)
+            await self._validate_register_id_exists(session, pattern_payload.register_id)
+            await self._validate_section_id_exists(session, pattern_payload.section_id)
             pattern = IncomingModelSemanticPattern(
-                semantic_pattern_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
                 register_id=pattern_payload.register_id,
                 section_id=pattern_payload.section_id,
                 pattern_for_register=pattern_payload.pattern_for_register,
                 pattern_for_section=pattern_payload.pattern_for_section,
                 key_path_for_business_payload=pattern_payload.key_path_for_business_payload,
+                raw_payload_enricher_class=pattern_payload.raw_payload_enricher_class,
             )
             session.add(pattern)
             await session.commit()
@@ -238,18 +270,16 @@ class G2PIngestionConfigurationService(BaseService):
         """Get semantic pattern by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelSemanticPattern).where(
-                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
-                )
-            )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
-                )
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
             return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+
+    async def get_all_semantic_patterns(self) -> list[IncomingModelSemanticPatternData]:
+        """Get all semantic patterns"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(select(IncomingModelSemanticPattern))
+            patterns = result.scalars().all()
+            return [IncomingModelSemanticPatternData.model_validate(p) for p in patterns]
 
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
@@ -257,17 +287,7 @@ class G2PIngestionConfigurationService(BaseService):
         """Update semantic pattern - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelSemanticPattern).where(
-                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
-                )
-            )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
-                )
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
 
             if pattern_payload.pattern_for_register is not None:
                 pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
@@ -275,10 +295,37 @@ class G2PIngestionConfigurationService(BaseService):
                 pattern_obj.pattern_for_section = pattern_payload.pattern_for_section
             if pattern_payload.key_path_for_business_payload is not None:
                 pattern_obj.key_path_for_business_payload = pattern_payload.key_path_for_business_payload
+            if pattern_payload.raw_payload_enricher_class is not None:
+                pattern_obj.raw_payload_enricher_class = pattern_payload.raw_payload_enricher_class
 
             await session.commit()
             await session.refresh(pattern_obj)
             return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> None:
+        """Delete semantic pattern by ID"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
+            await session.delete(pattern_obj)
+            await session.commit()
+
+    async def _get_semantic_pattern(
+        self, session: AsyncSession, semantic_pattern_id: str
+    ) -> IncomingModelSemanticPattern:
+        """Get semantic pattern by ID - helper method"""
+        pattern = await session.execute(
+            select(IncomingModelSemanticPattern).where(
+                IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
+            )
+        )
+        pattern_obj = pattern.scalar_one_or_none()
+        if not pattern_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
+            )
+        return pattern_obj
 
     # IncomingTemplate Methods
     async def create_template(

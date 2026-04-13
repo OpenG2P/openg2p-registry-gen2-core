@@ -81,12 +81,22 @@ class G2PIngestionConfigurationControllerService(BaseService):
             semantic_pattern_id
         )
 
+    async def get_all_semantic_patterns(self) -> list[IncomingModelSemanticPatternData]:
+        """Get all semantic patterns"""
+        return await self.g2p_ingestion_configuration_service.get_all_semantic_patterns()
+
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
     ) -> IncomingModelSemanticPatternData:
         """Update semantic pattern"""
         return await self.g2p_ingestion_configuration_service.update_semantic_pattern(
             semantic_pattern_id, pattern_payload
+        )
+
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> None:
+        """Delete semantic pattern"""
+        return await self.g2p_ingestion_configuration_service.delete_semantic_pattern(
+            semantic_pattern_id
         )
 
     async def create_template(
