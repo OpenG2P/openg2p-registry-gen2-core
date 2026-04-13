@@ -39,6 +39,7 @@ class G2PRegistryErrorCodes(enum.Enum):
         "PATTERN_ALREADY_EXISTS_FOR_DATA_MODEL",
         "ING-ERR-008",
     )
+    PATTERN_ALREADY_EXISTS = ("PATTERN_ALREADY_EXISTS", "ING-ERR-008")
 
     # Outgestion Errors
     TOPIC_NOT_FOUND = ("TOPIC_NOT_FOUND", "OUT-ERR-001")
