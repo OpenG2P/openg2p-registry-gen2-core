@@ -302,8 +302,18 @@ class DataModelPayload(BaseModel):
 
 class DataModelUpdatePayload(BaseModel):
     """Update payload for DataModel - only allows updating specific fields"""
+    data_model_id: str
     data_model_mnemonic: Optional[str] = None
     pattern_for_data_model: Optional[str] = None
+    response_template_file_id: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    class Config:
+        from_attributes: bool = True
+
+
+class DataModelIdPayload(BaseModel):
+    data_model_id: str
 
     class Config:
         from_attributes: bool = True
@@ -313,7 +323,7 @@ class DataModelData(BaseModel):
     data_model_id: str
     data_model_mnemonic: str
     pattern_for_data_model: str
-    response_template_file_id: str
+    response_template_file_id: Optional[str] = None
     is_active: bool
 
     class Config:

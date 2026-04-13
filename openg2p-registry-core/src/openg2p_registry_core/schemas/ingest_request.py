@@ -22,6 +22,7 @@ from .ingest_payload import (
     IncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     DataModelPayload,
+    DataModelIdPayload,
     DataModelUpdatePayload,
     ChangeResponseTemplateFilePayload,
     ChangeActiveStatusPayload,
@@ -224,12 +225,28 @@ class DataModelRequest(G2PRequest):
     request_body: DataModelRequestBody
 
 
+class DataModelIdRequestBody(G2PRequestBody):
+    request_payload: DataModelIdPayload
+
+
+class DataModelIdRequest(G2PRequest):
+    request_body: DataModelIdRequestBody
+
+
 class DataModelUpdateRequestBody(G2PRequestBody):
     request_payload: DataModelUpdatePayload
 
 
 class DataModelUpdateRequest(G2PRequest):
     request_body: DataModelUpdateRequestBody
+
+
+class GetAllDataModelsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllDataModelsRequest(G2PRequest):
+    request_body: GetAllDataModelsRequestBody
 
 
 class ChangeResponseTemplateFileRequestBody(G2PRequestBody):

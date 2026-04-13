@@ -792,73 +792,6 @@ class RegisterTabRecordData(BaseModel):
     records: List[RecordData]
 
 
-# =============================================================================
-# Document Upload Schemas
-# =============================================================================
-
-class UploadedDocumentData(BaseModel):
-    """Response data for a single uploaded document"""
-    document_store_id: str
-    document_label: str
-    filename: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class UploadDocumentsResponseData(BaseModel):
-    """Response data for upload_change_request_documents endpoint"""
-    uploaded_documents: List[UploadedDocumentData]
-
-
-class UploadRecordImageData(BaseModel):
-    """Response data for upload_record_image endpoint"""
-    document_store_id: str
-    filename: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class FileUrlData(BaseModel):
-    """Response data for get_file_url endpoint"""
-    file_url: Optional[str] = None
-
-
-class DocumentLabelData(BaseModel):
-    """Data for a document label"""
-    document_label: str
-    document_label: str
-
-    class Config:
-        from_attributes: bool = True
-
-
-class SectionDocumentData(BaseModel):
-    """Data for a section document (label + document_store_id)"""
-    document_label: str
-    document_store_id: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class SectionDocumentsData(BaseModel):
-    """Response data for get_section_documents endpoint"""
-    register_id: str
-    record_id: str
-    section_id: str
-    documents: List[SectionDocumentData]
-
-
-class ChangeRequestDocumentsData(BaseModel):
-    """Response data for get_section_documents_for_change_request endpoint"""
-    change_request_id: str
-    documents: List[SectionDocumentData]
-
 
 # =============================================================================
 # Registry Configuration Schemas
@@ -1202,25 +1135,6 @@ class UpdateRegistryConfigurationRequestPayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
-
-
-class GetDocumentLabelsForSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-
-
-class GetSectionDocumentsRequestPayload(BaseModel):
-    register_id: str
-    record_id: str
-    section_id: str
-
-
-class GetSectionDocumentsForChangeRequestRequestPayload(BaseModel):
-    change_request_id: str
-
-
-class FileUrlRequestPayload(BaseModel):
-    document_store_id: str
 
 
 # =============================================================================
