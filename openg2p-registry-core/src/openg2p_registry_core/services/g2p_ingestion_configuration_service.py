@@ -186,44 +186,50 @@ class G2PIngestionConfigurationService(BaseService):
 
     async def _validate_data_model_id_exists(
         self, session: AsyncSession, data_model_id: str
-    ) -> None:
-        """Raise an exception if the provided data_model_id does not exist."""
+    ) -> DataModel:
+        """Validate and return the data model for a given data_model_id."""
         existing = await session.execute(
             select(DataModel).where(DataModel.data_model_id == data_model_id)
         )
-        if not existing.scalar_one_or_none():
+        existing = existing.scalar_one_or_none()
+        if not existing:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
             )
+        return existing
     
     async def _validate_register_id_exists(
         self, session: AsyncSession, register_id: str
-    ) -> None:
-        """Raise an exception if the provided register_id does not exist."""
+    ) -> G2PRegisterDefinition:
+        """Validate and return the register definition for a given register_id."""
         existing = await session.execute(
             select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
         )
-        if not existing.scalar_one_or_none():
+        existing = existing.scalar_one_or_none()
+        if not existing:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0],
             )
+        return existing
     
     async def _validate_section_id_exists(
         self, session: AsyncSession, section_id: str
-    ) -> None:
-        """Raise an exception if the provided section_id does not exist"""
+    ) -> G2PRegisterSection:
+        """Validate and return the section for a given section_id."""
         existing = await session.execute(
             select(G2PRegisterSection).where(
                 G2PRegisterSection.section_id == section_id
             )
         )
-        if not existing.scalar_one_or_none():
+        existing = existing.scalar_one_or_none()
+        if not existing:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0],
             )
+        return existing
 
     async def _check_incoming_key_path_data_model_exists(
         self, session: AsyncSession, data_model_id: str
@@ -271,7 +277,7 @@ class G2PIngestionConfigurationService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
-            return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+            return await self._build_semantic_pattern_data_with_mnemonics(session, pattern_obj)
 
     async def get_all_semantic_patterns(self) -> list[IncomingModelSemanticPatternData]:
         """Get all semantic patterns"""
@@ -279,7 +285,12 @@ class G2PIngestionConfigurationService(BaseService):
         async with session_maker() as session:
             result = await session.execute(select(IncomingModelSemanticPattern))
             patterns = result.scalars().all()
-            return [IncomingModelSemanticPatternData.model_validate(p) for p in patterns]
+            semantic_patterns: list[IncomingModelSemanticPatternData] = []
+            for pattern in patterns:
+                semantic_patterns.append(
+                    await self._build_semantic_pattern_data_with_mnemonics(session, pattern)
+                )
+            return semantic_patterns
 
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
@@ -326,6 +337,34 @@ class G2PIngestionConfigurationService(BaseService):
                 message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
             )
         return pattern_obj
+
+    async def _build_semantic_pattern_data_with_mnemonics(
+        self, session: AsyncSession, pattern_obj: IncomingModelSemanticPattern
+    ) -> IncomingModelSemanticPatternData:
+        """Build semantic pattern response with related mnemonics."""
+        data_model_obj = await self._validate_data_model_id_exists(
+            session, pattern_obj.data_model_id
+        )
+        register_obj = await self._validate_register_id_exists(
+            session, pattern_obj.register_id
+        )
+        section_obj = await self._validate_section_id_exists(
+            session, pattern_obj.section_id
+        )
+
+        return IncomingModelSemanticPatternData(
+            semantic_pattern_id=pattern_obj.semantic_pattern_id,
+            data_model_id=pattern_obj.data_model_id,
+            data_model_mnemonic=data_model_obj.data_model_mnemonic,
+            register_id=pattern_obj.register_id,
+            register_mnemonic=register_obj.register_mnemonic,
+            section_id=pattern_obj.section_id,
+            section_mnemonic=section_obj.section_mnemonic,
+            pattern_for_register=pattern_obj.pattern_for_register,
+            pattern_for_section=pattern_obj.pattern_for_section,
+            key_path_for_business_payload=pattern_obj.key_path_for_business_payload,
+            raw_payload_enricher_class=pattern_obj.raw_payload_enricher_class,
+        )
 
     # IncomingTemplate Methods
     async def create_template(

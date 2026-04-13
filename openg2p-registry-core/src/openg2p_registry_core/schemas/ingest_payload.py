@@ -194,8 +194,11 @@ class GetIncomingSemanticPatternPayload(BaseModel):
 class IncomingModelSemanticPatternData(BaseModel):
     semantic_pattern_id: str
     data_model_id: str
+    data_model_mnemonic: Optional[str] = None
     register_id: str
+    register_mnemonic: Optional[str] = None
     section_id: str
+    section_mnemonic: Optional[str] = None
     pattern_for_register: str
     pattern_for_section: str
     key_path_for_business_payload: str
