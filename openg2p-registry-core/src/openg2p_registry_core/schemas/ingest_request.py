@@ -1,5 +1,4 @@
 from fastapi import Request
-from pydantic import BaseModel, Field
 from openg2p_fastapi_common.schemas import (
     G2PRequest,
     G2PRequestBody,
@@ -35,11 +34,6 @@ from .ingest_payload import (
 class IngestDataRequest(Request):
     # Request structure is internal to partners
     pass
-
-
-class IngestionPaginationRequest(BaseModel):
-    current_page: int = Field(..., ge=1)
-    page_size: int = Field(..., ge=1)
 
 
 # =============================================================================
@@ -128,7 +122,6 @@ class IncomingModelKeyPathUpdateRequest(G2PRequest):
 
 class GetAllIncomingKeyPathsRequestBody(G2PRequestBody):
     request_payload: EmptyIngestionRequestPayload
-    pagination_request: IngestionPaginationRequest
 
 
 class GetAllIncomingKeyPathsRequest(G2PRequest):
@@ -165,7 +158,6 @@ class IncomingModelSemanticPatternUpdateRequest(G2PRequest):
 
 class GetAllIncomingSemanticPatternsRequestBody(G2PRequestBody):
     request_payload: EmptyIngestionRequestPayload
-    pagination_request: IngestionPaginationRequest
 
 
 class GetAllIncomingSemanticPatternsRequest(G2PRequest):
@@ -202,7 +194,6 @@ class IncomingTemplateUpdateRequest(G2PRequest):
 
 class GetAllIncomingTemplatesRequestBody(G2PRequestBody):
     request_payload: EmptyIngestionRequestPayload
-    pagination_request: IngestionPaginationRequest
 
 
 class GetAllIncomingTemplatesRequest(G2PRequest):
@@ -239,7 +230,6 @@ class DataModelUpdateRequest(G2PRequest):
 
 class GetAllDataModelsRequestBody(G2PRequestBody):
     request_payload: EmptyIngestionRequestPayload
-    pagination_request: IngestionPaginationRequest
 
 
 class GetAllDataModelsRequest(G2PRequest):
@@ -276,7 +266,6 @@ class SubscriptionActivityLogRequest(G2PRequest):
 
 class GetAllSubscriptionActivityLogsRequestBody(G2PRequestBody):
     request_payload: EmptyIngestionRequestPayload
-    pagination_request: IngestionPaginationRequest
 
 
 class GetAllSubscriptionActivityLogsRequest(G2PRequest):

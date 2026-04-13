@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from openg2p_fastapi_common.service import BaseService
 
@@ -20,8 +21,10 @@ class G2PDataModelControllerService(BaseService):
         return await self.g2p_data_model_service.get_data_model(data_model_id)
 
     async def get_all_data_models(
-        self, current_page: int, page_size: int
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
     ) -> tuple[list[DataModelData], int, int]:
+        current_page = current_page or 1
+        page_size = page_size or 10
         return await self.g2p_data_model_service.get_all_data_models(
             current_page, page_size
         )

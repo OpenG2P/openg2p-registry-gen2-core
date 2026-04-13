@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from openg2p_fastapi_common.service import BaseService
 
 from ..services import G2PIngestionConfigurationService
@@ -45,9 +46,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         )
 
     async def get_all_incoming_key_paths(
-        self, current_page: int, page_size: int
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
     ) -> tuple[list[IncomingModelKeyPathListData], int, int]:
         """Get paginated incoming key paths."""
+        current_page = current_page or 1
+        page_size = page_size or 10
         return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths(
             current_page, page_size
         )
@@ -83,9 +86,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         )
 
     async def get_all_semantic_patterns(
-        self, current_page: int, page_size: int
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
     ) -> tuple[list[IncomingModelSemanticPatternData], int, int]:
         """Get paginated semantic patterns."""
+        current_page = current_page or 1
+        page_size = page_size or 10
         return await self.g2p_ingestion_configuration_service.get_all_semantic_patterns(
             current_page, page_size
         )
@@ -117,9 +122,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         return await self.g2p_ingestion_configuration_service.get_template(template_id)
 
     async def get_all_templates(
-        self, current_page: int, page_size: int
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
     ) -> tuple[list[IncomingTemplateData], int, int]:
         """Get paginated templates."""
+        current_page = current_page or 1
+        page_size = page_size or 10
         return await self.g2p_ingestion_configuration_service.get_all_templates(
             current_page, page_size
         )
@@ -197,9 +204,11 @@ class G2PIngestionConfigurationControllerService(BaseService):
         )
 
     async def get_all_subscription_activity_logs(
-        self, current_page: int, page_size: int
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
     ) -> tuple[list[SubscriptionActivityLogData], int, int]:
         """Get paginated subscription activity logs."""
+        current_page = current_page or 1
+        page_size = page_size or 10
         return await self.g2p_ingestion_configuration_service.get_all_subscription_activity_logs(
             current_page, page_size
         )
