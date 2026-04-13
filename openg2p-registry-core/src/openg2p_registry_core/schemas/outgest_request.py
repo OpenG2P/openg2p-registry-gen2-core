@@ -3,6 +3,8 @@ from openg2p_fastapi_common.schemas import (
     G2PRequestBody,
 )
 from .outgest_payload import (
+    EmptyOutgestionRequestPayload,
+    GetOutgoingTemplatePayload,
     OutgoingTopicPayload,
     OutgoingTopicUpdatePayload,
     OutgoingTemplatePayload,
@@ -42,9 +44,25 @@ class OutgoingTemplateRequest(G2PRequest):
     request_body: OutgoingTemplateRequestBody
 
 
+class OutgoingTemplateIdRequestBody(G2PRequestBody):
+    request_payload: GetOutgoingTemplatePayload
+
+
+class OutgoingTemplateIdRequest(G2PRequest):
+    request_body: OutgoingTemplateIdRequestBody
+
+
 class OutgoingTemplateUpdateRequestBody(G2PRequestBody):
     request_payload: OutgoingTemplateUpdatePayload
 
 
 class OutgoingTemplateUpdateRequest(G2PRequest):
     request_body: OutgoingTemplateUpdateRequestBody
+
+
+class GetAllOutgoingTemplatesRequestBody(G2PRequestBody):
+    request_payload: EmptyOutgestionRequestPayload
+
+
+class GetAllOutgoingTemplatesRequest(G2PRequest):
+    request_body: GetAllOutgoingTemplatesRequestBody

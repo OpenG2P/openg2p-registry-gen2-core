@@ -26,8 +26,16 @@ class OutgoingTopicResponse(G2PResponse):
 # =============================================================================
 
 class OutgoingTemplateResponseBody(G2PResponseBody):
-    response_payload: Optional[List[OutgoingTemplateData]] = None
+    response_payload: Optional[OutgoingTemplateData] = None
 
 
 class OutgoingTemplateResponse(G2PResponse):
     response_body: Optional[OutgoingTemplateResponseBody] = None
+
+
+class OutgoingTemplatesResponseBody(G2PResponseBody):
+    response_payload: Optional[List[OutgoingTemplateData]] = None
+
+
+class OutgoingTemplatesResponse(G2PResponse):
+    response_body: Optional[OutgoingTemplatesResponseBody] = None
