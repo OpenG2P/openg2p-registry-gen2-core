@@ -183,3 +183,7 @@ class G2PIngestionConfigurationControllerService(BaseService):
         return await self.g2p_ingestion_configuration_service.get_subscription_activity_logs_by_partner(
             partner_id
         )
+
+    async def get_all_subscription_activity_logs(self) -> list[SubscriptionActivityLogData]:
+        """Get all subscription activity logs"""
+        return await self.g2p_ingestion_configuration_service.get_all_subscription_activity_logs()

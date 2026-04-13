@@ -691,7 +691,6 @@ class G2PIngestionConfigurationService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             activity_log = SubscriptionActivityLog(
-                subscription_activity_log_id=str(uuid.uuid4()),
                 is_unsubscribe=subscription_activity_log_payload.is_unsubscribe,
                 description=subscription_activity_log_payload.description,
                 partner_id=subscription_activity_log_payload.partner_id,
@@ -716,6 +715,18 @@ class G2PIngestionConfigurationService(BaseService):
                 select(SubscriptionActivityLog).where(
                     SubscriptionActivityLog.partner_id == partner_id
                 ).order_by(SubscriptionActivityLog.date_time.desc())
+            )
+            activity_logs = result.scalars().all()
+            return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
+
+    async def get_all_subscription_activity_logs(self) -> list[SubscriptionActivityLogData]:
+        """Get all subscription activity logs"""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(SubscriptionActivityLog).order_by(
+                    SubscriptionActivityLog.date_time.desc()
+                )
             )
             activity_logs = result.scalars().all()
             return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]

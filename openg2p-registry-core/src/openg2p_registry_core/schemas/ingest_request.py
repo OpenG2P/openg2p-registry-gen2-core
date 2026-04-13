@@ -263,6 +263,14 @@ class SubscriptionActivityLogRequestBody(G2PRequestBody):
 class SubscriptionActivityLogRequest(G2PRequest):
     request_body: SubscriptionActivityLogRequestBody
 
+
+class GetAllSubscriptionActivityLogsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllSubscriptionActivityLogsRequest(G2PRequest):
+    request_body: GetAllSubscriptionActivityLogsRequestBody
+
 # =============================================================================
 # G2P Input Mechanism Request Schemas
 # =============================================================================

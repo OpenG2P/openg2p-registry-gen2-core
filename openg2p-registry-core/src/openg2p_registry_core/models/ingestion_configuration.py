@@ -57,7 +57,7 @@ class SubscriptionActivityLog(BaseORMModel):
 
     __tablename__ = "subscription_activity_logs"
 
-    subscription_activity_log_id: Mapped[str] = mapped_column(String, primary_key=True)
+    subscription_activity_log_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     is_unsubscribe: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
