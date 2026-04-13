@@ -60,12 +60,12 @@ class G2PIngestionConfigurationService(BaseService):
             )
             pattern = IncomingModelKeyPath(
                 data_model_id=pattern_payload.data_model_id,
-                key_path_for_message_id=pattern_payload.keypath_for_message_id,
+                key_path_for_message_id=pattern_payload.key_path_for_message_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
                 key_path_for_signature=pattern_payload.key_path_for_signature,
                 key_path_for_signature_payload=pattern_payload.key_path_for_signature_payload,
                 is_list=pattern_payload.is_list,
-                key_path_for_list_elements=pattern_payload.keypath_for_list_elements,
+                key_path_for_list_elements=pattern_payload.key_path_for_list_elements,
             )
             session.add(pattern)
             await session.commit()
@@ -115,8 +115,8 @@ class G2PIngestionConfigurationService(BaseService):
         async with session_maker() as session:
             pattern_obj = await self._get_incoming_key_path(session, key_path_id)
 
-            if pattern_payload.keypath_for_message_id is not None:
-                pattern_obj.key_path_for_message_id = pattern_payload.keypath_for_message_id
+            if pattern_payload.key_path_for_message_id is not None:
+                pattern_obj.key_path_for_message_id = pattern_payload.key_path_for_message_id
             if pattern_payload.key_path_for_sender is not None:
                 pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
             if pattern_payload.key_path_for_signature is not None:
@@ -127,9 +127,9 @@ class G2PIngestionConfigurationService(BaseService):
                 )
             if pattern_payload.is_list is not None:
                 pattern_obj.is_list = pattern_payload.is_list
-            if pattern_payload.keypath_for_list_elements is not None:
+            if pattern_payload.key_path_for_list_elements is not None:
                 pattern_obj.key_path_for_list_elements = (
-                    pattern_payload.keypath_for_list_elements
+                    pattern_payload.key_path_for_list_elements
                 )
 
             await session.commit()

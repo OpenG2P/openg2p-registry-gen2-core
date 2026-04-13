@@ -95,13 +95,13 @@ class IncomingPartnerData(BaseModel):
 
 class IncomingModelKeyPathPayload(BaseModel):
     key_path_id: Optional[str] = None
-    keypath_for_message_id: str
+    key_path_for_message_id: str
     data_model_id: str
     key_path_for_sender: str
     key_path_for_signature: str
     key_path_for_signature_payload: str
     is_list: bool = False
-    keypath_for_list_elements: Optional[str] = None
+    key_path_for_list_elements: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -110,12 +110,12 @@ class IncomingModelKeyPathPayload(BaseModel):
 class IncomingModelKeyPathUpdatePayload(BaseModel):
     """Update payload for IncomingModelKeyPath - only allows updating specific fields"""
     key_path_id: str
-    keypath_for_message_id: Optional[str] = None
+    key_path_for_message_id: Optional[str] = None
     key_path_for_sender: Optional[str] = None
     key_path_for_signature: Optional[str] = None
     key_path_for_signature_payload: Optional[str] = None
     is_list: Optional[bool] = None
-    keypath_for_list_elements: Optional[str] = None
+    key_path_for_list_elements: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
