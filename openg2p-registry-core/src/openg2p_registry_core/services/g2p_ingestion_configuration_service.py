@@ -58,6 +58,9 @@ class G2PIngestionConfigurationService(BaseService):
             await self._validate_data_model_id_exists(
                 session, pattern_payload.data_model_id
             )
+            await self._check_incoming_key_path_data_model_exists(
+                session, pattern_payload.data_model_id
+            )
             pattern = IncomingModelKeyPath(
                 data_model_id=pattern_payload.data_model_id,
                 key_path_for_message_id=pattern_payload.key_path_for_message_id,
@@ -190,6 +193,21 @@ class G2PIngestionConfigurationService(BaseService):
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
                 message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
+            )
+
+    async def _check_incoming_key_path_data_model_exists(
+        self, session: AsyncSession, data_model_id: str
+    ) -> None:
+        """Raise an exception if an IncomingModelKeyPath already exists for the data model."""
+        existing = await session.execute(
+            select(IncomingModelKeyPath).where(
+                IncomingModelKeyPath.data_model_id == data_model_id
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS_FOR_DATA_MODEL.value[1],
+                message=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS_FOR_DATA_MODEL.value[0],
             )
 
     # IncomingModelSemanticPattern Methods
