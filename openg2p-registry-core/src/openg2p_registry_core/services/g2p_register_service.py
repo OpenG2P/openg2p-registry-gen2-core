@@ -1,4 +1,5 @@
 import logging
+import json
 import uuid
 import importlib
 from datetime import datetime, date
@@ -505,22 +506,22 @@ class G2PRegisterService(BaseService):
             section.cr_auto_approve_for_partner = cr_auto_approve_for_partner
         if cr_auto_approve_for_intake_form is not None:
             section.cr_auto_approve_for_intake_form = cr_auto_approve_for_intake_form
+        if is_core_section is not None:
+            section.is_core_section = is_core_section
         if is_primary_section is not None:
             # If setting to primary, unset any other primary section under the same tab_id
             if is_primary_section:
                 existing_primary_result = await session.execute(
                     select(G2PRegisterSection).where(
                         G2PRegisterSection.tab_id == section.tab_id,
-                        G2PRegisterSection.is_primary_section == True,
+                        G2PRegisterSection.is_primary_section.is_(True),
                         G2PRegisterSection.section_id != section_id
                     )
                 )
-                existing_primary = existing_primary_result.scalar()
-                if existing_primary:
+                existing_primary_sections = existing_primary_result.scalars().all()
+                for existing_primary in existing_primary_sections:
                     existing_primary.is_primary_section = False
             section.is_primary_section = is_primary_section
-        if is_core_section is not None:
-            section.is_core_section = is_core_section
 
         await session.commit()
         await session.refresh(section)
@@ -1568,6 +1569,8 @@ class G2PRegisterService(BaseService):
             edit_action=change_request_request_payload.edit_action,
             internal_record_id=internal_record_id,
             section_id=change_request_request_payload.section_id,
+            is_primary_section=g2p_register_section.is_primary_section if g2p_register_section else False,
+            is_core_section=g2p_register_section.is_core_section if g2p_register_section else False,
             section_register_id=change_request_request_payload.section_register_id,
             source_partner_id=source_partner_id or "system",
             change_request_source=change_request_source,
@@ -2041,6 +2044,10 @@ class G2PRegisterService(BaseService):
         # Build base filter condition (search text)
         filter_conditions: list = [implementation_class.search_text.ilike(search_query)]
 
+        # Default to ACTIVE records unless the caller explicitly filters on record_status.
+        if not self._has_explicit_record_status_filter(filter_by):
+            filter_conditions.append(implementation_class.record_status == "ACTIVE")
+
         # Build filter conditions using FilterBuilder (with security validations)
         if filter_by:
             filter_builder = FilterBuilder(filter_schema)
@@ -2130,6 +2137,19 @@ class G2PRegisterService(BaseService):
             search_results_list.append(search_result_data)
 
         return search_results_list, total_items
+
+    def _has_explicit_record_status_filter(self, filter_by: dict | str | None) -> bool:
+        """Return True when filter_by explicitly includes record_status."""
+        if not filter_by:
+            return False
+
+        if isinstance(filter_by, str):
+            try:
+                filter_by = json.loads(filter_by)
+            except json.JSONDecodeError:
+                return False
+
+        return isinstance(filter_by, dict) and "record_status" in filter_by
 
     async def search_in_change_request(self, search_text: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestSearchResultData], int]:
         """Search in change requests using search_text field with pagination"""
@@ -2829,6 +2849,9 @@ class G2PRegisterService(BaseService):
                 internal_record_id=change_request.internal_record_id,
                 section_id=change_request.section_id,
                 section_mnemonic=change_request.section_mnemonic,
+                is_primary_section=change_request.is_primary_section,
+                is_core_section=change_request.is_core_section,
+                section_register_id=change_request.section_register_id,
                 source_partner_id=change_request.source_partner_id,
                 created_by=change_request.created_by,
                 created_at=created_at_str,
@@ -2997,6 +3020,8 @@ class G2PRegisterService(BaseService):
             section_id=change_request.section_id,
             section_mnemonic=g2p_register_section.section_mnemonic,
             is_list=g2p_register_section.is_list,
+            is_primary_section=change_request.is_primary_section,
+            is_core_section=change_request.is_core_section,
             section_register_id=change_request.section_register_id,
             source_partner_id=change_request.source_partner_id,
             created_by=change_request.created_by,
@@ -3068,6 +3093,8 @@ class G2PRegisterService(BaseService):
                 "internal_record_id": change_request.internal_record_id,
                 "section_id": change_request.section_id,
                 "section_mnemonic": g2p_register_section.section_mnemonic,
+                "is_primary_section": change_request.is_primary_section,
+                "is_core_section": change_request.is_core_section,
                 "source_partner_id": change_request.source_partner_id,
                 "created_by": change_request.created_by,
                 "created_at": created_at_str,
@@ -3794,6 +3821,13 @@ class G2PRegisterService(BaseService):
 
                 if register_rank is not None:
                     register_definition.register_rank = register_rank
+                
+                if dedup_is_enabled is not None:
+                    register_definition.dedup_is_enabled = dedup_is_enabled
+
+                if dedup_threshold_score is not None:
+                    register_definition.dedup_threshold_score = dedup_threshold_score
+
             else:
                 # Allow editing all fields
                 if register_mnemonic is not None:

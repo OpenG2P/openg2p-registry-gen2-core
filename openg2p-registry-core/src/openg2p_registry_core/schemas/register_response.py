@@ -12,12 +12,18 @@ from .register_payload import (
     ChangeRequestData, ChangeRequestsData, ChangeRequestFlattenedData, RecordData, VerificationData, VerificationsData,
     AddVerificationPayload, DeduplicationRegisterResultsData,
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData,
-    RegisterTabRecordData, UploadDocumentsResponseData, UploadRecordImageData,
+    RegisterTabRecordData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
-    SectionDocumentsData, ChangeRequestDocumentsData,
-    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData, FileUrlData,
+    RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     G2PAttributeValueData, AllowedParentsData,
     SubmissionResponsePayload, IntakeFormSubmissionsSummaryData, NumberOfPendingChangeRequestsForSubmissionData
+)
+from .file_payload import (
+    ChangeRequestDocumentsData,
+    FileUrlData,
+    SectionDocumentsData,
+    UploadDocumentsResponseData,
+    UploadRecordImageData,
 )
 
 
@@ -456,65 +462,6 @@ class RegisterTabRecordsDataResponseBody(G2PResponseBody):
 class RegisterTabRecordsDataResponse(G2PResponse):
     response_body: Optional[RegisterTabRecordsDataResponseBody] = None
 
-
-# =============================================================================
-# Upload Documents Response Schemas
-# =============================================================================
-
-class UploadDocumentsResponseBody(G2PResponseBody):
-    response_payload: Optional[UploadDocumentsResponseData] = None
-
-
-class UploadDocumentsResponse(G2PResponse):
-    response_body: Optional[UploadDocumentsResponseBody] = None
-
-
-# =============================================================================
-# Upload Record Image Response Schemas
-# =============================================================================
-
-class UploadRecordImageResponseBody(G2PResponseBody):
-    response_payload: Optional["UploadRecordImageData"] = None
-
-
-class UploadRecordImageResponse(G2PResponse):
-    response_body: Optional[UploadRecordImageResponseBody] = None
-
-
-# =============================================================================
-# File Url Response Schemas
-# =============================================================================
-
-class FileUrlResponseBody(G2PResponseBody):
-    response_payload: Optional[FileUrlData] = None
-
-
-class FileUrlResponse(G2PResponse):
-    response_body: Optional[FileUrlResponseBody] = None
-
-
-# =============================================================================
-# Section Documents Response Schemas
-# =============================================================================
-
-class SectionDocumentsResponseBody(G2PResponseBody):
-    response_payload: Optional["SectionDocumentsData"] = None
-
-
-class SectionDocumentsResponse(G2PResponse):
-    response_body: Optional[SectionDocumentsResponseBody] = None
-
-
-# =============================================================================
-# Change Request Documents Response Schemas
-# =============================================================================
-
-class ChangeRequestDocumentsResponseBody(G2PResponseBody):
-    response_payload: Optional["ChangeRequestDocumentsData"] = None
-
-
-class ChangeRequestDocumentsResponse(G2PResponse):
-    response_body: Optional[ChangeRequestDocumentsResponseBody] = None
 
 
 # =============================================================================

@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Boolean, DateTime, String, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
@@ -16,7 +17,7 @@ class IncomingModelKeyPath(BaseORMModel):
 
     __tablename__ = "incoming_model_key_paths"
 
-    key_path_id: Mapped[str] = mapped_column(String, primary_key=True)
+    key_path_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     key_path_for_message_id: Mapped[str] = mapped_column(String, nullable=False)
     key_path_for_sender: Mapped[str] = mapped_column(String, nullable=False)
@@ -29,7 +30,7 @@ class IncomingModelSemanticPattern(BaseORMModel):
 
     __tablename__ = "incoming_model_semantic_patterns"
 
-    semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True)
+    semantic_pattern_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False)
     section_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -42,11 +43,14 @@ class IncomingTemplate(BaseORMModel):
 
     __tablename__ = "incoming_templates"
 
-    template_id: Mapped[str] = mapped_column(String, primary_key=True)
+    template_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     template_file_id: Mapped[str] = mapped_column(String, nullable=False)
     jsonld_expansion_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
         UniqueConstraint('data_model_id', 'register_id', name='uix_dro_2'),
@@ -56,7 +60,7 @@ class SubscriptionActivityLog(BaseORMModel):
 
     __tablename__ = "subscription_activity_logs"
 
-    subscription_activity_log_id: Mapped[str] = mapped_column(String, primary_key=True)
+    subscription_activity_log_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     is_unsubscribe: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
