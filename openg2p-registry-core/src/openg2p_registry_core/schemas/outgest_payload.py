@@ -10,14 +10,18 @@ from datetime import datetime
 class OutgoingTopicData(BaseModel):
     topic_id: str
     register_id: str
+    register_mnemonic: Optional[str] = None
     data_model_id: str
+    data_model_mnemonic: Optional[str] = None
     websub_topic: str
     description: Optional[str] = None
     is_active: bool
-    websub_register_status: Optional[str] = None
+    websub_register_status: str
     websub_register_datetime: Optional[datetime] = None
-    websub_register_number_of_attempts: Optional[int] = None
-    websub_register_latest_error_message: Optional[str] = None
+    websub_register_number_of_attempts: int
+    websub_register_latest_error_message: Optional[str] = Field(
+        default=None, validation_alias="websub_register_latest_error_code"
+    )
 
     class Config:
         from_attributes = True
@@ -41,11 +45,17 @@ class OutgoingTemplateData(BaseModel):
 
 class OutgoingTopicPayload(BaseModel):
     topic_id: Optional[str] = None
-    register_id: Optional[str] = None
-    data_model_id: Optional[str] = None
-    websub_topic: Optional[str] = None
+    register_id: str
+    data_model_id: str
+    websub_topic: str
     description: Optional[str] = None
-    # is_active: bool = True
+
+    class Config:
+        from_attributes = True
+
+
+class GetOutgoingTopicPayload(BaseModel):
+    topic_id: str
 
     class Config:
         from_attributes = True

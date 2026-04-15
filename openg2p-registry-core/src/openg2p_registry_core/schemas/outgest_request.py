@@ -4,6 +4,7 @@ from openg2p_fastapi_common.schemas import (
 )
 from .outgest_payload import (
     EmptyOutgestionRequestPayload,
+    GetOutgoingTopicPayload,
     GetOutgoingTemplatePayload,
     OutgoingTopicPayload,
     OutgoingTopicUpdatePayload,
@@ -24,12 +25,28 @@ class OutgoingTopicRequest(G2PRequest):
     request_body: OutgoingTopicRequestBody
 
 
+class OutgoingTopicIdRequestBody(G2PRequestBody):
+    request_payload: GetOutgoingTopicPayload
+
+
+class OutgoingTopicIdRequest(G2PRequest):
+    request_body: OutgoingTopicIdRequestBody
+
+
 class OutgoingTopicUpdateRequestBody(G2PRequestBody):
     request_payload: OutgoingTopicUpdatePayload
 
 
 class OutgoingTopicUpdateRequest(G2PRequest):
     request_body: OutgoingTopicUpdateRequestBody
+
+
+class GetAllOutgoingTopicsRequestBody(G2PRequestBody):
+    request_payload: EmptyOutgestionRequestPayload
+
+
+class GetAllOutgoingTopicsRequest(G2PRequest):
+    request_body: GetAllOutgoingTopicsRequestBody
 
 
 # =============================================================================

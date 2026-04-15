@@ -14,11 +14,19 @@ from .outgest_payload import (
 # =============================================================================
 
 class OutgoingTopicResponseBody(G2PResponseBody):
-    response_payload: Optional[List[OutgoingTopicData]] = None
+    response_payload: Optional[OutgoingTopicData] = None
 
 
 class OutgoingTopicResponse(G2PResponse):
     response_body: Optional[OutgoingTopicResponseBody] = None
+
+
+class OutgoingTopicsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[OutgoingTopicData]] = None
+
+
+class OutgoingTopicsResponse(G2PResponse):
+    response_body: Optional[OutgoingTopicsResponseBody] = None
 
 
 # =============================================================================

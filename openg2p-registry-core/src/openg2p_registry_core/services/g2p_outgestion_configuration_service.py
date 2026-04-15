@@ -1,8 +1,6 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
-import httpx
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -26,7 +24,6 @@ from ..schemas import (
     OutgoingTopicData,
 )
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
-from ..helpers import WebsubHelper
 
 _logger = logging.getLogger("g2p-outgestion-configuration-service")
 
@@ -34,11 +31,12 @@ class G2POutgestionConfigurationService(BaseService):
 
     async def create_outgoing_topic(
         self, outgoing_topic_payload: OutgoingTopicPayload
-    ) -> list[OutgoingTopicData]:
+    ) -> OutgoingTopicData:
         """Create a new outgoing topic"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            # Check if outgoing topic already exists
+            await self._validate_register_id_exists(session, outgoing_topic_payload.register_id)
+            await self._validate_data_model_id_exists(session, outgoing_topic_payload.data_model_id)
             await self._check_topic_exists(outgoing_topic_payload, session)
             
             topic_id = outgoing_topic_payload.topic_id or str(uuid.uuid4())
@@ -54,28 +52,47 @@ class G2POutgestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(outgoing_topic)
-            return [OutgoingTopicData.model_validate(outgoing_topic)]
+            return await self._build_topic_data_with_mnemonics(session, outgoing_topic)
 
-    async def get_outgoing_topic(self, topic_id: str) -> list[OutgoingTopicData]:
+    async def get_outgoing_topic(self, topic_id: str) -> OutgoingTopicData:
         """Get outgoing topic by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             topic_obj = await self._get_outgoing_topic(topic_id, session)
-            return [OutgoingTopicData.model_validate(topic_obj)]
+            return await self._build_topic_data_with_mnemonics(session, topic_obj)
 
-    async def get_all_outgoing_topics(self) -> list[OutgoingTopicData]:
-        """Get all outgoing topics"""
+    async def get_all_outgoing_topics(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[OutgoingTopicData], int, int]:
+        """Get paginated outgoing topics."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(OutgoingTopic)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
             result = await session.execute(
-                select(OutgoingTopic).order_by(OutgoingTopic.topic_id)
+                select(OutgoingTopic)
+                .order_by(OutgoingTopic.topic_id)
+                .offset(offset)
+                .limit(page_size)
             )
             topics = result.scalars().all()
-            return [OutgoingTopicData.model_validate(topic) for topic in topics]
+
+            topic_data_list: list[OutgoingTopicData] = []
+            for topic in topics:
+                topic_data_list.append(
+                    await self._build_topic_data_with_mnemonics(session, topic)
+                )
+
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return topic_data_list, total_items, number_of_pages
 
     async def update_outgoing_topic(
         self, outgoing_topic_payload: OutgoingTopicUpdatePayload
-    ) -> list[OutgoingTopicData]:
+    ) -> OutgoingTopicData:
         """Update outgoing topic - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -83,19 +100,21 @@ class G2POutgestionConfigurationService(BaseService):
 
             # Only update fields that are provided (not None)
             if outgoing_topic_payload.register_id is not None:
+                await self._validate_register_id_exists(session, outgoing_topic_payload.register_id)
                 topic_obj.register_id = outgoing_topic_payload.register_id
             if outgoing_topic_payload.data_model_id is not None:
+                await self._validate_data_model_id_exists(session, outgoing_topic_payload.data_model_id)
                 topic_obj.data_model_id = outgoing_topic_payload.data_model_id
             if outgoing_topic_payload.description is not None:
                 topic_obj.description = outgoing_topic_payload.description
 
             await session.commit()
             await session.refresh(topic_obj)
-            return [OutgoingTopicData.model_validate(topic_obj)]
+            return await self._build_topic_data_with_mnemonics(session, topic_obj)
     
     async def toggle_outgoing_topic_status(
         self, topic_id: str
-    ) -> list[OutgoingTopicData]:
+    ) -> OutgoingTopicData:
         """Toggle outgoing topic status"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -108,11 +127,11 @@ class G2POutgestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(topic_obj)
-            return [OutgoingTopicData.model_validate(topic_obj)]
+            return await self._build_topic_data_with_mnemonics(session, topic_obj)
 
     async def re_register_outgoing_topic(
         self, topic_id: str
-    ) -> list[OutgoingTopicData]:
+    ) -> OutgoingTopicData:
         """Re-register outgoing topic"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -124,11 +143,11 @@ class G2POutgestionConfigurationService(BaseService):
 
             await session.commit()
             await session.refresh(topic_obj)
-            return [OutgoingTopicData.model_validate(topic_obj)]
+            return await self._build_topic_data_with_mnemonics(session, topic_obj)
     
     async def delete_outgoing_topic(
         self, topic_id: str
-    ) -> list[OutgoingTopicData]:
+    ) -> OutgoingTopicData:
         """Delete outgoing topic"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -138,9 +157,10 @@ class G2POutgestionConfigurationService(BaseService):
                     code=G2PRegistryErrorCodes.TOPIC_NOT_INACTIVE.value[1],
                     message=G2PRegistryErrorCodes.TOPIC_NOT_INACTIVE.value[0],
                 )
+            deleted_topic_data = await self._build_topic_data_with_mnemonics(session, topic_obj)
             await session.delete(topic_obj)
             await session.commit()
-            return [OutgoingTopicData.model_validate(topic_obj)]
+            return deleted_topic_data
 
     async def create_template(
         self, template_payload: OutgoingTemplatePayload
@@ -228,7 +248,7 @@ class G2POutgestionConfigurationService(BaseService):
             return deleted_template_data
     
 
-    async def _check_topic_exists(self, outgoing_topic_payload: OutgoingTopicPayload, session: AsyncSession) -> bool:
+    async def _check_topic_exists(self, outgoing_topic_payload: OutgoingTopicPayload, session: AsyncSession) -> None:
         if not outgoing_topic_payload.register_id or not outgoing_topic_payload.data_model_id or not outgoing_topic_payload.websub_topic:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
@@ -245,6 +265,29 @@ class G2POutgestionConfigurationService(BaseService):
                 code=G2PRegistryErrorCodes.TOPIC_ALREADY_EXISTS.value[1],
                 message=G2PRegistryErrorCodes.TOPIC_ALREADY_EXISTS.value[0],
             )
+
+    async def _build_topic_data_with_mnemonics(
+        self, session: AsyncSession, topic_obj: OutgoingTopic
+    ) -> OutgoingTopicData:
+        register_obj = await self._validate_register_id_exists(session, topic_obj.register_id)
+        data_model_obj = await self._validate_data_model_id_exists(
+            session, topic_obj.data_model_id
+        )
+
+        return OutgoingTopicData(
+            topic_id=topic_obj.topic_id,
+            register_id=topic_obj.register_id,
+            register_mnemonic=register_obj.register_mnemonic,
+            data_model_id=topic_obj.data_model_id,
+            data_model_mnemonic=data_model_obj.data_model_mnemonic,
+            websub_topic=topic_obj.websub_topic,
+            description=topic_obj.description,
+            is_active=topic_obj.is_active,
+            websub_register_status=topic_obj.websub_register_status,
+            websub_register_datetime=topic_obj.websub_register_datetime,
+            websub_register_number_of_attempts=topic_obj.websub_register_number_of_attempts,
+            websub_register_latest_error_message=topic_obj.websub_register_latest_error_code,
+        )
 
     async def _check_outgoing_template_exists(
         self, session: AsyncSession, template_payload: OutgoingTemplatePayload
@@ -329,7 +372,7 @@ class G2POutgestionConfigurationService(BaseService):
         )
 
     async def _get_outgoing_topic(self, topic_id: str, session: AsyncSession) -> OutgoingTopic:
-        if topic_id is None:
+        if not topic_id:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
                 message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
