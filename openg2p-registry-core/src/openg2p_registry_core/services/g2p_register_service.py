@@ -862,7 +862,7 @@ class G2PRegisterService(BaseService):
                     session=session,
                 )
             schema_dict["functional_record_id"] = (
-                "generating..." if generate_functional_record_id else change_payload.get("functional_record_id")
+                str(f"TEMP-{uuid.uuid4().hex}") if generate_functional_record_id else change_payload.get("functional_record_id")
             )
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
