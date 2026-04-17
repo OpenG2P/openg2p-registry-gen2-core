@@ -852,13 +852,19 @@ class G2PRegisterService(BaseService):
         if change_request.edit_action == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
+            # Use a single canonical internal_record_id for insert + queueing.
+            subject_internal_record_id = (
+                schema_dict.get("internal_record_id") or change_request.internal_record_id
+            )
+            schema_dict["internal_record_id"] = subject_internal_record_id
+
             generate_functional_record_id: bool = await self._check_functional_record_id_generation_required(
                 register_definition
             )
             if generate_functional_record_id:
                 await self._handle_functional_record_id_generation(
                     register_id=register_definition.register_id,
-                    internal_record_id=change_request.internal_record_id,
+                    internal_record_id=subject_internal_record_id,
                     session=session,
                 )
             schema_dict["functional_record_id"] = (
@@ -869,9 +875,6 @@ class G2PRegisterService(BaseService):
             schema_dict["last_approved_at"] = change_request.approved_at
             schema_dict["last_approved_by"] = change_request.approved_by or "system"
 
-            # Primary master section establishes the stable subject id for dependent sections.
-            subject_internal_record_id = schema_dict.get("internal_record_id") or change_request.internal_record_id
-            
             # Convert date strings to date objects before creating the instance
             schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
             
