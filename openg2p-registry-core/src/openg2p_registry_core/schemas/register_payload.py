@@ -333,6 +333,8 @@ class ChangeRequestRequestPayload(RegisterPayload):
     # For approve/reject operations
     change_request_id: Optional[str] = None
     rejection_reason: Optional[str] = None
+    created_by: Optional[str] = None
+    approved_by: Optional[str] = None
 
 
 class ChangeRequestResponsePayload(RegisterPayload):
@@ -426,6 +428,7 @@ class SaveSubmissionDraftRequestPayload(BaseModel):
     internal_record_id: Optional[str] = None
     no_of_verifications_required: Optional[int] = 0
     section_payloads: Optional[List[SectionPayloadInput]] = None
+    created_by: Optional[str] = None
 
 
 class FinalizeSubmissionRequestPayload(BaseModel):
@@ -436,6 +439,7 @@ class FinalizeSubmissionRequestPayload(BaseModel):
 class ApproveRejectSubmissionRequestPayload(BaseModel):
     """Request payload for approve_submission / reject_submission."""
     submission_id: str
+    approved_by: Optional[str] = None
 
 
 class GetSubmissionRequestPayload(BaseModel):
@@ -686,6 +690,7 @@ class AddVerificationPayload(BaseModel):
     submission_id: Optional[str] = None
     change_request_id: Optional[str] = None
     verification_observations: Optional[str] = None
+    verified_by: Optional[str] = None
     is_approved: bool
 
 

@@ -68,7 +68,13 @@ class G2PRegisterService(BaseService):
     async def _get_tab(self, tab_id: str, session):
         return await session.get(G2PRegisterUITab, tab_id)
 
-    async def create_change_request(self, change_request_request_payload: ChangeRequestRequestPayload, source_partner_id: str = None, submission_id: str = None):
+    async def create_change_request(
+        self,
+        change_request_request_payload: ChangeRequestRequestPayload,
+        source_partner_id: str = None,
+        submission_id: str = None,
+        created_by: str | None = None,
+    ):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
 
@@ -85,6 +91,7 @@ class G2PRegisterService(BaseService):
                 g2p_register_definition.register_mnemonic,
                 source_partner_id,
                 submission_id,
+                created_by,
             )
 
             session.add(g2p_register_change_request)
@@ -602,7 +609,7 @@ class G2PRegisterService(BaseService):
             change_requests_list, total_items = await self._fetch_change_requests_flattened(subject_register_id, subject_record_id, tab_id, current_page, page_size, sort_by, filter_by, session)
             return change_requests_list, total_items
 
-    async def approve_change_request(self, change_request_id: str):
+    async def approve_change_request(self, change_request_id: str, approved_by: str | None = None):
         # Always approve only the requested change request ID.
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -619,6 +626,7 @@ class G2PRegisterService(BaseService):
                     change_request_id=change_request_id,
                     session=session,
                     skip_verification=False,
+                    approved_by=approved_by,
                 )
             elif section.section_register_id == section.register_id:
                 change_request = await self.approve_non_primary_master_section_change_request(
@@ -626,6 +634,7 @@ class G2PRegisterService(BaseService):
                     subject_internal_record_id=change_request.internal_record_id,
                     session=session,
                     skip_verification=False,
+                    approved_by=approved_by,
                 )
             else:
                 change_request = await self.approve_child_section_change_request(
@@ -633,6 +642,7 @@ class G2PRegisterService(BaseService):
                     subject_internal_record_id=change_request.internal_record_id,
                     session=session,
                     skip_verification=False,
+                    approved_by=approved_by,
                 )
                 
             _logger.info(f"Approved change request: {change_request_id}")
@@ -707,13 +717,15 @@ class G2PRegisterService(BaseService):
         change_request_id: str,
         session,
         skip_verification: bool = False,
-        skip_sequence_check: bool = False
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
     ):
         # Validate change request exists and is pending approval
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
         # Mark change request as approved
+        actor_name = approved_by or "system"
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_by = actor_name
         change_request.approved_at = datetime.now()
         session.add(change_request)
         
@@ -752,11 +764,19 @@ class G2PRegisterService(BaseService):
 
         return change_request        
     
-    async def approve_primary_master_section_change_request(self, change_request_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> tuple[G2PRegisterChangeRequest, str]:
+    async def approve_primary_master_section_change_request(
+        self,
+        change_request_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
+    ) -> tuple[G2PRegisterChangeRequest, str]:
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
-        
+
+        actor_name = approved_by or "system"
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_by = actor_name
         change_request.approved_at = datetime.now()
         session.add(change_request)
 
@@ -832,26 +852,29 @@ class G2PRegisterService(BaseService):
         if change_request.edit_action == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
+            # Use a single canonical internal_record_id for insert + queueing.
+            subject_internal_record_id = (
+                schema_dict.get("internal_record_id") or change_request.internal_record_id
+            )
+            schema_dict["internal_record_id"] = subject_internal_record_id
+
             generate_functional_record_id: bool = await self._check_functional_record_id_generation_required(
                 register_definition
             )
             if generate_functional_record_id:
                 await self._handle_functional_record_id_generation(
                     register_id=register_definition.register_id,
-                    internal_record_id=change_request.internal_record_id,
+                    internal_record_id=subject_internal_record_id,
                     session=session,
                 )
             schema_dict["functional_record_id"] = (
-                "generating..." if generate_functional_record_id else change_payload.get("functional_record_id")
+                str(f"TEMP-{uuid.uuid4().hex}") if generate_functional_record_id else change_payload.get("functional_record_id")
             )
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
-            schema_dict["last_approved_by"] = "system"
+            schema_dict["last_approved_by"] = change_request.approved_by or "system"
 
-            # Primary master section establishes the stable subject id for dependent sections.
-            subject_internal_record_id = schema_dict.get("internal_record_id") or change_request.internal_record_id
-            
             # Convert date strings to date objects before creating the instance
             schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
             
@@ -876,7 +899,7 @@ class G2PRegisterService(BaseService):
                                 value = value.date()
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
-            setattr(existing, "last_approved_by", "system")
+            setattr(existing, "last_approved_by", change_request.approved_by or "system")
         else:
             _logger.error(f"Unknown edit action '{change_request.edit_action}' for change request '{change_request.change_request_id}'")
             raise G2PRegistryException(
@@ -885,11 +908,20 @@ class G2PRegisterService(BaseService):
             )
         return subject_internal_record_id
 
-    async def approve_non_primary_master_section_change_request(self, change_request_id: str, subject_internal_record_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> G2PRegisterChangeRequest:
+    async def approve_non_primary_master_section_change_request(
+        self,
+        change_request_id: str,
+        subject_internal_record_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
-        
+
+        actor_name = approved_by or "system"
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_by = actor_name
         change_request.approved_at = datetime.now()
         session.add(change_request)
 
@@ -991,7 +1023,7 @@ class G2PRegisterService(BaseService):
                                     value = value.date()
                         setattr(existing, key, value)
                 setattr(existing, "last_approved_at", datetime.now())
-                setattr(existing, "last_approved_by", "system")
+                setattr(existing, "last_approved_by", change_request.approved_by or "system")
             else:
                 _logger.error(f"Unknown edit action '{change_request.edit_action}' for change request '{change_request.change_request_id}'")
                 raise G2PRegistryException(
@@ -999,11 +1031,20 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
                 )
     
-    async def approve_child_section_change_request(self, change_request_id: str, subject_internal_record_id: str, session, skip_verification: bool = False, skip_sequence_check: bool = False) -> G2PRegisterChangeRequest:
+    async def approve_child_section_change_request(
+        self,
+        change_request_id: str,
+        subject_internal_record_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
         change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(change_request_id, session)
-        
+
+        actor_name = approved_by or "system"
         change_request.approval_status = ApprovalStatusEnum.APPROVED.value
-        change_request.approved_by = "system" # TODO: Replace with actual user info
+        change_request.approved_by = actor_name
         change_request.approved_at = datetime.now()
         session.add(change_request)
 
@@ -1093,7 +1134,7 @@ class G2PRegisterService(BaseService):
                                     value = value.date()
                         setattr(existing, key, value)
                 setattr(existing, "last_approved_at", datetime.now())
-                setattr(existing, "last_approved_by", "system")
+                setattr(existing, "last_approved_by", change_request.approved_by or "system")
             elif change_payload.get("edit_action") == EditActionEnum.ADD.value:
                 # Build the payload dict excluding None values from schema, then add base fields
                 schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
@@ -1101,7 +1142,7 @@ class G2PRegisterService(BaseService):
                 schema_dict["created_by"] = change_request.created_by
                 schema_dict["created_at"] = change_request.created_at
                 schema_dict["last_approved_at"] = change_request.approved_at
-                schema_dict["last_approved_by"] = "system"
+                schema_dict["last_approved_by"] = change_request.approved_by or "system"
                 
                 # Convert date strings to date objects before creating the instance
                 schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
@@ -1127,7 +1168,12 @@ class G2PRegisterService(BaseService):
         )
         return result.scalars().all()
     
-    async def reject_change_request(self, change_request_id: str, reason: str):
+    async def reject_change_request(
+        self,
+        change_request_id: str,
+        reason: str,
+        rejected_by: str | None = None,
+    ):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate change request exists and is pending approval
@@ -1135,7 +1181,7 @@ class G2PRegisterService(BaseService):
             _logger.info(f"Validated change request for rejection: {change_request}")
             # Mark change request as rejected
             change_request.approval_status = ApprovalStatusEnum.REJECTED.value
-            change_request.approved_by = "system" # TODO: Replace with actual user info
+            change_request.approved_by = rejected_by or "system"
             change_request.approved_at = datetime.now()
             change_request.rejection_reason = reason
             await session.commit()
@@ -1419,7 +1465,7 @@ class G2PRegisterService(BaseService):
                                 value = value.date()
                     setattr(existing, key, value)
             setattr(existing, "last_approved_at", datetime.now())
-            setattr(existing, "last_approved_by", "system")
+            setattr(existing, "last_approved_by", change_request.approved_by or "system")
         elif change_payload.get("edit_action") == EditActionEnum.ADD.value:
             # Build the payload dict excluding None values from schema, then add base fields
             schema_dict = {k: v for k, v in register_schema_instance.dict().items() if v is not None}
@@ -1427,7 +1473,7 @@ class G2PRegisterService(BaseService):
             schema_dict["created_by"] = change_request.created_by
             schema_dict["created_at"] = change_request.created_at
             schema_dict["last_approved_at"] = change_request.approved_at
-            schema_dict["last_approved_by"] = "system"
+            schema_dict["last_approved_by"] = change_request.approved_by or "system"
             
             # Convert date strings to date objects before creating the instance
             schema_dict = self._convert_date_strings_to_objects(schema_dict, register_class)
@@ -1523,6 +1569,7 @@ class G2PRegisterService(BaseService):
         register_mnemonic: str,
         source_partner_id: str = None,
         submission_id: str = None,
+        created_by: str | None = None,
     ) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         # Extract internal_record_id if present, otherwise generate new UUID
@@ -1559,6 +1606,7 @@ class G2PRegisterService(BaseService):
         # Determine change request source based on submission_id
         change_request_source = ChangeRequestSourceEnum.INTAKE_FORM.value if submission_id else ChangeRequestSourceEnum.DIRECT.value
         no_of_verifications_required = g2p_register_section.no_of_verifications_required if g2p_register_section else 0
+        actor_name = created_by or source_partner_id or "system"
 
         # Create the change request object
         g2p_register_change_request = G2PRegisterChangeRequest(
@@ -1575,7 +1623,7 @@ class G2PRegisterService(BaseService):
             source_partner_id=source_partner_id or "system",
             change_request_source=change_request_source,
             submission_id=submission_id,
-            created_by="system",  # TODO: Replace with actual user info
+            created_by=actor_name,
             created_at=datetime.now(),
             no_of_verifications_required=no_of_verifications_required,
             no_of_verifications_done=0,

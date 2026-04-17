@@ -27,6 +27,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
         _logger.info("Creating change request through controller service")
         g2p_register_service = G2PRegisterService.get_component()
         change_request_request_payload: ChangeRequestRequestPayload = change_request_request.request_body.request_payload
+        created_by = change_request_request_payload.created_by or change_request_request.request_header.sender_app_mnemonic
 
         module = importlib.import_module("openg2p_registry_extensions.register_domain.factory")
         domain_factory_class_name = "G2PRegisterDomainFactory"
@@ -36,7 +37,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
 
         g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.create_change_request(
             change_request_request_payload=change_request_request_payload,
-            source_partner_id=change_request_request.request_header.sender_app_mnemonic
+            source_partner_id=change_request_request.request_header.sender_app_mnemonic,
+            created_by=created_by,
         )
 
         change_request_response_payload: ChangeRequestResponsePayload = self._build_change_request_response_payload(change_request_request_payload, g2p_register_change_request)
@@ -45,18 +47,33 @@ class G2PRegisterChangerequestControllerService(BaseService):
 
     async def approve_change_request(self, change_request_request: ChangeRequestRequest) -> ChangeRequestResponsePayload:
         change_request_id = change_request_request.request_body.request_payload.change_request_id
+        approved_by = (
+            change_request_request.request_body.request_payload.approved_by
+            or change_request_request.request_header.sender_app_mnemonic
+        )
         _logger.info(f"Approving change request with change_request_id: {change_request_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.approve_change_request(change_request_id)
+        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.approve_change_request(
+            change_request_id,
+            approved_by=approved_by,
+        )
         change_request_response_payload: ChangeRequestResponsePayload = self._build_change_request_response_payload(None, g2p_register_change_request)
         return change_request_response_payload
 
     async def reject_change_request(self, change_request_request: ChangeRequestRequest) -> ChangeRequestResponsePayload:
         change_request_id = change_request_request.request_body.request_payload.change_request_id
         rejection_reason: str = getattr(change_request_request.request_body.request_payload, 'rejection_reason', None)
+        rejected_by = (
+            change_request_request.request_body.request_payload.approved_by
+            or change_request_request.request_header.sender_app_mnemonic
+        )
         _logger.info(f"Rejecting change request with change_request_id: {change_request_id} through controller service")
         g2p_register_service = G2PRegisterService.get_component()
-        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.reject_change_request(change_request_id, rejection_reason)
+        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.reject_change_request(
+            change_request_id,
+            rejection_reason,
+            rejected_by=rejected_by,
+        )
         change_request_response_payload: ChangeRequestResponsePayload = self._build_change_request_response_payload(None, g2p_register_change_request)
         return change_request_response_payload
 

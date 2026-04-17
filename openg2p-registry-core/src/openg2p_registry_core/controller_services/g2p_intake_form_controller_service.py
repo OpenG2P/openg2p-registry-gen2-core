@@ -24,7 +24,7 @@ _logger = logging.getLogger('g2p-intake-form-controller-service')
 class G2PIntakeFormControllerService(BaseService):
     async def save_submission_draft(self, save_submission_draft_request: SaveSubmissionDraftRequest) -> SubmissionResponsePayload:
         payload: SaveSubmissionDraftRequestPayload = save_submission_draft_request.request_body.request_payload
-        created_by = save_submission_draft_request.request_header.sender_app_mnemonic
+        created_by = payload.created_by or save_submission_draft_request.request_header.sender_app_mnemonic
         _logger.info(f"Saving intake form for register_id: {payload.register_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.save_submission_draft(
@@ -48,7 +48,7 @@ class G2PIntakeFormControllerService(BaseService):
     async def approve_submission(self, approve_submission_request: ApproveRejectSubmissionRequest) -> SubmissionResponsePayload:
         payload: ApproveRejectSubmissionRequestPayload = approve_submission_request.request_body.request_payload
         submission_id = payload.submission_id
-        approved_by = approve_submission_request.request_header.sender_app_mnemonic
+        approved_by = payload.approved_by or approve_submission_request.request_header.sender_app_mnemonic
         _logger.info(f"Approving intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.approve_submission(
@@ -60,7 +60,7 @@ class G2PIntakeFormControllerService(BaseService):
     async def reject_submission(self, reject_submission_request: ApproveRejectSubmissionRequest) -> SubmissionResponsePayload:
         payload: ApproveRejectSubmissionRequestPayload = reject_submission_request.request_body.request_payload
         submission_id = payload.submission_id
-        rejected_by = reject_submission_request.request_header.sender_app_mnemonic
+        rejected_by = payload.approved_by or reject_submission_request.request_header.sender_app_mnemonic
         _logger.info(f"Rejecting intake form with submission_id: {submission_id} through controller service")
         g2p_intake_form_service = G2PIntakeFormService.get_component()
         g2p_intake_form: G2PIntakeForm = await g2p_intake_form_service.reject_submission(
