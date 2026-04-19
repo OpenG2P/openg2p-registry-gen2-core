@@ -4462,8 +4462,8 @@ class G2PRegisterService(BaseService):
 
             if not registry_configuration:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
-                    message="Registry configuration not found"
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[0]
                 )
 
             return RegistryConfigurationData(
@@ -4489,8 +4489,8 @@ class G2PRegisterService(BaseService):
 
             if not registry_configuration:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
-                    message="Registry configuration not found"
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[0]
                 )
 
             if registry_name is not None:
