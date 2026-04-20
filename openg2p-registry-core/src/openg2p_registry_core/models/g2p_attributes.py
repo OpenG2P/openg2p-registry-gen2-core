@@ -23,7 +23,6 @@ class G2PAttributeValue(BaseORMModel):
     )
     attribute_id: Mapped[str] = mapped_column(
         String,
-        ForeignKey("g2p_attributes.attribute_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -31,7 +30,6 @@ class G2PAttributeValue(BaseORMModel):
     value_display: Mapped[str] = mapped_column(String, nullable=False)
     parent_value_id: Mapped[str] = mapped_column(
         String,
-        ForeignKey("g2p_attribute_values.value_id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
