@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
-from .g2p_register import MaritalStatusEnum, GenderEnum, ShapeTypeEnum
+from .g2p_register import MaritalStatusEnum, GenderEnum, RecordStatusEnum, ShapeTypeEnum
 
 
 class ChangeRequestSourceEnum(enum.Enum):
@@ -47,6 +47,9 @@ class G2PRegisterHistory(BaseORMModel):
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     record_name: Mapped[str] = mapped_column(String, nullable=True)
     record_image_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
+
+    record_status: Mapped[RecordStatusEnum] = mapped_column(String, nullable=False, default=RecordStatusEnum.ACTIVE.value)
+    record_status_reason: Mapped[str] = mapped_column(String, nullable=True)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)

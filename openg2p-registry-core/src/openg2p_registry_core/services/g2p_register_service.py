@@ -26,7 +26,7 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue
+    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue, RecordStatusEnum
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
@@ -1699,7 +1699,7 @@ class G2PRegisterService(BaseService):
 
             total_record_count: int = (
                 await session.execute(
-                    select(func.count()).select_from(register_class)
+                    select(func.count()).select_from(register_class).where(register_class.record_status == RecordStatusEnum.ACTIVE.value)
                 )
             ).scalar_one()
 
@@ -4462,8 +4462,8 @@ class G2PRegisterService(BaseService):
 
             if not registry_configuration:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
-                    message="Registry configuration not found"
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[0]
                 )
 
             return RegistryConfigurationData(
@@ -4489,8 +4489,8 @@ class G2PRegisterService(BaseService):
 
             if not registry_configuration:
                 raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value,
-                    message="Registry configuration not found"
+                    code=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_CONFIGURATION_NOT_FOUND.value[0]
                 )
 
             if registry_name is not None:
