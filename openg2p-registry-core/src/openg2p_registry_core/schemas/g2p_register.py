@@ -27,6 +27,8 @@ class G2PRegisterBaseSchema(BaseModel):
     link_foundational_id: Optional[str] = None
     record_name: Optional[str] = None
     record_image_storage_id: Optional[str] = None
+    record_status: Optional[str] = None
+    record_status_reason: Optional[str] = None
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     last_approved_at: Optional[datetime] = None

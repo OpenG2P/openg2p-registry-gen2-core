@@ -6,6 +6,10 @@ from .register_payload import *
 from .register_request import *
 from .register_response import *
 
+from .file_payload import *
+from .file_request import *
+from .file_response import *
+
 from .ingest_payload import *
 from .ingest_request import *
 from .ingest_response import *

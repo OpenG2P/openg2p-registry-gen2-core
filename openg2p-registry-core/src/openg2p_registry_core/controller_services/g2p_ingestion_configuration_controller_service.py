@@ -1,11 +1,11 @@
 import logging
 from typing import Optional
-from fastapi import UploadFile
 from openg2p_fastapi_common.service import BaseService
 
-from ..services import G2PIngestionConfigurationService, G2PTemplateService
+from ..services import G2PIngestionConfigurationService
 from ..schemas import (
     IncomingModelKeyPathPayload,
+    IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
     IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
@@ -29,73 +29,44 @@ class G2PIngestionConfigurationControllerService(BaseService):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.g2p_ingestion_configuration_service = G2PIngestionConfigurationService.get_component()
-        self.g2p_template_service = G2PTemplateService.get_component()
 
     # IncomingModelKeyPath Methods
-    async def create_new_incoming_key_path(
+    async def create_incoming_key_path(
         self, pattern_payload: IncomingModelKeyPathPayload
     ) -> IncomingModelKeyPathData:
         """Create a new incoming key path"""
-        return await self.g2p_ingestion_configuration_service.create_new_incoming_key_path(
+        return await self.g2p_ingestion_configuration_service.create_incoming_key_path(
             pattern_payload
         )
 
-    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
-        """Get all incoming key paths"""
-        return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths()
-
-    async def delete_incoming_key_path(self, key_path_id: str) -> None:
-        """Delete incoming key path"""
-        return await self.g2p_ingestion_configuration_service.delete_incoming_key_path(
+    async def get_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
+        """Get incoming key path by ID"""
+        return await self.g2p_ingestion_configuration_service.get_incoming_key_path(
             key_path_id
         )
 
-    async def edit_key_path_for_message_id(
-        self, key_path_id: str, keypath_for_message_id: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_message_id field"""
-        return await self.g2p_ingestion_configuration_service.edit_key_path_for_message_id(
-            key_path_id, keypath_for_message_id
+    async def get_all_incoming_key_paths(
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
+    ) -> tuple[list[IncomingModelKeyPathListData], int, int]:
+        """Get paginated incoming key paths."""
+        current_page = current_page or 1
+        page_size = page_size or 10
+        return await self.g2p_ingestion_configuration_service.get_all_incoming_key_paths(
+            current_page, page_size
         )
 
-    async def edit_key_path_for_sender(
-        self, key_path_id: str, key_path_for_sender: str
+    async def update_incoming_key_path(
+        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
     ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_sender field"""
-        return await self.g2p_ingestion_configuration_service.edit_key_path_for_sender(
-            key_path_id, key_path_for_sender
+        """Update incoming key path"""
+        return await self.g2p_ingestion_configuration_service.update_incoming_key_path(
+            key_path_id, pattern_payload
         )
 
-    async def edit_key_path_for_signature(
-        self, key_path_id: str, key_path_for_signature: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_signature field"""
-        return await self.g2p_ingestion_configuration_service.edit_key_path_for_signature(
-            key_path_id, key_path_for_signature
-        )
-
-    async def edit_key_path_for_signature_payload(
-        self, key_path_id: str, key_path_for_signature_payload: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_signature_payload field"""
-        return await self.g2p_ingestion_configuration_service.edit_key_path_for_signature_payload(
-            key_path_id, key_path_for_signature_payload
-        )
-
-    async def edit_is_list(
-        self, key_path_id: str, is_list: bool
-    ) -> IncomingModelKeyPathData:
-        """Edit is_list field"""
-        return await self.g2p_ingestion_configuration_service.edit_is_list(
-            key_path_id, is_list
-        )
-
-    async def edit_key_path_for_list_elements(
-        self, key_path_id: str, keypath_for_list_elements: str
-    ) -> IncomingModelKeyPathData:
-        """Edit keypath_for_list_elements field"""
-        return await self.g2p_ingestion_configuration_service.edit_key_path_for_list_elements(
-            key_path_id, keypath_for_list_elements
+    async def delete_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
+        """Delete incoming key path"""
+        return await self.g2p_ingestion_configuration_service.delete_incoming_key_path(
+            key_path_id
         )
 
     async def create_semantic_pattern(
@@ -114,6 +85,16 @@ class G2PIngestionConfigurationControllerService(BaseService):
             semantic_pattern_id
         )
 
+    async def get_all_semantic_patterns(
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
+    ) -> tuple[list[IncomingModelSemanticPatternData], int, int]:
+        """Get paginated semantic patterns."""
+        current_page = current_page or 1
+        page_size = page_size or 10
+        return await self.g2p_ingestion_configuration_service.get_all_semantic_patterns(
+            current_page, page_size
+        )
+
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
     ) -> IncomingModelSemanticPatternData:
@@ -122,29 +103,45 @@ class G2PIngestionConfigurationControllerService(BaseService):
             semantic_pattern_id, pattern_payload
         )
 
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> IncomingModelSemanticPatternData:
+        """Delete semantic pattern"""
+        return await self.g2p_ingestion_configuration_service.delete_semantic_pattern(
+            semantic_pattern_id
+        )
+
     async def create_template(
-        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
+        self, template_payload: IncomingTemplatePayload
     ) -> IncomingTemplateData:
         """Create a new template"""
-        return await self.g2p_template_service.create_incoming_template(
-            template_payload, template_file
+        return await self.g2p_ingestion_configuration_service.create_template(
+            template_payload
         )
 
     async def get_template(self, template_id: str) -> IncomingTemplateData:
         """Get template by ID"""
-        return await self.g2p_template_service.get_incoming_template(template_id)
+        return await self.g2p_ingestion_configuration_service.get_template(template_id)
 
-    async def update_template(
-        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
-    ) -> IncomingTemplateData:
-        """Update template"""
-        return await self.g2p_template_service.update_incoming_template(
-            template_update_payload, template_file
+    async def get_all_templates(
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
+    ) -> tuple[list[IncomingTemplateData], int, int]:
+        """Get paginated templates."""
+        current_page = current_page or 1
+        page_size = page_size or 10
+        return await self.g2p_ingestion_configuration_service.get_all_templates(
+            current_page, page_size
         )
 
-    async def delete_template(self, template_delete_payload: IncomingTemplateUpdatePayload) -> IncomingTemplateData:
+    async def update_template(
+        self, template_update_payload: IncomingTemplateUpdatePayload
+    ) -> IncomingTemplateData:
+        """Update template"""
+        return await self.g2p_ingestion_configuration_service.update_template(
+            template_update_payload
+        )
+
+    async def delete_template(self, template_id: str) -> IncomingTemplateData:
         """Delete template"""
-        return await self.g2p_template_service.delete_incoming_template(template_delete_payload.template_id)
+        return await self.g2p_ingestion_configuration_service.delete_template(template_id)
 
     async def create_data_model(
         self, data_model_payload: DataModelPayload, response_template_file=None
@@ -206,3 +203,12 @@ class G2PIngestionConfigurationControllerService(BaseService):
             partner_id
         )
 
+    async def get_all_subscription_activity_logs(
+        self, current_page: Optional[int] = 1, page_size: Optional[int] = 10
+    ) -> tuple[list[SubscriptionActivityLogData], int, int]:
+        """Get paginated subscription activity logs."""
+        current_page = current_page or 1
+        page_size = page_size or 10
+        return await self.g2p_ingestion_configuration_service.get_all_subscription_activity_logs(
+            current_page, page_size
+        )

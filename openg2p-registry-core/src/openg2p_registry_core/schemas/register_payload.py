@@ -333,6 +333,8 @@ class ChangeRequestRequestPayload(RegisterPayload):
     # For approve/reject operations
     change_request_id: Optional[str] = None
     rejection_reason: Optional[str] = None
+    created_by: Optional[str] = None
+    approved_by: Optional[str] = None
 
 
 class ChangeRequestResponsePayload(RegisterPayload):
@@ -426,6 +428,7 @@ class SaveSubmissionDraftRequestPayload(BaseModel):
     internal_record_id: Optional[str] = None
     no_of_verifications_required: Optional[int] = 0
     section_payloads: Optional[List[SectionPayloadInput]] = None
+    created_by: Optional[str] = None
 
 
 class FinalizeSubmissionRequestPayload(BaseModel):
@@ -436,6 +439,7 @@ class FinalizeSubmissionRequestPayload(BaseModel):
 class ApproveRejectSubmissionRequestPayload(BaseModel):
     """Request payload for approve_submission / reject_submission."""
     submission_id: str
+    approved_by: Optional[str] = None
 
 
 class GetSubmissionRequestPayload(BaseModel):
@@ -605,6 +609,8 @@ class ChangeRequestData(BaseModel):
     section_id: str
     section_mnemonic: str
     is_list: bool = False
+    is_primary_section: bool = False
+    is_core_section: bool = False
     section_register_id: str
     source_partner_id: str
     created_by: str
@@ -630,6 +636,8 @@ class ChangeRequestFlattenedData(BaseModel):
     internal_record_id: str
     section_id: str
     section_mnemonic: str
+    is_primary_section: bool = False
+    is_core_section: bool = False
     source_partner_id: str
     created_by: str
     created_at: Optional[str] = None
@@ -682,6 +690,7 @@ class AddVerificationPayload(BaseModel):
     submission_id: Optional[str] = None
     change_request_id: Optional[str] = None
     verification_observations: Optional[str] = None
+    verified_by: Optional[str] = None
     is_approved: bool
 
 
@@ -787,73 +796,6 @@ class RegisterTabRecordData(BaseModel):
     is_list: bool = False
     records: List[RecordData]
 
-
-# =============================================================================
-# Document Upload Schemas
-# =============================================================================
-
-class UploadedDocumentData(BaseModel):
-    """Response data for a single uploaded document"""
-    document_store_id: str
-    document_label: str
-    filename: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class UploadDocumentsResponseData(BaseModel):
-    """Response data for upload_change_request_documents endpoint"""
-    uploaded_documents: List[UploadedDocumentData]
-
-
-class UploadRecordImageData(BaseModel):
-    """Response data for upload_record_image endpoint"""
-    document_store_id: str
-    filename: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class FileUrlData(BaseModel):
-    """Response data for get_file_url endpoint"""
-    file_url: Optional[str] = None
-
-
-class DocumentLabelData(BaseModel):
-    """Data for a document label"""
-    document_label: str
-    document_label: str
-
-    class Config:
-        from_attributes: bool = True
-
-
-class SectionDocumentData(BaseModel):
-    """Data for a section document (label + document_store_id)"""
-    document_label: str
-    document_store_id: str
-    document_url: Optional[str] = None
-
-    class Config:
-        from_attributes: bool = True
-
-
-class SectionDocumentsData(BaseModel):
-    """Response data for get_section_documents endpoint"""
-    register_id: str
-    record_id: str
-    section_id: str
-    documents: List[SectionDocumentData]
-
-
-class ChangeRequestDocumentsData(BaseModel):
-    """Response data for get_section_documents_for_change_request endpoint"""
-    change_request_id: str
-    documents: List[SectionDocumentData]
 
 
 # =============================================================================
@@ -1198,25 +1140,6 @@ class UpdateRegistryConfigurationRequestPayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
-
-
-class GetDocumentLabelsForSectionRequestPayload(BaseModel):
-    register_id: str
-    section_id: str
-
-
-class GetSectionDocumentsRequestPayload(BaseModel):
-    register_id: str
-    record_id: str
-    section_id: str
-
-
-class GetSectionDocumentsForChangeRequestRequestPayload(BaseModel):
-    change_request_id: str
-
-
-class FileUrlRequestPayload(BaseModel):
-    document_store_id: str
 
 
 # =============================================================================

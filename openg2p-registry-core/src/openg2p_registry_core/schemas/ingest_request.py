@@ -8,20 +8,17 @@ from .ingest_payload import (
     GetIngestionDataRequestPayload,
     IncomingPartnerPayload,
     IncomingPartnerUpdatePayload,
+    GetIncomingKeyPathPayload,
     IncomingModelKeyPathPayload,
     IncomingModelKeyPathUpdatePayload,
-    EditKeyPathForMessageIdPayload,
-    EditKeyPathForSenderPayload,
-    EditKeyPathForSignaturePayload,
-    EditKeyPathForSignaturePayloadPayload,
-    EditIsListPayload,
-    EditKeyPathForListElementsPayload,
-    DeleteIncomingKeyPathPayload,
     IncomingModelSemanticPatternPayload,
+    GetIncomingSemanticPatternPayload,
     IncomingModelSemanticPatternUpdatePayload,
     IncomingTemplatePayload,
+    GetIncomingTemplatePayload,
     IncomingTemplateUpdatePayload,
     DataModelPayload,
+    DataModelIdPayload,
     DataModelUpdatePayload,
     ChangeResponseTemplateFilePayload,
     ChangeActiveStatusPayload,
@@ -107,6 +104,14 @@ class IncomingModelKeyPathRequest(G2PRequest):
     request_body: IncomingModelKeyPathRequestBody
 
 
+class IncomingModelKeyPathIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingKeyPathPayload
+
+
+class IncomingModelKeyPathIdRequest(G2PRequest):
+    request_body: IncomingModelKeyPathIdRequestBody
+
+
 class IncomingModelKeyPathUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingModelKeyPathUpdatePayload
 
@@ -115,61 +120,12 @@ class IncomingModelKeyPathUpdateRequest(G2PRequest):
     request_body: IncomingModelKeyPathUpdateRequestBody
 
 
-# Individual edit requests for IncomingModelKeyPath
-class EditKeyPathForMessageIdRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForMessageIdPayload
+class GetAllIncomingKeyPathsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
 
 
-class EditKeyPathForMessageIdRequest(G2PRequest):
-    request_body: EditKeyPathForMessageIdRequestBody
-
-
-class EditKeyPathForSenderRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSenderPayload
-
-
-class EditKeyPathForSenderRequest(G2PRequest):
-    request_body: EditKeyPathForSenderRequestBody
-
-
-class EditKeyPathForSignatureRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSignaturePayload
-
-
-class EditKeyPathForSignatureRequest(G2PRequest):
-    request_body: EditKeyPathForSignatureRequestBody
-
-
-class EditKeyPathForSignaturePayloadRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForSignaturePayloadPayload
-
-
-class EditKeyPathForSignaturePayloadRequest(G2PRequest):
-    request_body: EditKeyPathForSignaturePayloadRequestBody
-
-
-class EditIsListRequestBody(G2PRequestBody):
-    request_payload: EditIsListPayload
-
-
-class EditIsListRequest(G2PRequest):
-    request_body: EditIsListRequestBody
-
-
-class EditKeyPathForListElementsRequestBody(G2PRequestBody):
-    request_payload: EditKeyPathForListElementsPayload
-
-
-class EditKeyPathForListElementsRequest(G2PRequest):
-    request_body: EditKeyPathForListElementsRequestBody
-
-
-class DeleteIncomingKeyPathRequestBody(G2PRequestBody):
-    request_payload: DeleteIncomingKeyPathPayload
-
-
-class DeleteIncomingKeyPathRequest(G2PRequest):
-    request_body: DeleteIncomingKeyPathRequestBody
+class GetAllIncomingKeyPathsRequest(G2PRequest):
+    request_body: GetAllIncomingKeyPathsRequestBody
 
 
 # =============================================================================
@@ -184,12 +140,28 @@ class IncomingModelSemanticPatternRequest(G2PRequest):
     request_body: IncomingModelSemanticPatternRequestBody
 
 
+class IncomingModelSemanticPatternIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingSemanticPatternPayload
+
+
+class IncomingModelSemanticPatternIdRequest(G2PRequest):
+    request_body: IncomingModelSemanticPatternIdRequestBody
+
+
 class IncomingModelSemanticPatternUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingModelSemanticPatternUpdatePayload
 
 
 class IncomingModelSemanticPatternUpdateRequest(G2PRequest):
     request_body: IncomingModelSemanticPatternUpdateRequestBody
+
+
+class GetAllIncomingSemanticPatternsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllIncomingSemanticPatternsRequest(G2PRequest):
+    request_body: GetAllIncomingSemanticPatternsRequestBody
 
 
 # =============================================================================
@@ -204,12 +176,28 @@ class IncomingTemplateRequest(G2PRequest):
     request_body: IncomingTemplateRequestBody
 
 
+class IncomingTemplateIdRequestBody(G2PRequestBody):
+    request_payload: GetIncomingTemplatePayload
+
+
+class IncomingTemplateIdRequest(G2PRequest):
+    request_body: IncomingTemplateIdRequestBody
+
+
 class IncomingTemplateUpdateRequestBody(G2PRequestBody):
     request_payload: IncomingTemplateUpdatePayload
 
 
 class IncomingTemplateUpdateRequest(G2PRequest):
     request_body: IncomingTemplateUpdateRequestBody
+
+
+class GetAllIncomingTemplatesRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllIncomingTemplatesRequest(G2PRequest):
+    request_body: GetAllIncomingTemplatesRequestBody
 
 
 # =============================================================================
@@ -224,12 +212,28 @@ class DataModelRequest(G2PRequest):
     request_body: DataModelRequestBody
 
 
+class DataModelIdRequestBody(G2PRequestBody):
+    request_payload: DataModelIdPayload
+
+
+class DataModelIdRequest(G2PRequest):
+    request_body: DataModelIdRequestBody
+
+
 class DataModelUpdateRequestBody(G2PRequestBody):
     request_payload: DataModelUpdatePayload
 
 
 class DataModelUpdateRequest(G2PRequest):
     request_body: DataModelUpdateRequestBody
+
+
+class GetAllDataModelsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllDataModelsRequest(G2PRequest):
+    request_body: GetAllDataModelsRequestBody
 
 
 class ChangeResponseTemplateFileRequestBody(G2PRequestBody):
@@ -258,6 +262,14 @@ class SubscriptionActivityLogRequestBody(G2PRequestBody):
 
 class SubscriptionActivityLogRequest(G2PRequest):
     request_body: SubscriptionActivityLogRequestBody
+
+
+class GetAllSubscriptionActivityLogsRequestBody(G2PRequestBody):
+    request_payload: EmptyIngestionRequestPayload
+
+
+class GetAllSubscriptionActivityLogsRequest(G2PRequest):
+    request_body: GetAllSubscriptionActivityLogsRequestBody
 
 # =============================================================================
 # G2P Input Mechanism Request Schemas

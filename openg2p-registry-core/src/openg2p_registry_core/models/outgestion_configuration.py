@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Boolean, DateTime, String, UniqueConstraint, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
@@ -9,7 +10,7 @@ class OutgoingTopic(BaseORMModel):
     
     __tablename__ = "outgoing_topics"
     
-    topic_id: Mapped[str] = mapped_column(String, primary_key=True)
+    topic_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     websub_topic: Mapped[str] = mapped_column(String, nullable=False)
@@ -31,7 +32,7 @@ class OutgoingTemplate(BaseORMModel):
 
     __tablename__ = "outgoing_templates"
 
-    template_id: Mapped[str] = mapped_column(String, primary_key=True)
+    template_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     template_file_id: Mapped[str] = mapped_column(String, nullable=False)

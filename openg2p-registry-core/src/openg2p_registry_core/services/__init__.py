@@ -3,8 +3,10 @@ from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_register_hierarchical_service import G2PRegisterHierarchicalService
 from .g2p_ingest_service import G2PIngestService
 from .g2p_ingestion_configuration_service import G2PIngestionConfigurationService
+from .g2p_data_model_service import G2PDataModelService
 from .g2p_outgestion_configuration_service import G2POutgestionConfigurationService
 from .g2p_template_service import G2PTemplateService
+from .g2p_template_file_service import G2PTemplateFileService
 from .filter_builder import FilterBuilder
 from .g2p_attribute_service import G2PAttributeService
 from .g2p_ingestion_data_service import G2PIngestionDataService

@@ -1,6 +1,5 @@
 import logging
 import uuid
-from datetime import datetime
 from typing import Optional, List
 import httpx
 from fastapi import UploadFile
@@ -9,7 +8,7 @@ from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from ..models import (
     IncomingModelKeyPath,
@@ -17,9 +16,12 @@ from ..models import (
     IncomingTemplate,
     DataModel,
     SubscriptionActivityLog,
+    G2PRegisterDefinition,
+    G2PRegisterSection,
 )
 from ..schemas import (
     IncomingModelKeyPathPayload,
+    IncomingModelKeyPathUpdatePayload,
     IncomingModelKeyPathData,
     IncomingModelKeyPathListData,
     IncomingModelSemanticPatternPayload,
@@ -36,8 +38,6 @@ from ..schemas import (
 )
 from .g2p_template_service import G2PTemplateService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
-from ..helpers import MinioClient, TemplateHelper
-from ..engine import get_engines
 
 _logger = logging.getLogger("g2p-ingestion-configuration-service")
 
@@ -45,34 +45,53 @@ _logger = logging.getLogger("g2p-ingestion-configuration-service")
 class G2PIngestionConfigurationService(BaseService):
 
     # IncomingModelKeyPath Methods
-    async def create_new_incoming_key_path(
+    async def create_incoming_key_path(
         self, pattern_payload: IncomingModelKeyPathPayload
     ) -> IncomingModelKeyPathData:
         """Create a new incoming key path"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern_id = pattern_payload.key_path_id or str(uuid.uuid4())
+            await self._check_incoming_key_path_id_exists(
+                session, pattern_payload.key_path_id
+            )
+            await self._validate_data_model_id_exists(
+                session, pattern_payload.data_model_id
+            )
+            await self._check_incoming_key_path_data_model_exists(
+                session, pattern_payload.data_model_id
+            )
             pattern = IncomingModelKeyPath(
-                key_path_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
-                key_path_for_message_id=pattern_payload.keypath_for_message_id,
+                key_path_for_message_id=pattern_payload.key_path_for_message_id,
                 key_path_for_sender=pattern_payload.key_path_for_sender,
                 key_path_for_signature=pattern_payload.key_path_for_signature,
                 key_path_for_signature_payload=pattern_payload.key_path_for_signature_payload,
                 is_list=pattern_payload.is_list,
-                key_path_for_list_elements=pattern_payload.keypath_for_list_elements,
+                key_path_for_list_elements=pattern_payload.key_path_for_list_elements,
             )
             session.add(pattern)
             await session.commit()
             await session.refresh(pattern)
             return IncomingModelKeyPathData.model_validate(pattern)
 
-    async def get_all_incoming_key_paths(self) -> list[IncomingModelKeyPathListData]:
-        """Get all incoming key paths with data_model_mnemonic"""
+
+    async def get_all_incoming_key_paths(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelKeyPathListData], int, int]:
+        """Get paginated incoming key paths with data_model_mnemonic."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingModelKeyPath)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
             result = await session.execute(
                 select(IncomingModelKeyPath)
+                .order_by(IncomingModelKeyPath.key_path_id)
+                .offset(offset)
+                .limit(page_size)
             )
             key_paths = result.scalars().all()
 
@@ -92,96 +111,151 @@ class G2PIngestionConfigurationService(BaseService):
                     data_model_mnemonic=data_model_mnemonic,
                     is_list=key_path.is_list,
                 ))
-            return key_path_list
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return key_path_list, total_items, number_of_pages
 
-    async def delete_incoming_key_path(self, key_path_id: str) -> None:
-        """Delete incoming key path"""
+    async def get_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
+        """Get incoming key path by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelKeyPath).where(
-                    IncomingModelKeyPath.key_path_id == key_path_id
-                )
-            )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
-                )
-            await session.delete(pattern_obj)
-            await session.commit()
+            pattern_obj = await self._get_incoming_key_path(session, key_path_id)
+            return IncomingModelKeyPathData.model_validate(pattern_obj)
 
-    async def edit_key_path_for_message_id(
-        self, key_path_id: str, keypath_for_message_id: str
+    async def update_incoming_key_path(
+        self, key_path_id: str, pattern_payload: IncomingModelKeyPathUpdatePayload
     ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_message_id field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "key_path_for_message_id", keypath_for_message_id
-        )
-
-    async def edit_key_path_for_sender(
-        self, key_path_id: str, key_path_for_sender: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_sender field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "key_path_for_sender", key_path_for_sender
-        )
-
-    async def edit_key_path_for_signature(
-        self, key_path_id: str, key_path_for_signature: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_signature field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "key_path_for_signature", key_path_for_signature
-        )
-
-    async def edit_key_path_for_signature_payload(
-        self, key_path_id: str, key_path_for_signature_payload: str
-    ) -> IncomingModelKeyPathData:
-        """Edit key_path_for_signature_payload field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "key_path_for_signature_payload", key_path_for_signature_payload
-        )
-
-    async def edit_is_list(
-        self, key_path_id: str, is_list: bool
-    ) -> IncomingModelKeyPathData:
-        """Edit is_list field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "is_list", is_list
-        )
-
-    async def edit_key_path_for_list_elements(
-        self, key_path_id: str, keypath_for_list_elements: str
-    ) -> IncomingModelKeyPathData:
-        """Edit keypath_for_list_elements field"""
-        return await self._update_incoming_key_path_field(
-            key_path_id, "key_path_for_list_elements", keypath_for_list_elements
-        )
-
-    async def _update_incoming_key_path_field(
-        self, key_path_id: str, field_name: str, field_value
-    ) -> IncomingModelKeyPathData:
-        """Helper method to update a single field on IncomingModelKeyPath"""
+        """Update incoming key path - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelKeyPath).where(
-                    IncomingModelKeyPath.key_path_id == key_path_id
+            pattern_obj = await self._get_incoming_key_path(session, key_path_id)
+
+            if pattern_payload.key_path_for_message_id is not None:
+                pattern_obj.key_path_for_message_id = pattern_payload.key_path_for_message_id
+            if pattern_payload.key_path_for_sender is not None:
+                pattern_obj.key_path_for_sender = pattern_payload.key_path_for_sender
+            if pattern_payload.key_path_for_signature is not None:
+                pattern_obj.key_path_for_signature = pattern_payload.key_path_for_signature
+            if pattern_payload.key_path_for_signature_payload is not None:
+                pattern_obj.key_path_for_signature_payload = (
+                    pattern_payload.key_path_for_signature_payload
                 )
-            )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
+            if pattern_payload.is_list is not None:
+                pattern_obj.is_list = pattern_payload.is_list
+            if pattern_payload.key_path_for_list_elements is not None:
+                pattern_obj.key_path_for_list_elements = (
+                    pattern_payload.key_path_for_list_elements
                 )
 
-            setattr(pattern_obj, field_name, field_value)
             await session.commit()
             await session.refresh(pattern_obj)
             return IncomingModelKeyPathData.model_validate(pattern_obj)
+
+    async def delete_incoming_key_path(self, key_path_id: str) -> IncomingModelKeyPathData:
+        """Delete incoming key path and return deleted data."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern_obj = await self._get_incoming_key_path(session, key_path_id)
+            deleted_pattern_data = IncomingModelKeyPathData.model_validate(pattern_obj)
+            await session.delete(pattern_obj)
+            await session.commit()
+            return deleted_pattern_data
+
+    async def _get_incoming_key_path(
+        self, session: AsyncSession, key_path_id: str
+    ) -> IncomingModelKeyPath:
+        """Get incoming key path by ID - helper method"""
+        pattern = await session.execute(
+            select(IncomingModelKeyPath).where(
+                IncomingModelKeyPath.key_path_id == key_path_id
+            )
+        )
+        pattern_obj = pattern.scalar_one_or_none()
+        if not pattern_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.PATTERN_NOT_FOUND.value[0],
+            )
+        return pattern_obj
+
+    async def _check_incoming_key_path_id_exists(
+        self, session: AsyncSession, key_path_id: Optional[str]
+    ) -> None:
+        """Raise an exception when a provided key_path_id already exists."""
+        if not key_path_id:
+            return
+
+        existing = await session.execute(
+            select(IncomingModelKeyPath).where(
+                IncomingModelKeyPath.key_path_id == key_path_id
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS.value[1],
+                message=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS.value[0],
+            )
+
+    async def _validate_data_model_id_exists(
+        self, session: AsyncSession, data_model_id: str
+    ) -> DataModel:
+        """Validate and return the data model for a given data_model_id."""
+        existing = await session.execute(
+            select(DataModel).where(DataModel.data_model_id == data_model_id)
+        )
+        existing = existing.scalar_one_or_none()
+        if not existing:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.DATA_MODEL_NOT_FOUND.value[0],
+            )
+        return existing
+    
+    async def _validate_register_id_exists(
+        self, session: AsyncSession, register_id: str
+    ) -> G2PRegisterDefinition:
+        """Validate and return the register definition for a given register_id."""
+        existing = await session.execute(
+            select(G2PRegisterDefinition).where(G2PRegisterDefinition.register_id == register_id)
+        )
+        existing = existing.scalar_one_or_none()
+        if not existing:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[0],
+            )
+        return existing
+    
+    async def _validate_section_id_exists(
+        self, session: AsyncSession, section_id: str
+    ) -> G2PRegisterSection:
+        """Validate and return the section for a given section_id."""
+        existing = await session.execute(
+            select(G2PRegisterSection).where(
+                G2PRegisterSection.section_id == section_id
+            )
+        )
+        existing = existing.scalar_one_or_none()
+        if not existing:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0],
+            )
+        return existing
+
+    async def _check_incoming_key_path_data_model_exists(
+        self, session: AsyncSession, data_model_id: str
+    ) -> None:
+        """Raise an exception if an IncomingModelKeyPath already exists for the data model."""
+        existing = await session.execute(
+            select(IncomingModelKeyPath).where(
+                IncomingModelKeyPath.data_model_id == data_model_id
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS_FOR_DATA_MODEL.value[1],
+                message=G2PRegistryErrorCodes.PATTERN_ALREADY_EXISTS_FOR_DATA_MODEL.value[0],
+            )
 
     # IncomingModelSemanticPattern Methods
     async def create_semantic_pattern(
@@ -190,15 +264,17 @@ class G2PIngestionConfigurationService(BaseService):
         """Create a new semantic pattern"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern_id = pattern_payload.semantic_pattern_id or str(uuid.uuid4())
+            await self._validate_data_model_id_exists(session, pattern_payload.data_model_id)
+            await self._validate_register_id_exists(session, pattern_payload.register_id)
+            await self._validate_section_id_exists(session, pattern_payload.section_id)
             pattern = IncomingModelSemanticPattern(
-                semantic_pattern_id=pattern_id,
                 data_model_id=pattern_payload.data_model_id,
                 register_id=pattern_payload.register_id,
                 section_id=pattern_payload.section_id,
                 pattern_for_register=pattern_payload.pattern_for_register,
                 pattern_for_section=pattern_payload.pattern_for_section,
                 key_path_for_business_payload=pattern_payload.key_path_for_business_payload,
+                raw_payload_enricher_class=pattern_payload.raw_payload_enricher_class,
             )
             session.add(pattern)
             await session.commit()
@@ -211,18 +287,35 @@ class G2PIngestionConfigurationService(BaseService):
         """Get semantic pattern by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelSemanticPattern).where(
-                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
-                )
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
+            return await self._build_semantic_pattern_data_with_mnemonics(session, pattern_obj)
+
+    async def get_all_semantic_patterns(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingModelSemanticPatternData], int, int]:
+        """Get paginated semantic patterns."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingModelSemanticPattern)
             )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(IncomingModelSemanticPattern)
+                .order_by(IncomingModelSemanticPattern.semantic_pattern_id)
+                .offset(offset)
+                .limit(page_size)
+            )
+            patterns = result.scalars().all()
+            semantic_patterns: list[IncomingModelSemanticPatternData] = []
+            for pattern in patterns:
+                semantic_patterns.append(
+                    await self._build_semantic_pattern_data_with_mnemonics(session, pattern)
                 )
-            return IncomingModelSemanticPatternData.model_validate(pattern_obj)
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return semantic_patterns, total_items, number_of_pages
 
     async def update_semantic_pattern(
         self, semantic_pattern_id: str, pattern_payload: IncomingModelSemanticPatternUpdatePayload
@@ -230,17 +323,7 @@ class G2PIngestionConfigurationService(BaseService):
         """Update semantic pattern - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            pattern = await session.execute(
-                select(IncomingModelSemanticPattern).where(
-                    IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
-                )
-            )
-            pattern_obj = pattern.scalar_one_or_none()
-            if not pattern_obj:
-                raise G2PRegistryException(
-                    code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
-                    message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
-                )
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
 
             if pattern_payload.pattern_for_register is not None:
                 pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
@@ -248,43 +331,129 @@ class G2PIngestionConfigurationService(BaseService):
                 pattern_obj.pattern_for_section = pattern_payload.pattern_for_section
             if pattern_payload.key_path_for_business_payload is not None:
                 pattern_obj.key_path_for_business_payload = pattern_payload.key_path_for_business_payload
+            if pattern_payload.raw_payload_enricher_class is not None:
+                pattern_obj.raw_payload_enricher_class = pattern_payload.raw_payload_enricher_class
 
             await session.commit()
             await session.refresh(pattern_obj)
             return IncomingModelSemanticPatternData.model_validate(pattern_obj)
 
+    async def delete_semantic_pattern(self, semantic_pattern_id: str) -> IncomingModelSemanticPatternData:
+        """Delete semantic pattern by ID and return deleted data."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            pattern_obj = await self._get_semantic_pattern(session, semantic_pattern_id)
+            deleted_pattern_data = await self._build_semantic_pattern_data_with_mnemonics(
+                session, pattern_obj
+            )
+            await session.delete(pattern_obj)
+            await session.commit()
+            return deleted_pattern_data
+
+    async def _get_semantic_pattern(
+        self, session: AsyncSession, semantic_pattern_id: str
+    ) -> IncomingModelSemanticPattern:
+        """Get semantic pattern by ID - helper method"""
+        pattern = await session.execute(
+            select(IncomingModelSemanticPattern).where(
+                IncomingModelSemanticPattern.semantic_pattern_id == semantic_pattern_id
+            )
+        )
+        pattern_obj = pattern.scalar_one_or_none()
+        if not pattern_obj:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
+            )
+        return pattern_obj
+
+    async def _build_semantic_pattern_data_with_mnemonics(
+        self, session: AsyncSession, pattern_obj: IncomingModelSemanticPattern
+    ) -> IncomingModelSemanticPatternData:
+        """Build semantic pattern response with related mnemonics."""
+        data_model_obj = await self._validate_data_model_id_exists(
+            session, pattern_obj.data_model_id
+        )
+        register_obj = await self._validate_register_id_exists(
+            session, pattern_obj.register_id
+        )
+        section_obj = await self._validate_section_id_exists(
+            session, pattern_obj.section_id
+        )
+
+        return IncomingModelSemanticPatternData(
+            semantic_pattern_id=pattern_obj.semantic_pattern_id,
+            data_model_id=pattern_obj.data_model_id,
+            data_model_mnemonic=data_model_obj.data_model_mnemonic,
+            register_id=pattern_obj.register_id,
+            register_mnemonic=register_obj.register_mnemonic,
+            section_id=pattern_obj.section_id,
+            section_mnemonic=section_obj.section_mnemonic,
+            pattern_for_register=pattern_obj.pattern_for_register,
+            pattern_for_section=pattern_obj.pattern_for_section,
+            key_path_for_business_payload=pattern_obj.key_path_for_business_payload,
+            raw_payload_enricher_class=pattern_obj.raw_payload_enricher_class,
+        )
+
     # IncomingTemplate Methods
     async def create_template(
-        self, template_payload: IncomingTemplatePayload, template_file: UploadFile
+        self, template_payload: IncomingTemplatePayload
     ) -> IncomingTemplateData:
         """Create a new template"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            await self._validate_register_id_exists(session, template_payload.register_id)
+            await self._validate_data_model_id_exists(session, template_payload.data_model_id)
             await self._check_incoming_template_exists(session, template_payload)
 
-            file_id: str = await self._upload_template_file(template_file, template_payload.template_file_id)
-
-            template_id: str = template_payload.template_id or str(uuid.uuid4())
             template: IncomingTemplate = IncomingTemplate(
-                template_id=template_id,
                 register_id=template_payload.register_id,
                 data_model_id=template_payload.data_model_id,
-                template_file_id=file_id,
+                template_file_id=template_payload.template_file_id,
+                jsonld_expansion_required=template_payload.jsonld_expansion_required,
             )
             session.add(template)
             await session.commit()
             await session.refresh(template)
-            return IncomingTemplateData.model_validate(template)
+            return await self._build_template_data_with_mnemonics(session, template)
 
     async def get_template(self, template_id: str) -> IncomingTemplateData:
         """Get template by ID"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             template_obj: IncomingTemplate = await self._get_incoming_template(session, template_id)
-            return IncomingTemplateData.model_validate(template_obj)
+            return await self._build_template_data_with_mnemonics(session, template_obj)
+
+    async def get_all_templates(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[IncomingTemplateData], int, int]:
+        """Get paginated templates."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(IncomingTemplate)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(IncomingTemplate)
+                .order_by(IncomingTemplate.template_id)
+                .offset(offset)
+                .limit(page_size)
+            )
+            templates = result.scalars().all()
+
+            template_data_list: list[IncomingTemplateData] = []
+            for template in templates:
+                template_data_list.append(
+                    await self._build_template_data_with_mnemonics(session, template)
+                )
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return template_data_list, total_items, number_of_pages
 
     async def update_template(
-        self, template_update_payload: IncomingTemplateUpdatePayload, template_file: Optional[UploadFile] = None
+        self, template_update_payload: IncomingTemplateUpdatePayload
     ) -> IncomingTemplateData:
         """Update template - only updates provided fields"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -293,14 +462,28 @@ class G2PIngestionConfigurationService(BaseService):
                 session, template_update_payload.template_id
             )
 
-            if template_file:
-                template_obj.template_file_id = await self._upload_template_file(
-                    template_file, template_update_payload.template_file_id
+            if template_update_payload.template_file_id is not None:
+                template_obj.template_file_id = template_update_payload.template_file_id
+            if template_update_payload.jsonld_expansion_required is not None:
+                template_obj.jsonld_expansion_required = (
+                    template_update_payload.jsonld_expansion_required
                 )
 
             await session.commit()
             await session.refresh(template_obj)
-            return IncomingTemplateData.model_validate(template_obj)
+            return await self._build_template_data_with_mnemonics(session, template_obj)
+
+    async def delete_template(self, template_id: str) -> IncomingTemplateData:
+        """Delete template by ID and return deleted data."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            template_obj: IncomingTemplate = await self._get_incoming_template(session, template_id)
+            deleted_template_data = await self._build_template_data_with_mnemonics(
+                session, template_obj
+            )
+            await session.delete(template_obj)
+            await session.commit()
+            return deleted_template_data
 
     async def _get_incoming_template(self, session: AsyncSession, template_id: str) -> IncomingTemplate:
         """Get incoming template by ID - helper method"""
@@ -323,8 +506,8 @@ class G2PIngestionConfigurationService(BaseService):
     async def _check_incoming_template_exists(
         self, session: AsyncSession, template_payload: IncomingTemplatePayload
     ) -> None:
-        """Check if template with same data_model_id, register_id, and section_id already exists"""
-        if not template_payload.data_model_id or not template_payload.register_id or not template_payload.section_id:
+        """Check if template with same data_model_id and register_id already exists."""
+        if not template_payload.data_model_id or not template_payload.register_id:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
                 message=G2PRegistryErrorCodes.INVALID_REQUEST.value[0],
@@ -342,18 +525,22 @@ class G2PIngestionConfigurationService(BaseService):
                 message=G2PRegistryErrorCodes.TEMPLATE_ALREADY_EXISTS.value[0],
             )
 
-    async def _upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str]) -> str:
-        """Upload template file to MinIO and return the file ID"""
-        minio_client: MinioClient = MinioClient.get_component()
-        template_helper: TemplateHelper = TemplateHelper.get_component()
+    async def _build_template_data_with_mnemonics(
+        self, session: AsyncSession, template_obj: IncomingTemplate
+    ) -> IncomingTemplateData:
+        """Build incoming template response with register and data model mnemonics."""
+        register_obj = await self._validate_register_id_exists(session, template_obj.register_id)
+        data_model_obj = await self._validate_data_model_id_exists(session, template_obj.data_model_id)
 
-        template_text: str = (await template_file.read()).decode("utf-8")
-        file_id: str = template_helper.put_template(
-            minio_client=minio_client,
-            template_file_id=template_file_id,
-            template=template_text
+        return IncomingTemplateData(
+            template_id=template_obj.template_id,
+            register_id=template_obj.register_id,
+            register_mnemonic=register_obj.register_mnemonic,
+            data_model_id=template_obj.data_model_id,
+            data_model_mnemonic=data_model_obj.data_model_mnemonic,
+            template_file_id=template_obj.template_file_id,
+            jsonld_expansion_required=template_obj.jsonld_expansion_required,
         )
-        return file_id
 
     # DataModel Methods
     async def create_data_model(
@@ -544,7 +731,6 @@ class G2PIngestionConfigurationService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             activity_log = SubscriptionActivityLog(
-                subscription_activity_log_id=str(uuid.uuid4()),
                 is_unsubscribe=subscription_activity_log_payload.is_unsubscribe,
                 description=subscription_activity_log_payload.description,
                 partner_id=subscription_activity_log_payload.partner_id,
@@ -572,6 +758,29 @@ class G2PIngestionConfigurationService(BaseService):
             )
             activity_logs = result.scalars().all()
             return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs]
+
+    async def get_all_subscription_activity_logs(
+        self, current_page: int, page_size: int
+    ) -> tuple[list[SubscriptionActivityLogData], int, int]:
+        """Get paginated subscription activity logs."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            offset = (current_page - 1) * page_size
+            total_items_result = await session.execute(
+                select(func.count()).select_from(SubscriptionActivityLog)
+            )
+            total_items = total_items_result.scalar_one() or 0
+
+            result = await session.execute(
+                select(SubscriptionActivityLog).order_by(
+                    SubscriptionActivityLog.date_time.desc()
+                )
+                .offset(offset)
+                .limit(page_size)
+            )
+            activity_logs = result.scalars().all()
+            number_of_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+            return [SubscriptionActivityLogData.model_validate(log) for log in activity_logs], total_items, number_of_pages
 
 
     async def _upload_template_file(self, template_file: UploadFile, template_file_id: Optional[str] = None) -> str:

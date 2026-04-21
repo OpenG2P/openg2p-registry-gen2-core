@@ -8,6 +8,7 @@ from openg2p_fastapi_common.utils.crypto import KeymanagerCryptoHelper
 from .cache import init_cache
 from .config import Settings
 from .controller_services import (
+    G2PDataModelControllerService,
     G2PAttributeControllerService,
     G2PDocumentControllerService,
     G2PIngestControllerService,
@@ -15,6 +16,7 @@ from .controller_services import (
     G2PIngestionDataControllerService,
     G2PIntakeFormControllerService,
     G2POutgestionConfigurationControllerService,
+    G2PTemplateFileControllerService,
     G2PRegisterChangerequestControllerService,
     G2PChangeRequestCoreControllerService,
     G2PRegisterDataControllerService,
@@ -61,8 +63,10 @@ from .models import (
     OutgoingTopic,
     OutgoingTransformedDataPayload,
     SubscriptionActivityLog,
+    G2PFunctionalIdGenerationQueue
 )
 from .services import (
+    G2PDataModelService,
     G2PAttributeService,
     G2PChangeRequestWorkerService,
     G2PIngestionConfigurationService,
@@ -75,6 +79,7 @@ from .services import (
     G2PRegisterService,
     G2PRegisterVerificationService,
     G2PTemplateService,
+    G2PTemplateFileService,
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
@@ -99,11 +104,14 @@ class Initializer(BaseInitializer):
             _config.minio_secure,
             _config.minio_bucket_name,
         )
-        TemplateHelper()
+        TemplateHelper(
+            _config.template_bucket_name
+        )
         PatternMatcher()
         KeymanagerCryptoHelper()
 
         # Services
+        G2PDataModelService()
         G2PRegisterDomainService()
         G2PIngestService()
         G2PRegisterService()
@@ -112,6 +120,7 @@ class Initializer(BaseInitializer):
         G2PIngestionDataService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
+        G2PTemplateFileService()
         G2PAttributeService()
         G2PVcConfigurationService()
         G2PUIHelperService()
@@ -121,6 +130,7 @@ class Initializer(BaseInitializer):
         G2PChangeRequestWorkerService()
 
         # Controller Services
+        G2PDataModelControllerService()
         G2PIngestControllerService()
         G2PRegisterDataControllerService()
         G2PRegisterChangerequestControllerService()
@@ -130,6 +140,7 @@ class Initializer(BaseInitializer):
         G2PIngestionDataControllerService()
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
+        G2PTemplateFileControllerService()
         G2PRegistryConfigurationControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
@@ -189,5 +200,8 @@ class Initializer(BaseInitializer):
             # VC Configuration Models
             await G2PInputMechanism.create_migrate()
             await G2PRegistryVcConfiguration.create_migrate()
+
+            # Id Generation Queue Models
+            await G2PFunctionalIdGenerationQueue.create_migrate()
 
         asyncio.run(migrate())

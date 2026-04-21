@@ -24,7 +24,9 @@ class Settings(IamSettings):
     minio_access_key: str = "admin"
     minio_secret_key: str = "secret"
     minio_secure: bool = False
-    minio_bucket_name: str = "templates"
+    minio_bucket_name: str = "default"
+
+    template_bucket_name: str = "template"
 
     # Master Data Database Configuration
     master_data_db_driver: str = "postgresql+asyncpg"

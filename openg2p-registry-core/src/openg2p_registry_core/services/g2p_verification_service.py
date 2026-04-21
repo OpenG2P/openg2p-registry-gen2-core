@@ -63,6 +63,7 @@ class G2PRegisterVerificationService(BaseService):
         """Add verification for either change_request_id or submission_id (exactly one target)."""
         self._validate_target_ids(payload.change_request_id, payload.submission_id)
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        verified_by = payload.verified_by
 
         async with session_maker() as session:
             verification = None
@@ -78,7 +79,7 @@ class G2PRegisterVerificationService(BaseService):
                     section_id=change_request.section_id,
                     change_request_id=change_request.change_request_id,
                     submission_id=None,
-                    verified_by="system",  # TODO: replace with authenticated user from request context
+                    verified_by=verified_by,
                     verified_at=now,
                     verification_observations=payload.verification_observations,
                     is_approved=payload.is_approved,
@@ -94,7 +95,7 @@ class G2PRegisterVerificationService(BaseService):
                     section_id=None,
                     change_request_id=None,
                     submission_id=intake_form.submission_id,
-                    verified_by="system",  # TODO: replace with authenticated user from request context
+                    verified_by=verified_by,
                     verified_at=now,
                     verification_observations=payload.verification_observations,
                     is_approved=payload.is_approved,
