@@ -4541,7 +4541,7 @@ class G2PRegisterService(BaseService):
         async with session_maker() as session:
             result = await session.execute(select(G2PRegistryTheme))
             themes = result.scalars().all()
-            return [
+            registry_theme_data_list: list[RegistryThemeData] = [
                 RegistryThemeData(
                     theme_id=theme.theme_id,
                     theme_mnemonic=theme.theme_mnemonic,
@@ -4549,6 +4549,7 @@ class G2PRegisterService(BaseService):
                 )
                 for theme in themes
             ]
+            return registry_theme_data_list
 
     async def create_theme(
         self,
@@ -4582,7 +4583,8 @@ class G2PRegisterService(BaseService):
                 session.add(theme_value)
 
             await session.commit()
-            return ThemeOperationData(theme_id=theme.theme_id, success=True)
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme.theme_id, success=True)
+            return theme_operation_data
 
     async def remove_theme(self, theme_id: str) -> ThemeOperationData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -4610,7 +4612,8 @@ class G2PRegisterService(BaseService):
 
             await session.delete(theme)
             await session.commit()
-            return ThemeOperationData(theme_id=theme_id, success=True)
+            theme_operation_data: ThemeOperationData =  ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
 
     async def update_theme_values(
         self,
@@ -4650,7 +4653,8 @@ class G2PRegisterService(BaseService):
                 )
 
             await session.commit()
-            return ThemeOperationData(theme_id=theme_id, success=True)
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
 
     async def get_theme_values(self, theme_id: str) -> list[RegistryThemeValueData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -4668,7 +4672,7 @@ class G2PRegisterService(BaseService):
             values_result = await session.execute(
                 select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
             )
-            return [
+            registry_theme_value_data_list: list[RegistryThemeValueData] = [
                 RegistryThemeValueData(
                     theme_value_id=value_row.theme_value_id,
                     theme_id=value_row.theme_id,
@@ -4677,6 +4681,7 @@ class G2PRegisterService(BaseService):
                 )
                 for value_row in values_result.scalars().all()
             ]
+            return registry_theme_value_data_list
 
     async def get_total_pending_change_requests(self) -> int:
         """Get the total number of pending change requests across all registers"""
