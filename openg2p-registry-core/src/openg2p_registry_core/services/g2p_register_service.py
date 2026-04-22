@@ -26,7 +26,8 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue, RecordStatusEnum
+    G2PRegistryConfiguration, G2PRegistryTheme, G2PRegistryThemeValue, RegistryThemeAttributeNameEnum,
+    G2PRegistryDocument, G2PFunctionalIdGenerationQueue, RecordStatusEnum
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
@@ -40,7 +41,8 @@ from ..schemas import (
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
-    RegistryConfigurationData, EarliestPendingChangeRequestData,
+    RegistryConfigurationData, RegistryThemeData, RegistryThemeValueData, ThemeAttributeValueInput, ThemeOperationData,
+    EarliestPendingChangeRequestData,
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
     RegisterRelationEnum
 )
@@ -4421,11 +4423,22 @@ class G2PRegisterService(BaseService):
     async def create_registry_configuration(
         self,
         registry_name: str,
-        registry_logo: str = None
+        registry_logo: str = None,
+        registry_theme_id: str = None
     ) -> RegistryConfigurationData:
         """Create a new registry configuration"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            if registry_theme_id:
+                theme_result = await session.execute(
+                    select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == registry_theme_id)
+                )
+                if not theme_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                    )
+
             # Check if configuration already exists
             stmt = select(G2PRegistryConfiguration)
             result = await session.execute(stmt)
@@ -4441,7 +4454,8 @@ class G2PRegisterService(BaseService):
             registry_configuration = G2PRegistryConfiguration(
                 configuration_id=configuration_id,
                 registry_name=registry_name,
-                registry_logo=registry_logo
+                registry_logo=registry_logo,
+                registry_theme_id=registry_theme_id
             )
             session.add(registry_configuration)
             await session.commit()
@@ -4449,7 +4463,8 @@ class G2PRegisterService(BaseService):
             return RegistryConfigurationData(
                 configuration_id=configuration_id,
                 registry_name=registry_name,
-                registry_logo=registry_logo
+                registry_logo=registry_logo,
+                registry_theme_id=registry_theme_id
             )
 
     async def get_registry_configuration(self) -> RegistryConfigurationData:
@@ -4469,18 +4484,30 @@ class G2PRegisterService(BaseService):
             return RegistryConfigurationData(
                 configuration_id=registry_configuration.configuration_id,
                 registry_name=registry_configuration.registry_name,
-                registry_logo=registry_configuration.registry_logo
+                registry_logo=registry_configuration.registry_logo,
+                registry_theme_id=registry_configuration.registry_theme_id
             )
 
     async def update_registry_configuration(
         self,
         configuration_id: str,
         registry_name: str = None,
-        registry_logo: str = None
+        registry_logo: str = None,
+        registry_theme_id: str = None
     ) -> RegistryConfigurationData:
         """Update the registry configuration"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            if registry_theme_id:
+                theme_result = await session.execute(
+                    select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == registry_theme_id)
+                )
+                if not theme_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                    )
+
             stmt = select(G2PRegistryConfiguration).where(
                 G2PRegistryConfiguration.configuration_id == configuration_id
             )
@@ -4497,14 +4524,164 @@ class G2PRegisterService(BaseService):
                 registry_configuration.registry_name = registry_name
             if registry_logo is not None:
                 registry_configuration.registry_logo = registry_logo
+            if registry_theme_id is not None:
+                registry_configuration.registry_theme_id = registry_theme_id
 
             await session.commit()
 
             return RegistryConfigurationData(
                 configuration_id=registry_configuration.configuration_id,
                 registry_name=registry_configuration.registry_name,
-                registry_logo=registry_configuration.registry_logo
+                registry_logo=registry_configuration.registry_logo,
+                registry_theme_id=registry_configuration.registry_theme_id
             )
+
+    async def get_all_themes(self) -> list[RegistryThemeData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(select(G2PRegistryTheme))
+            themes = result.scalars().all()
+            registry_theme_data_list: list[RegistryThemeData] = [
+                RegistryThemeData(
+                    theme_id=theme.theme_id,
+                    theme_mnemonic=theme.theme_mnemonic,
+                    is_factory_shipped=theme.is_factory_shipped
+                )
+                for theme in themes
+            ]
+            return registry_theme_data_list
+
+    async def create_theme(
+        self,
+        theme_mnemonic: str,
+        theme_values: list[ThemeAttributeValueInput]
+    ) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            existing = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_mnemonic == theme_mnemonic)
+            )
+            if existing.scalar_one_or_none():
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_EXISTS.value[0]
+                )
+
+            theme = G2PRegistryTheme(
+                theme_mnemonic=theme_mnemonic,
+                is_factory_shipped=False
+            )
+            session.add(theme)
+            await session.flush()
+
+            for item in theme_values:
+                theme_value = G2PRegistryThemeValue(
+                    theme_id=theme.theme_id,
+                    attribute_name=RegistryThemeAttributeNameEnum(item.attribute_name),
+                    attribute_value=item.attribute_value
+                )
+                session.add(theme_value)
+
+            await session.commit()
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme.theme_id, success=True)
+            return theme_operation_data
+
+    async def remove_theme(self, theme_id: str) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+            if theme.is_factory_shipped:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.FACTORY_THEME_DELETE_NOT_ALLOWED.value[1],
+                    message=G2PRegistryErrorCodes.FACTORY_THEME_DELETE_NOT_ALLOWED.value[0]
+                )
+
+            values_result = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            for value_row in values_result.scalars().all():
+                await session.delete(value_row)
+
+            await session.delete(theme)
+            await session.commit()
+            theme_operation_data: ThemeOperationData =  ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
+
+    async def update_theme_values(
+        self,
+        theme_id: str,
+        theme_attribute_values: list[ThemeAttributeValueInput]
+    ) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+            if theme.is_factory_shipped:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.FACTORY_THEME_UPDATE_NOT_ALLOWED.value[1],
+                    message=G2PRegistryErrorCodes.FACTORY_THEME_UPDATE_NOT_ALLOWED.value[0]
+                )
+
+            existing_values = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            for value_row in existing_values.scalars().all():
+                await session.delete(value_row)
+
+            for item in theme_attribute_values:
+                session.add(
+                    G2PRegistryThemeValue(
+                        theme_id=theme_id,
+                        attribute_name=RegistryThemeAttributeNameEnum(item.attribute_name),
+                        attribute_value=item.attribute_value
+                    )
+                )
+
+            await session.commit()
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
+
+    async def get_theme_values(self, theme_id: str) -> list[RegistryThemeValueData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            theme_result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = theme_result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+
+            values_result = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            registry_theme_value_data_list: list[RegistryThemeValueData] = [
+                RegistryThemeValueData(
+                    theme_value_id=value_row.theme_value_id,
+                    theme_id=value_row.theme_id,
+                    attribute_name=value_row.attribute_name.value,
+                    attribute_value=value_row.attribute_value
+                )
+                for value_row in values_result.scalars().all()
+            ]
+            return registry_theme_value_data_list
 
     async def get_total_pending_change_requests(self) -> int:
         """Get the total number of pending change requests across all registers"""
