@@ -20,4 +20,5 @@ class G2PRegistryConfiguration(BaseORMModel):
     registry_name: Mapped[str] = mapped_column(String, nullable=False)
     registry_logo: Mapped[str] = mapped_column(Text, nullable=True)  # BASE64 encoded image
     registry_theme_id: Mapped[str] = mapped_column(String, nullable=True)
+    registry_language_id: Mapped[str] = mapped_column(String, nullable=True)
 

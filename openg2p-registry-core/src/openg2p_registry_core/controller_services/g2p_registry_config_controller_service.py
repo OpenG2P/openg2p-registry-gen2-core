@@ -29,7 +29,8 @@ class G2PRegistryConfigurationControllerService(BaseService):
         registry_configuration_data: RegistryConfigurationData = await g2p_register_service.create_registry_configuration(
             registry_name=payload.registry_name,
             registry_logo=payload.registry_logo,
-            registry_theme_id=payload.registry_theme_id
+            registry_theme_id=payload.registry_theme_id,
+            registry_language_id=payload.registry_language_id
         )
         return registry_configuration_data
 
@@ -55,7 +56,8 @@ class G2PRegistryConfigurationControllerService(BaseService):
             configuration_id=payload.configuration_id,
             registry_name=payload.registry_name,
             registry_logo=payload.registry_logo,
-            registry_theme_id=payload.registry_theme_id
+            registry_theme_id=payload.registry_theme_id,
+            registry_language_id=payload.registry_language_id
         )
         return registry_configuration_data
 

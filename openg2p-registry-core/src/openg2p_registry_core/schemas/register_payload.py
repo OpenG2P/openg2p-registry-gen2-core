@@ -808,6 +808,7 @@ class RegistryConfigurationData(BaseModel):
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
     registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -818,6 +819,7 @@ class RegistryConfigurationPayload(BaseModel):
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
     registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class RegistryConfigurationUpdatePayload(BaseModel):
@@ -826,6 +828,7 @@ class RegistryConfigurationUpdatePayload(BaseModel):
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
     registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 # =============================================================================
@@ -1138,6 +1141,7 @@ class CreateRegistryConfigurationRequestPayload(BaseModel):
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
     registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class UpdateRegistryConfigurationRequestPayload(BaseModel):
@@ -1145,6 +1149,7 @@ class UpdateRegistryConfigurationRequestPayload(BaseModel):
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
     registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class RegistryThemeData(BaseModel):
@@ -1191,6 +1196,51 @@ class ThemeAttributeValueInput(BaseModel):
 
 class ThemeOperationData(BaseModel):
     theme_id: str
+    success: bool = True
+
+
+# =============================================================================
+# Registry Languages Schemas
+# =============================================================================
+
+class RegistryLanguageData(BaseModel):
+    language_id: str
+    code: str
+    label: str
+    flag: Optional[str] = None
+    is_default: bool = False
+    translation: Optional[dict] = None
+
+    class Config:
+        from_attributes: bool = True
+
+class GetLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class CreateLanguageRequestPayload(BaseModel):
+    code: str
+    label: str
+    flag: Optional[str] = None
+    is_default: bool = False
+    translation: Optional[dict] = None
+
+
+class UpdateLanguageRequestPayload(BaseModel):
+    language_id: str
+    code: Optional[str] = None
+    label: Optional[str] = None
+    flag: Optional[str] = None
+    is_default: Optional[bool] = None
+    translation: Optional[dict] = None
+
+
+class RemoveLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class LanguageOperationData(BaseModel):
+    language_id: str
     success: bool = True
 
 
