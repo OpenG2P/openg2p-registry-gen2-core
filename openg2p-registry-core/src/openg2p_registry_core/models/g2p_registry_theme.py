@@ -16,6 +16,7 @@ class RegistryThemeAttributeNameEnum(enum.Enum):
     neutral_color_1 = "neutral_color_1"
     neutral_color_2 = "neutral_color_2"
     font_family = "font_family"
+    font_url = "font_url"
     dashboard_image = "dashboard_image"
 
 
