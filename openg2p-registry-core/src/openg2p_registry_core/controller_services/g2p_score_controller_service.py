@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.service import BaseService
-from openg2p_fastapi_common.errors import ServiceError
 
 from ..schemas import (
     CreateScoreDefinitionRequest,
