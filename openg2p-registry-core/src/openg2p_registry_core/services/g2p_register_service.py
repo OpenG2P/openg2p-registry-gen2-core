@@ -45,6 +45,7 @@ from ..schemas import (
     RegisterRelationEnum
 )
 from .g2p_register_domain_service import G2PRegisterDomainService
+from .g2p_score_compute_service import G2PScoreComputeService
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .filter_builder import FilterBuilder
@@ -646,6 +647,16 @@ class G2PRegisterService(BaseService):
                 )
                 
             _logger.info(f"Approved change request: {change_request_id}")
+
+            # Enqueue score computations for the change request
+            _logger.debug(f"Enqueuing score computations for change_request_id: {change_request_id}")
+            g2p_score_compute_service = G2PScoreComputeService.get_component()
+            await g2p_score_compute_service.enqueue_score_computations(
+                change_request=change_request,
+                session=session,
+            )
+            _logger.debug(f"Finished enqueuing score computations for change_request_id: {change_request_id}")
+            
             await session.commit()
             await session.refresh(change_request)
             return change_request
