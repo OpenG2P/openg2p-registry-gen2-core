@@ -52,10 +52,14 @@ class G2PRegisterHierarchicalService(BaseService):
                 section_register_id, session
             )
 
-            # Check if section_register is CORE_TABLE - if so, return all records directly
+            # Check if section_register is CORE_TABLE - if so, return filtered records directly
             if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
                 impl_class = self._get_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
-                result = await session.execute(select(impl_class))
+                result = await session.execute(
+                    select(impl_class).where(
+                        impl_class.internal_record_id == subject_record_id
+                    )
+                )
                 records = result.scalars().all()
                 return [self._convert_record_to_record_data(r) for r in records]
 
