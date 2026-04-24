@@ -796,6 +796,9 @@ class RegisterTabRecordData(BaseModel):
     section_register_id: str
     is_list: bool = False
     records: List[RecordData]
+    actual_score: float = 0.0
+    ideal_score: float = 0.0
+    completion_score_required: bool = False
 
 
 
