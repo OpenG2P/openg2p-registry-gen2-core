@@ -98,6 +98,7 @@ from .services import (
     G2PChangeRequestCoreService,
     G2PCompletionScoreService,
     G2PScoreComputeService,
+    G2PGeoHierarchyService
 )
 
 _config = Settings.get_config(strict=False)
@@ -145,6 +146,7 @@ class Initializer(BaseInitializer):
         G2PChangeRequestWorkerService()
         G2PCompletionScoreService()
         G2PScoreComputeService()
+        G2PGeoHierarchyService()
 
         # Controller Services
         G2PDataModelControllerService()
