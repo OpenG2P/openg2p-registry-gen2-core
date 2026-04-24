@@ -13,6 +13,8 @@ from .g2p_functional_id_generation_queue import G2PFunctionalIdGenerationQueue
 from .g2p_register_section_completion_score import G2PRegisterSectionCompletionScore
 from .g2p_completion_score_computation_queue import G2PCompletionScoreComputationQueue
 from .g2p_registry_configuration import G2PRegistryConfiguration
+from .g2p_registry_theme import G2PRegistryTheme, G2PRegistryThemeValue, RegistryThemeAttributeNameEnum
+from .g2p_registry_language import G2PRegistryLanguage
 from .g2p_register_schema import G2PRegisterSchema
 from .g2p_register_sections import (
     G2PRegisterSection,
@@ -54,3 +56,8 @@ from .g2p_attributes import G2PAttribute, G2PAttributeValue
 from .g2p_registry_document import G2PRegistryDocument
 from .g2p_registry_vc_configuration import G2PRegistryVcConfiguration
 from .g2p_input_mechanisms import G2PInputMechanism
+
+from .g2p_register_score_definition import G2PRegisterScoreDefinition
+from .g2p_score_compute_queue import G2PScoreComputeQueue
+from .g2p_register_score import G2PRegisterScore
+from .g2p_register_score_history import G2PRegisterScoreHistory

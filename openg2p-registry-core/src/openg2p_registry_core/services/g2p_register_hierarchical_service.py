@@ -8,7 +8,7 @@ from openg2p_fastapi_common.context import dbengine
 from sqlalchemy import select, inspect as sa_inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..models import G2PRegisterDefinition, G2PRegisterSection
+from ..models import G2PRegisterDefinition, G2PRegisterSection, RegisterPurposeEnum
 from ..schemas import RecordData, RegisterTabRecordData, AllowedParentsData, AllowedParentRecordData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -31,6 +31,7 @@ class G2PRegisterHierarchicalService(BaseService):
         Get records from section_register that are linked to subject_record.
         Handles both ancestor (traverse down) and descendant (traverse up) relationships.
         If subject_register_id == section_register_id, returns the subject record directly.
+        If section_register is CORE_TABLE, returns all records directly without hierarchy.
 
         Args:
             subject_register_id: The register we're starting from
@@ -47,15 +48,26 @@ class G2PRegisterHierarchicalService(BaseService):
                 subject_register_id, session
             )
 
+            section_register: G2PRegisterDefinition = await self._validate_register_definition(
+                section_register_id, session
+            )
+
+            # Check if section_register is CORE_TABLE - if so, return filtered records directly
+            if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
+                impl_class = self._get_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
+                result = await session.execute(
+                    select(impl_class).where(
+                        impl_class.internal_record_id == subject_record_id
+                    )
+                )
+                records = result.scalars().all()
+                return [self._convert_record_to_record_data(r) for r in records]
+
             # If same register, return the subject record directly
             if subject_register_id == section_register_id:
                 return await self._get_same_register_record(
                     subject_register, subject_record_id, session
                 )
-
-            section_register: G2PRegisterDefinition = await self._validate_register_definition(
-                section_register_id, session
-            )
 
             # Build hierarchy path and determine direction
             path: list[G2PRegisterDefinition] = []
@@ -102,7 +114,7 @@ class G2PRegisterHierarchicalService(BaseService):
         Returns:
             List containing single RecordData
         """
-        impl_class = self._get_implementation_class(register.register_mnemonic)
+        impl_class = self._get_implementation_class(register.register_mnemonic, register.register_purpose)
         result = await session.execute(
             select(impl_class).where(
                 impl_class.internal_record_id == record_id
@@ -245,21 +257,44 @@ class G2PRegisterHierarchicalService(BaseService):
 
         return None
 
-    def _get_implementation_class(self, register_mnemonic: str):
+    def _get_implementation_class(self, register_mnemonic: str, register_purpose: str = None):
         """
         Get the implementation class for a register based on its mnemonic.
         
         Args:
-            register_mnemonic: The register mnemonic (e.g., "Farmer", "FamilyMember")
+            register_mnemonic: The register mnemonic (e.g., "Farmer", "Score")
+            register_purpose: The register purpose (e.g., "CORE_TABLE", "REGISTER")
+                          If None, will try extensions first, then core
             
         Returns:
             The SQLAlchemy model class for the register
         """
+        _logger.info(f"Looking for implementation class for register_mnemonic='{register_mnemonic}' with purpose={register_purpose}")
+        
+        # If register_purpose is CORE_TABLE, look in core models first
+        if register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
+            try:
+                module = importlib.import_module("openg2p_registry_core.models")
+                implementation_class_name = f"G2PRegister{register_mnemonic}"
+                
+                if hasattr(module, implementation_class_name):
+                    implementation_class = getattr(module, implementation_class_name)
+                    _logger.info(f"Found core implementation class {implementation_class_name} for {register_mnemonic}")
+                    return implementation_class
+                else:
+                    raise AttributeError(f"Core class {implementation_class_name} not found")
+                    
+            except (AttributeError, ModuleNotFoundError) as error:
+                _logger.error(f"Could not load core class for {register_mnemonic}: {str(error)}")
+                raise
+        
+        # Try extensions for regular registers
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
             register_class_prefix: str = "G2PRegister"
             implementation_class_name: str = f"{register_class_prefix}{register_mnemonic}"
             implementation_class = getattr(module, implementation_class_name)
+            _logger.info(f"Found extension implementation class {implementation_class_name} for {register_mnemonic}")
             return implementation_class
         except (AttributeError, ModuleNotFoundError) as error:
             _logger.error(f"Could not find register class for mnemonic {register_mnemonic}: {str(error)}")
@@ -315,7 +350,7 @@ class G2PRegisterHierarchicalService(BaseService):
     ) -> list[RecordData]:
         
         # Get subject record from subject register
-        subject_impl_class = self._get_implementation_class(subject_register.register_mnemonic)
+        subject_impl_class = self._get_implementation_class(subject_register.register_mnemonic, subject_register.register_purpose)
         subject_record = await session.get(subject_impl_class, subject_record_id)
         
         if not subject_record:
@@ -325,7 +360,7 @@ class G2PRegisterHierarchicalService(BaseService):
             )
 
         # Get records from section register where section records link_internal_record_id = subject records internal_record_id
-        peer_record_impl_class = self._get_implementation_class(path[0].register_mnemonic)
+        peer_record_impl_class = self._get_implementation_class(path[0].register_mnemonic, path[0].register_purpose)
         peer_records = await session.execute(
             select(peer_record_impl_class).where(
                 peer_record_impl_class.link_internal_record_id == subject_record.link_internal_record_id
@@ -356,7 +391,7 @@ class G2PRegisterHierarchicalService(BaseService):
             List of RecordData from the related_register (path[0])
         """
         # Validate subject record exists
-        subject_impl_class = self._get_implementation_class(subject_register.register_mnemonic)
+        subject_impl_class = self._get_implementation_class(subject_register.register_mnemonic, subject_register.register_purpose)
         subject_record = (
             await session.execute(
                 select(subject_impl_class).where(
@@ -380,7 +415,25 @@ class G2PRegisterHierarchicalService(BaseService):
         # Skip first register (subject), traverse to children
         for i in range(1, len(path_reversed)):
             register_def: G2PRegisterDefinition = path_reversed[i]
-            impl_class = self._get_implementation_class(register_def.register_mnemonic)
+            impl_class = self._get_implementation_class(register_def.register_mnemonic, register_def.register_purpose)
+
+            # Check if this register supports hierarchical operations
+            if not hasattr(impl_class, 'link_internal_record_id'):
+                # For CORE_TABLE registers without link_internal_record_id, filter by internal_record_id
+                result = await session.execute(
+                    select(impl_class).where(
+                        impl_class.internal_record_id.in_(current_record_ids)
+                    )
+                )
+                records = result.scalars().all()
+                
+                # If this is the last level (related_register), convert to RecordData
+                if i == len(path_reversed) - 1:
+                    return [self._convert_record_to_record_data(r) for r in records]
+                
+                # For CORE_TABLE registers, get the internal_record_ids for the next iteration
+                current_record_ids = [r.internal_record_id for r in records]
+                continue
 
             # Find all records in this register where link_internal_record_id is in current_record_ids
             result = await session.execute(
@@ -426,7 +479,7 @@ class G2PRegisterHierarchicalService(BaseService):
         # Start from subject, traverse up using link_internal_record_id
         for i in range(len(path) - 1):
             current_register: G2PRegisterDefinition = path[i]
-            impl_class = self._get_implementation_class(current_register.register_mnemonic)
+            impl_class = self._get_implementation_class(current_register.register_mnemonic, current_register.register_purpose)
 
             # Get current record
             result = await session.execute(
@@ -449,7 +502,7 @@ class G2PRegisterHierarchicalService(BaseService):
 
         # Now get the final record from related_register
         related_register: G2PRegisterDefinition = path[-1]
-        impl_class = self._get_implementation_class(related_register.register_mnemonic)
+        impl_class = self._get_implementation_class(related_register.register_mnemonic, related_register.register_purpose)
         result = await session.execute(
             select(impl_class).where(
                 impl_class.internal_record_id == current_record_id
@@ -564,7 +617,7 @@ class G2PRegisterHierarchicalService(BaseService):
             child_key = self._to_snake_case(child_reg.register_mnemonic)
             
             # Get child implementation class
-            child_impl = self._get_implementation_class(child_reg.register_mnemonic)
+            child_impl = self._get_implementation_class(child_reg.register_mnemonic, child_reg.register_purpose)
             
             # Fetch linked records
             child_records = (await session.execute(
@@ -590,7 +643,7 @@ class G2PRegisterHierarchicalService(BaseService):
                 parent_key = self._to_snake_case(parent_reg.register_mnemonic)
                  
                 # Get parent implementation class
-                parent_impl = self._get_implementation_class(parent_reg.register_mnemonic)
+                parent_impl = self._get_implementation_class(parent_reg.register_mnemonic, parent_reg.register_purpose)
                  
                 # Fetch parent record
                 if record.link_internal_record_id:
