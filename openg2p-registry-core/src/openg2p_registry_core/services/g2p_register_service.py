@@ -4688,13 +4688,17 @@ class G2PRegisterService(BaseService):
             _logger.warning(f"Section register {section_register_id} not found")
             return [subject_internal_record_id]
         
-        # If section_register is CORE_TABLE, return all record IDs directly (no hierarchy)
+        # If section_register is CORE_TABLE, return filtered record IDs (no hierarchy)
         if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
             impl_class = self._get_register_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
-            result = await session.execute(select(impl_class.internal_record_id))
-            all_record_ids = [row[0] for row in result.fetchall()]
-            _logger.info(f"CORE_TABLE {section_register.register_mnemonic}: returning all {len(all_record_ids)} record IDs")
-            return all_record_ids
+            result = await session.execute(
+                select(impl_class.internal_record_id).where(
+                    impl_class.internal_record_id == subject_internal_record_id
+                )
+            )
+            filtered_record_ids = [row[0] for row in result.fetchall()]
+            _logger.info(f"CORE_TABLE {section_register.register_mnemonic}: returning {len(filtered_record_ids)} filtered record IDs for subject {subject_internal_record_id}")
+            return filtered_record_ids
         
         # If same register, no traversal needed
         if section_register_id == subject_register_id:
