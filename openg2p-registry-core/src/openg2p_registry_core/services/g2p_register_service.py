@@ -11,7 +11,7 @@ from openg2p_fastapi_common.context import dbengine
 from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_
+from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from .g2p_register_hierarchical_service import G2PRegisterHierarchicalService
@@ -4471,6 +4471,8 @@ class G2PRegisterService(BaseService):
                 registry_language_id=registry_language_id
             )
             session.add(registry_configuration)
+            if registry_language_id:
+                await self._set_default_language(session, registry_language_id)
             await session.commit()
 
             return RegistryConfigurationData(
@@ -4554,6 +4556,7 @@ class G2PRegisterService(BaseService):
                 registry_configuration.registry_theme_id = registry_theme_id
             if registry_language_id is not None:
                 registry_configuration.registry_language_id = registry_language_id
+                await self._set_default_language(session, registry_language_id)
 
             await session.commit()
 
@@ -4564,6 +4567,19 @@ class G2PRegisterService(BaseService):
                 registry_theme_id=registry_configuration.registry_theme_id,
                 registry_language_id=registry_configuration.registry_language_id
             )
+
+    async def _set_default_language(self, session, language_id: str):
+        # Set all languages to False
+        await session.execute(
+            update(G2PRegistryLanguage).values(is_default=False)
+        )
+
+        # Set selected language to True
+        await session.execute(
+            update(G2PRegistryLanguage)
+            .where(G2PRegistryLanguage.language_id == language_id)
+            .values(is_default=True)
+        )
 
     async def get_all_themes(self) -> list[RegistryThemeData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
