@@ -4991,21 +4991,44 @@ class G2PRegisterService(BaseService):
 
         return None
 
-    def _get_register_implementation_class(self, register_mnemonic: str):
+    def _get_register_implementation_class(self, register_mnemonic: str, register_purpose: str = None):
         """
-        Get the implementation class for a register based on its mnemonic.
+        Get implementation class for a register based on its mnemonic.
         
         Args:
-            register_mnemonic: The register mnemonic (e.g., "Farmer", "Land", "Crop")
+            register_mnemonic: The register mnemonic (e.g., "Farmer", "Score")
+            register_purpose: The register purpose (e.g., "CORE_TABLE", "REGISTER")
+                          If None, will try extensions first, then core
             
         Returns:
             The SQLAlchemy model class for the register
         """
+        _logger.info(f"Looking for implementation class for register_mnemonic='{register_mnemonic}' with purpose={register_purpose}")
+        
+        # If register_purpose is CORE_TABLE, look in core models first
+        if register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
+            try:
+                module = importlib.import_module("openg2p_registry_core.models")
+                implementation_class_name = f"G2PRegister{register_mnemonic}"
+                
+                if hasattr(module, implementation_class_name):
+                    implementation_class = getattr(module, implementation_class_name)
+                    _logger.info(f"Found core implementation class {implementation_class_name} for {register_mnemonic}")
+                    return implementation_class
+                else:
+                    raise AttributeError(f"Core class {implementation_class_name} not found")
+                    
+            except (AttributeError, ModuleNotFoundError) as error:
+                _logger.error(f"Could not load core class for {register_mnemonic}: {str(error)}")
+                raise
+        
+        # Try extensions for regular registers
         try:
             module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
             register_class_prefix: str = "G2PRegister"
             implementation_class_name: str = f"{register_class_prefix}{register_mnemonic}"
             implementation_class = getattr(module, implementation_class_name)
+            _logger.info(f"Found extension implementation class {implementation_class_name} for {register_mnemonic}")
             return implementation_class
         except (AttributeError, ModuleNotFoundError) as error:
             _logger.error(f"Could not find register class for mnemonic {register_mnemonic}: {str(error)}")
@@ -5024,6 +5047,7 @@ class G2PRegisterService(BaseService):
         """
         Get the internal_record_ids to query for history records by traversing 
         down the register hierarchy from subject to section.
+        For CORE_TABLE registers, returns all record IDs without hierarchy traversal.
         
         Example: For Farmer (subject) → Lands → Crops (section)
         - Given farmer's internal_record_id
@@ -5038,6 +5062,20 @@ class G2PRegisterService(BaseService):
         Returns:
             List of internal_record_ids to query in history table
         """
+        # Get section register definition to check if it's CORE_TABLE
+        section_register = await session.get(G2PRegisterDefinition, section_register_id)
+        if not section_register:
+            _logger.warning(f"Section register {section_register_id} not found")
+            return [subject_internal_record_id]
+        
+        # If section_register is CORE_TABLE, return all record IDs directly (no hierarchy)
+        if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
+            impl_class = self._get_register_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
+            result = await session.execute(select(impl_class.internal_record_id))
+            all_record_ids = [row[0] for row in result.fetchall()]
+            _logger.info(f"CORE_TABLE {section_register.register_mnemonic}: returning all {len(all_record_ids)} record IDs")
+            return all_record_ids
+        
         # If same register, no traversal needed
         if section_register_id == subject_register_id:
             return [subject_internal_record_id]
@@ -5064,7 +5102,20 @@ class G2PRegisterService(BaseService):
         # Traverse down the hierarchy (skip first register which is subject)
         for i in range(1, len(path_reversed)):
             register_def: G2PRegisterDefinition = path_reversed[i]
-            impl_class = self._get_register_implementation_class(register_def.register_mnemonic)
+            impl_class = self._get_register_implementation_class(register_def.register_mnemonic, register_def.register_purpose)
+            
+            # Check if this register supports hierarchical operations
+            if not hasattr(impl_class, 'link_internal_record_id'):
+                # For CORE_TABLE registers without link_internal_record_id, filter by internal_record_id
+                result = await session.execute(
+                    select(impl_class.internal_record_id).where(
+                        impl_class.internal_record_id.in_(current_ids)
+                    )
+                )
+                child_ids = [row[0] for row in result.fetchall()]
+                # For CORE_TABLE registers, continue with filtered IDs
+                current_ids = child_ids
+                continue
             
             # Find all records where link_internal_record_id is in current_ids
             result = await session.execute(
