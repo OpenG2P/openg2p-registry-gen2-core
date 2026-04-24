@@ -1849,6 +1849,7 @@ class G2PRegisterService(BaseService):
                 dedup_is_enabled=register_definition.dedup_is_enabled,
                 dedup_threshold_score=register_definition.dedup_threshold_score,
                 functional_id_generation_required=register_definition.functional_id_generation_required,
+                completion_score_required=register_definition.completion_score_required,
             )
             all_registers_list.append(register_data)
 
