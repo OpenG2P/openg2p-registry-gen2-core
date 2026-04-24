@@ -22,6 +22,8 @@ from .controller_services import (
     G2PRegisterDataControllerService,
     G2PRegisterMetadataControllerService,
     G2PRegistryConfigurationControllerService,
+    G2PRegistryThemeControllerService,
+    G2PRegistryLanguageControllerService,
     G2PUIHelperControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
@@ -48,6 +50,9 @@ from .models import (
     G2PRegisterUITab,
     G2PRegisterVerification,
     G2PRegistryConfiguration,
+    G2PRegistryLanguage,
+    G2PRegistryTheme,
+    G2PRegistryThemeValue,
     G2PRegistryDocument,
     G2PRegistryVcConfiguration,
     IncomingClassifiedData,
@@ -142,6 +147,8 @@ class Initializer(BaseInitializer):
         G2PDocumentControllerService()
         G2PTemplateFileControllerService()
         G2PRegistryConfigurationControllerService()
+        G2PRegistryThemeControllerService()
+        G2PRegistryLanguageControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
         G2PUIHelperControllerService()
@@ -164,6 +171,9 @@ class Initializer(BaseInitializer):
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
             await G2PRegistryConfiguration.create_migrate()
+            await G2PRegistryLanguage.create_migrate()
+            await G2PRegistryTheme.create_migrate()
+            await G2PRegistryThemeValue.create_migrate()
             await G2PRegisterDocumentHistory.create_migrate()
             await G2PRegisterSectionDocument.create_migrate()
             await G2PIntakeFormSectionPayload.create_migrate()

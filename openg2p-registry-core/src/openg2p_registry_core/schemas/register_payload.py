@@ -807,6 +807,8 @@ class RegistryConfigurationData(BaseModel):
     configuration_id: str
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -816,6 +818,8 @@ class RegistryConfigurationPayload(BaseModel):
     """Payload for creating registry configuration"""
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class RegistryConfigurationUpdatePayload(BaseModel):
@@ -823,6 +827,8 @@ class RegistryConfigurationUpdatePayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 # =============================================================================
@@ -1134,12 +1140,108 @@ class GetRegisterTabRecordsRequestPayload(BaseModel):
 class CreateRegistryConfigurationRequestPayload(BaseModel):
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class UpdateRegistryConfigurationRequestPayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
+
+
+class RegistryThemeData(BaseModel):
+    theme_id: str
+    theme_mnemonic: str
+    is_factory_shipped: bool
+
+    class Config:
+        from_attributes: bool = True
+
+
+class RegistryThemeValueData(BaseModel):
+    theme_value_id: str
+    theme_id: str
+    attribute_name: str
+    attribute_value: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class CreateThemeRequestPayload(BaseModel):
+    theme_mnemonic: str
+    theme_values: list["ThemeAttributeValueInput"]
+
+
+class RemoveThemeRequestPayload(BaseModel):
+    theme_id: str
+
+
+class UpdateThemeValuesRequestPayload(BaseModel):
+    theme_id: str
+    theme_attribute_values: list["ThemeAttributeValueInput"]
+
+
+class GetThemeValuesRequestPayload(BaseModel):
+    theme_id: str
+
+
+class ThemeAttributeValueInput(BaseModel):
+    attribute_name: str
+    attribute_value: str
+
+
+class ThemeOperationData(BaseModel):
+    theme_id: str
+    success: bool = True
+
+
+# =============================================================================
+# Registry Languages Schemas
+# =============================================================================
+
+class RegistryLanguageData(BaseModel):
+    language_id: str
+    code: str
+    label: str
+    flag: Optional[str] = None
+    is_default: bool = False
+    translation: Optional[dict] = None
+
+    class Config:
+        from_attributes: bool = True
+
+class GetLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class CreateLanguageRequestPayload(BaseModel):
+    code: str
+    label: str
+    flag: Optional[str] = None
+    is_default: bool = False
+    translation: Optional[dict] = None
+
+
+class UpdateLanguageRequestPayload(BaseModel):
+    language_id: str
+    code: Optional[str] = None
+    label: Optional[str] = None
+    flag: Optional[str] = None
+    is_default: Optional[bool] = None
+    translation: Optional[dict] = None
+
+
+class RemoveLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class LanguageOperationData(BaseModel):
+    language_id: str
+    success: bool = True
 
 
 # =============================================================================
