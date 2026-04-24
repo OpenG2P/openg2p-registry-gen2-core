@@ -8,7 +8,7 @@ from openg2p_fastapi_common.context import dbengine
 from sqlalchemy import select, inspect as sa_inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..models import G2PRegisterDefinition, G2PRegisterSection, RegisterPurposeEnum
+from ..models import G2PRegisterDefinition, G2PRegisterSection, G2PRegisterSectionCompletionScore, RegisterPurposeEnum
 from ..schemas import RecordData, RegisterTabRecordData, AllowedParentsData, AllowedParentRecordData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -536,7 +536,8 @@ class G2PRegisterHierarchicalService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             # Validate subject register exists
-            await self._validate_register_definition(subject_register_id, session)
+            subject_register: G2PRegisterDefinition = await self._validate_register_definition(subject_register_id, session)
+            completion_score_required: bool = bool(subject_register.completion_score_required) if subject_register else False
 
             # Fetch all sections for this tab
             result = await session.execute(
@@ -550,23 +551,44 @@ class G2PRegisterHierarchicalService(BaseService):
             if not sections:
                 return []
 
-            # Extract unique section_register_ids to avoid duplicate fetches
-            unique_section_register_ids: set[tuple[str, bool]] = set()
+            # Group sections by (section_register_id, is_list)
+            sections_by_reg_id: dict[tuple[str, bool], list[G2PRegisterSection]] = {}
             for section in sections:
-                unique_section_register_ids.add((section.section_register_id, section.is_list))
+                key = (section.section_register_id, section.is_list)
+                sections_by_reg_id.setdefault(key, []).append(section)
+
+            # Fetch all completion score rows for this subject record in one query
+            all_section_ids = [s.section_id for s in sections]
+            score_rows = (
+                await session.execute(
+                    select(G2PRegisterSectionCompletionScore).where(
+                        G2PRegisterSectionCompletionScore.register_id == subject_register_id,
+                        G2PRegisterSectionCompletionScore.internal_record_id == subject_record_id,
+                        G2PRegisterSectionCompletionScore.section_id.in_(all_section_ids),
+                    )
+                )
+            ).scalars().all()
+            score_by_section: dict[str, float] = {
+                r.section_id: (r.computed_section_completion_score or 0.0) for r in score_rows
+            }
 
             # Fetch records for each unique section_register_id
             tab_records: list[RegisterTabRecordData] = []
-            for section_register_id in unique_section_register_ids:
+            for (section_register_id, is_list), group_sections in sections_by_reg_id.items():
                 records: list[RecordData] = await self.get_section_records(
                     subject_register_id=subject_register_id,
                     subject_record_id=subject_record_id,
-                    section_register_id=section_register_id[0]
+                    section_register_id=section_register_id
                 )
+                ideal_score = sum(s.section_weightage or 0.0 for s in group_sections)
+                actual_score = sum(score_by_section.get(s.section_id, 0.0) for s in group_sections)
                 tab_records.append(RegisterTabRecordData(
-                    section_register_id=section_register_id[0],
-                    is_list=section_register_id[1],
-                    records=records
+                    section_register_id=section_register_id,
+                    is_list=is_list,
+                    records=records,
+                    actual_score=actual_score,
+                    ideal_score=ideal_score,
+                    completion_score_required=completion_score_required,
                 ))
 
             return tab_records
