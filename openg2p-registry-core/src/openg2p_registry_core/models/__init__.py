@@ -10,6 +10,8 @@ from .g2p_register import G2PTable, G2PProgramRegister, G2PRegister, G2PPerson, 
 from .g2p_register_history import G2PTableHistory, G2PProgramRegisterHistory, G2PRegisterHistory, G2PPersonHistory, G2PGeoHistory, G2PGeoShapeHistory, G2PRegisterDocumentHistory
 from .g2p_register_metadata import G2PRegisterDefinition, G2PRegisterUITab, RegisterPurposeEnum
 from .g2p_functional_id_generation_queue import G2PFunctionalIdGenerationQueue
+from .g2p_register_section_completion_score import G2PRegisterSectionCompletionScore
+from .g2p_completion_score_computation_queue import G2PCompletionScoreComputationQueue
 from .g2p_registry_configuration import G2PRegistryConfiguration
 from .g2p_register_schema import G2PRegisterSchema
 from .g2p_register_sections import (

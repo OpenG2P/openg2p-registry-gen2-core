@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, ForeignKey, Boolean, Integer, Text
+from sqlalchemy import String, ForeignKey, Boolean, Integer, Text, Float
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
@@ -45,6 +45,8 @@ class G2PRegisterSection(BaseORMModel):
     # TODO: remove
     auto_approval: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_list: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    section_weightage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     # Section UI schema configuration (JSONB for PostgreSQL)
     # JSON structure to define UI rendering for this section
