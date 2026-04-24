@@ -27,6 +27,7 @@ from .controller_services import (
     G2PUIHelperControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
+    G2PCompletionScoreControllerService,
     G2PScoreControllerService,
 )
 from .helpers import MinioClient, PatternMatcher, TemplateHelper
@@ -73,7 +74,9 @@ from .models import (
     OutgoingTopic,
     OutgoingTransformedDataPayload,
     SubscriptionActivityLog,
-    G2PFunctionalIdGenerationQueue
+    G2PFunctionalIdGenerationQueue,
+    G2PRegisterSectionCompletionScore,
+    G2PCompletionScoreComputationQueue,
 )
 from .services import (
     G2PDataModelService,
@@ -93,6 +96,7 @@ from .services import (
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
+    G2PCompletionScoreService,
     G2PScoreComputeService,
 )
 
@@ -139,6 +143,7 @@ class Initializer(BaseInitializer):
         G2PRegisterVerificationService()
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
+        G2PCompletionScoreService()
         G2PScoreComputeService()
 
         # Controller Services
@@ -161,6 +166,7 @@ class Initializer(BaseInitializer):
         G2PUIHelperControllerService()
         G2PIntakeFormControllerService()
         G2PVerificationControllerService()
+        G2PCompletionScoreControllerService()
         G2PScoreControllerService()
 
     def migrate_database(self, args):
@@ -225,5 +231,9 @@ class Initializer(BaseInitializer):
 
             # Id Generation Queue Models
             await G2PFunctionalIdGenerationQueue.create_migrate()
+
+            # Completion Score Models
+            await G2PCompletionScoreComputationQueue.create_migrate()
+            await G2PRegisterSectionCompletionScore.create_migrate()
 
         asyncio.run(migrate())

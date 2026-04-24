@@ -15,6 +15,7 @@ from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_, upda
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from .g2p_register_hierarchical_service import G2PRegisterHierarchicalService
+from .g2p_completion_score_service import G2PCompletionScoreService
 
 from ..helpers import MinioClient
 
@@ -464,7 +465,8 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_partner: bool = None,
         cr_auto_approve_for_intake_form: bool = None,
         is_primary_section: bool = None,
-        is_core_section: bool = None
+        is_core_section: bool = None,
+        section_weightage: float = None,
     ) -> RegisterSectionData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -473,7 +475,7 @@ class G2PRegisterService(BaseService):
                 no_of_verifications_required, documents_required, auto_approval,
                 cr_auto_approve_for_bene_portal, cr_auto_approve_for_agent_portal,
                 cr_auto_approve_for_staff_portal, cr_auto_approve_for_partner, cr_auto_approve_for_intake_form,
-                is_primary_section, is_core_section, session
+                is_primary_section, is_core_section, section_weightage, session
             )
             return section_data
 
@@ -492,6 +494,7 @@ class G2PRegisterService(BaseService):
         cr_auto_approve_for_intake_form: bool,
         is_primary_section: bool,
         is_core_section: bool,
+        section_weightage: float,
         session
     ) -> RegisterSectionData:
         section: G2PRegisterSection | None = await session.get(G2PRegisterSection, section_id)
@@ -520,6 +523,8 @@ class G2PRegisterService(BaseService):
             section.cr_auto_approve_for_intake_form = cr_auto_approve_for_intake_form
         if is_core_section is not None:
             section.is_core_section = is_core_section
+        if section_weightage is not None:
+            section.section_weightage = section_weightage
         if is_primary_section is not None:
             # If setting to primary, unset any other primary section under the same tab_id
             if is_primary_section:
@@ -777,8 +782,18 @@ class G2PRegisterService(BaseService):
 
         await domain_service.post_approve(change_request, session)
 
-        return change_request        
-    
+        # Enqueue completion score recomputation for the touched section
+        completion_score_service = G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+        await completion_score_service.enqueue_completion_score_computations(
+            register_id=g2p_register_section.register_id,
+            internal_record_id=change_request.internal_record_id,
+            session=session,
+            change_request_id=change_request.change_request_id,
+            section_id=change_request.section_id,
+        )
+
+        return change_request
+
     async def approve_primary_master_section_change_request(
         self,
         change_request_id: str,
@@ -805,7 +820,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        
+
         # Handle POST APPROVAL domain service operation
         from ..services import G2PRegisterDomainService
         g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
@@ -822,6 +837,16 @@ class G2PRegisterService(BaseService):
             raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
+
+        # Enqueue completion score recomputation for the touched section
+        completion_score_service = G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+        await completion_score_service.enqueue_completion_score_computations(
+            register_id=change_request.section_register_id,
+            internal_record_id=subject_internal_record_id,
+            session=session,
+            change_request_id=change_request.change_request_id,
+            section_id=change_request.section_id,
+        )
 
         return change_request, subject_internal_record_id
     
@@ -950,7 +975,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        
+
         # Handle POST APPROVAL domain service operation
         from ..services import G2PRegisterDomainService
         g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
@@ -968,8 +993,18 @@ class G2PRegisterService(BaseService):
 
         await domain_service.post_approve(change_request, session)
 
+        # Enqueue completion score recomputation for the touched section
+        completion_score_service = G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+        await completion_score_service.enqueue_completion_score_computations(
+            register_id=change_request.section_register_id,
+            internal_record_id=subject_internal_record_id,
+            session=session,
+            change_request_id=change_request.change_request_id,
+            section_id=change_request.section_id,
+        )
+
         return change_request
-    
+
     async def insert_non_primary_master_section_into_register(self, change_request: G2PRegisterChangeRequest, subject_internal_record_id: str, session):
 
         register_definition: G2PRegisterDefinition = (
@@ -1073,7 +1108,7 @@ class G2PRegisterService(BaseService):
         # Handle documents if section.documents_required is True
         if g2p_register_section and g2p_register_section.documents_required:
             await self._handle_documents_on_approval(change_request, g2p_register_section, session)
-        
+
         # Handle POST APPROVAL domain service operation
         from ..services import G2PRegisterDomainService
         g2p_register_definition = await self.validate_register_definition(change_request.section_register_id, session)
@@ -1090,6 +1125,17 @@ class G2PRegisterService(BaseService):
             raise Exception(f"No domain service found for register mnemonic '{g2p_register_definition.register_mnemonic}'")
 
         await domain_service.post_approve(change_request, session)
+
+        # Enqueue completion score recomputation for the touched child section
+        # use section.register_id (master/UI register) since child sections live under a master register
+        completion_score_service = G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+        await completion_score_service.enqueue_completion_score_computations(
+            register_id=g2p_register_section.register_id,
+            internal_record_id=subject_internal_record_id,
+            session=session,
+            change_request_id=change_request.change_request_id,
+            section_id=change_request.section_id,
+        )
 
         return change_request
 
@@ -3786,6 +3832,7 @@ class G2PRegisterService(BaseService):
         register_rank: int | None = None,
         register_purpose: str | None = None,
         functional_id_generation_required: bool = False,
+        completion_score_required: bool = False,
     ) -> RegisterData:
         """
         Create a new register definition and a null register schema record.
@@ -3818,6 +3865,7 @@ class G2PRegisterService(BaseService):
                 register_rank=register_rank,
                 register_purpose=register_purpose if register_purpose else RegisterPurposeEnum.REGISTER.value,
                 functional_id_generation_required=functional_id_generation_required,
+                completion_score_required=completion_score_required,
             )
             session.add(register_definition)
 
@@ -3858,6 +3906,7 @@ class G2PRegisterService(BaseService):
         register_rank: int | None = None,
         register_purpose: str | None = None,
         functional_id_generation_required: bool | None = None,
+        completion_score_required: bool | None = None,
     ) -> RegisterData:
         """
         Edit an existing register definition.
@@ -3936,6 +3985,9 @@ class G2PRegisterService(BaseService):
 
                 if functional_id_generation_required is not None:
                     register_definition.functional_id_generation_required = functional_id_generation_required
+
+            if completion_score_required is not None:
+                register_definition.completion_score_required = completion_score_required
 
             await session.commit()
             await session.refresh(register_definition)
