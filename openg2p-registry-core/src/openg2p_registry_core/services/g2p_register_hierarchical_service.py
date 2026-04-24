@@ -529,13 +529,17 @@ class G2PRegisterHierarchicalService(BaseService):
                 )
                 ideal_score = sum(s.section_weightage or 0.0 for s in group_sections)
                 actual_score = sum(score_by_section.get(s.section_id, 0.0) for s in group_sections)
+                
+                # Add completion scores to each record
+                for record in records:
+                    record.actual_score = actual_score
+                    record.ideal_score = ideal_score
+                    record.completion_score_required = completion_score_required
+                
                 tab_records.append(RegisterTabRecordData(
                     section_register_id=section_register_id,
                     is_list=is_list,
-                    records=records,
-                    actual_score=actual_score,
-                    ideal_score=ideal_score,
-                    completion_score_required=completion_score_required,
+                    records=records
                 ))
 
             return tab_records

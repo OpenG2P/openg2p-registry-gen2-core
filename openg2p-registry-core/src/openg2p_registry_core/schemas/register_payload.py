@@ -159,6 +159,7 @@ class RegisterData(BaseModel):
     register_rank: Optional[int] = None
     register_icon: Optional[str] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class AllRegistersRegisterData(RegisterData):
@@ -175,6 +176,7 @@ class AllRegistersRegisterData(RegisterData):
     dedup_is_enabled: bool = False
     dedup_threshold_score: Optional[float] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class ChildRegisterData(BaseModel):
@@ -252,6 +254,11 @@ class RecordData(BaseModel):
     Extra fields from the register implementation table are included at root level.
     """
     model_config = ConfigDict(extra="allow", from_attributes=True)
+    
+    actual_score: float = 0.0
+    ideal_score: float = 0.0
+    completion_score_required: bool = False
+    
 
 
 # =============================================================================
@@ -796,9 +803,6 @@ class RegisterTabRecordData(BaseModel):
     section_register_id: str
     is_list: bool = False
     records: List[RecordData]
-    actual_score: float = 0.0
-    ideal_score: float = 0.0
-    completion_score_required: bool = False
 
 
 
