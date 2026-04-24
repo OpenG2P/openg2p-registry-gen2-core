@@ -27,6 +27,7 @@ from .controller_services import (
     G2PUIHelperControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
+    G2PScoreControllerService,
 )
 from .helpers import MinioClient, PatternMatcher, TemplateHelper
 from .models import (
@@ -43,7 +44,11 @@ from .models import (
     G2PRegisterChangeRequestDocument,
     G2PRegisterChangeRequestPayload,
     G2PRegisterDefinition,
+    G2PRegisterScoreDefinition,
     G2PRegisterDocumentHistory,
+    G2PScoreComputeQueue,
+    G2PRegisterScore,
+    G2PRegisterScoreHistory,
     G2PRegisterSchema,
     G2PRegisterSection,
     G2PRegisterSectionDocument,
@@ -88,6 +93,7 @@ from .services import (
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
+    G2PScoreComputeService,
 )
 
 _config = Settings.get_config(strict=False)
@@ -133,6 +139,7 @@ class Initializer(BaseInitializer):
         G2PRegisterVerificationService()
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
+        G2PScoreComputeService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -154,6 +161,7 @@ class Initializer(BaseInitializer):
         G2PUIHelperControllerService()
         G2PIntakeFormControllerService()
         G2PVerificationControllerService()
+        G2PScoreControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -170,6 +178,10 @@ class Initializer(BaseInitializer):
             await G2PRegisterDefinition.create_migrate()
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
+            await G2PRegisterScoreDefinition.create_migrate()
+            await G2PScoreComputeQueue.create_migrate()
+            await G2PRegisterScore.create_migrate()
+            await G2PRegisterScoreHistory.create_migrate()
             await G2PRegistryConfiguration.create_migrate()
             await G2PRegistryLanguage.create_migrate()
             await G2PRegistryTheme.create_migrate()
