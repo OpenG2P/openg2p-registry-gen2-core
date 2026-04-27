@@ -159,6 +159,7 @@ class RegisterData(BaseModel):
     register_rank: Optional[int] = None
     register_icon: Optional[str] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class AllRegistersRegisterData(RegisterData):
@@ -175,6 +176,7 @@ class AllRegistersRegisterData(RegisterData):
     dedup_is_enabled: bool = False
     dedup_threshold_score: Optional[float] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class ChildRegisterData(BaseModel):
@@ -252,6 +254,11 @@ class RecordData(BaseModel):
     Extra fields from the register implementation table are included at root level.
     """
     model_config = ConfigDict(extra="allow", from_attributes=True)
+    
+    actual_score: float = 0.0
+    ideal_score: float = 0.0
+    completion_score_required: bool = False
+    
 
 
 # =============================================================================
@@ -782,6 +789,7 @@ class RegisterSectionData(BaseModel):
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
     register_relation: Optional[RegisterRelationEnum] = None
+    section_weightage: Optional[float] = 0.0
 
     class Config:
         from_attributes: bool = True
@@ -1061,6 +1069,7 @@ class UpdateRegisterSectionRequestPayload(BaseModel):
     cr_auto_approve_for_intake_form: Optional[bool] = None
     is_primary_section: Optional[bool] = None
     is_core_section: Optional[bool] = None
+    section_weightage: Optional[float] = None
 
 
 class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):
@@ -1079,6 +1088,7 @@ class CreateRegisterRequestPayload(BaseModel):
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class EditRegisterRequestPayload(BaseModel):
@@ -1092,6 +1102,7 @@ class EditRegisterRequestPayload(BaseModel):
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
     functional_id_generation_required: Optional[bool] = None
+    completion_score_required: Optional[bool] = None
 
 
 class DeleteRegisterRequestPayload(BaseModel):
