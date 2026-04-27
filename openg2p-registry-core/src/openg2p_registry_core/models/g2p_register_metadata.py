@@ -10,6 +10,7 @@ class RegisterPurposeEnum(enum.Enum):
     REGISTER = "REGISTER"
     PROGRAM_REGISTER = "PROGRAM_REGISTER"
     TABLE = "TABLE"
+    CORE_TABLE = "CORE_TABLE"
 
 class G2PRegisterDefinition(BaseORMModel):
     __tablename__ = "g2p_register_definitions"
