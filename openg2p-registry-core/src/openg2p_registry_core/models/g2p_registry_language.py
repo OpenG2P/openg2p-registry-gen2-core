@@ -14,16 +14,16 @@ class G2PRegistryLanguage(BaseORMModel):
         primary_key=True,
         default=lambda: str(uuid.uuid4())
     )
-    code: Mapped[str] = mapped_column(
+    language_code: Mapped[str] = mapped_column(
         String(10),
         nullable=False,
         unique=True
     )
-    label: Mapped[str] = mapped_column(
+    language_label: Mapped[str] = mapped_column(
         String(100),
         nullable=False
     )
-    flag: Mapped[str] = mapped_column(
+    language_flag_base64: Mapped[str] = mapped_column(
         Text,
         nullable=True
     )
@@ -32,7 +32,7 @@ class G2PRegistryLanguage(BaseORMModel):
         nullable=False,
         default=False
     )
-    translation: Mapped[dict] = mapped_column(
+    language_translation: Mapped[dict] = mapped_column(
         JSON,
         nullable=True
     )

@@ -4800,11 +4800,11 @@ class G2PRegisterService(BaseService):
             registry_list_language_data: list[RegistryLanguageData] = [
                 RegistryLanguageData(
                     language_id=language.language_id,
-                    code=language.code,
-                    label=language.label,
-                    flag=language.flag,
+                    language_code=language.language_code,
+                    language_label=language.language_label,
+                    language_flag_base64=language.language_flag_base64,
                     is_default=language.is_default,
-                    translation=language.translation,
+                    language_translation=language.language_translation,
                 )
                 for language in languages
             ]
@@ -4828,26 +4828,26 @@ class G2PRegisterService(BaseService):
                 )
             registry_language_data: RegistryLanguageData = RegistryLanguageData(
                 language_id=language.language_id,
-                code=language.code,
-                label=language.label,
-                flag=language.flag,
+                language_code=language.language_code,
+                language_label=language.language_label,
+                language_flag_base64=language.language_flag_base64,
                 is_default=language.is_default,
-                translation=language.translation,
+                language_translation=language.language_translation,
             )
             return registry_language_data
 
     async def create_language(
         self,
-        code: str,
-        label: str,
-        flag: str = None,
+        language_code: str,
+        language_label: str,
+        language_flag_base64: str = None,
         is_default: bool = False,
-        translation: dict = None
+        language_translation: dict = None
     ) -> LanguageOperationData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             existing_registry_language = await session.execute(
-                select(G2PRegistryLanguage).where(G2PRegistryLanguage.code == code)
+                select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_code == language_code)
             )
             if existing_registry_language.scalar_one_or_none():
                 raise G2PRegistryException(
@@ -4864,11 +4864,11 @@ class G2PRegisterService(BaseService):
                     existing_default.is_default = False
 
             language = G2PRegistryLanguage(
-                code=code,
-                label=label,
-                flag=flag,
+                language_code=language_code,
+                language_label=language_label,
+                language_flag_base64=language_flag_base64,
                 is_default=is_default,
-                translation=translation
+                language_translation=language_translation
             )
             session.add(language)
             await session.commit()
@@ -4878,11 +4878,11 @@ class G2PRegisterService(BaseService):
     async def update_language(
         self,
         language_id: str,
-        code: str = None,
-        label: str = None,
-        flag: str = None,
+        language_code: str = None,
+        language_label: str = None,
+        language_flag_base64: str = None,
         is_default: bool = None,
-        translation: dict = None
+        language_translation: dict = None
     ) -> LanguageOperationData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -4896,9 +4896,9 @@ class G2PRegisterService(BaseService):
                     message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
                 )
 
-            if code is not None and code != language.code:
+            if language_code is not None and language_code != language.language_code:
                 existing_code_result = await session.execute(
-                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.code == code)
+                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_code == language_code)
                 )
                 existing_code_language = existing_code_result.scalar_one_or_none()
                 if existing_code_language:
@@ -4906,14 +4906,14 @@ class G2PRegisterService(BaseService):
                         code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[1],
                         message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[0]
                     )
-                language.code = code
+                language.language_code = language_code
 
-            if label is not None:
-                language.label = label
-            if flag is not None:
-                language.flag = flag
-            if translation is not None:
-                language.translation = translation
+            if language_label is not None:
+                language.language_label = language_label
+            if language_flag_base64 is not None:
+                language.language_flag_base64 = language_flag_base64
+            if language_translation is not None:
+                language.language_translation = language_translation
 
             if is_default is not None:
                 if is_default:
