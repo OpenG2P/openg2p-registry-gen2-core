@@ -10,6 +10,7 @@ class RegisterPurposeEnum(enum.Enum):
     REGISTER = "REGISTER"
     PROGRAM_REGISTER = "PROGRAM_REGISTER"
     TABLE = "TABLE"
+    CORE_TABLE = "CORE_TABLE"
 
 class G2PRegisterDefinition(BaseORMModel):
     __tablename__ = "g2p_register_definitions"
@@ -36,6 +37,9 @@ class G2PRegisterDefinition(BaseORMModel):
     # Deduplication configuration
     dedup_is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     dedup_threshold_score: Mapped[float] = mapped_column(Float, nullable=True)
+
+    # Completion score configuration
+    completion_score_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     @validates('register_mnemonic')
     def set_register_subject(self, _key: str, register_mnemonic_value: str) -> str:

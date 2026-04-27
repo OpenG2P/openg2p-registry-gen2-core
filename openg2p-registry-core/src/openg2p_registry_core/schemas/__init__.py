@@ -21,3 +21,6 @@ from .outgest_response import *
 from .vc_payload import *
 from .vc_request import *
 from .vc_response import *
+
+from .g2p_completion_score import *
+from .g2p_score import *
