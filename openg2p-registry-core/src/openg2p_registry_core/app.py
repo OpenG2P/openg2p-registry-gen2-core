@@ -23,6 +23,7 @@ from .controller_services import (
     G2PRegisterMetadataControllerService,
     G2PRegistryConfigurationControllerService,
     G2PRegistryThemeControllerService,
+    G2PRegistryLanguageControllerService,
     G2PUIHelperControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
@@ -49,6 +50,7 @@ from .models import (
     G2PRegisterUITab,
     G2PRegisterVerification,
     G2PRegistryConfiguration,
+    G2PRegistryLanguage,
     G2PRegistryTheme,
     G2PRegistryThemeValue,
     G2PRegistryDocument,
@@ -86,6 +88,7 @@ from .services import (
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
+    G2PGeoHierarchyService
 )
 
 _config = Settings.get_config(strict=False)
@@ -131,6 +134,7 @@ class Initializer(BaseInitializer):
         G2PRegisterVerificationService()
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
+        G2PGeoHierarchyService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -146,6 +150,7 @@ class Initializer(BaseInitializer):
         G2PTemplateFileControllerService()
         G2PRegistryConfigurationControllerService()
         G2PRegistryThemeControllerService()
+        G2PRegistryLanguageControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
         G2PUIHelperControllerService()
@@ -168,6 +173,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
             await G2PRegistryConfiguration.create_migrate()
+            await G2PRegistryLanguage.create_migrate()
             await G2PRegistryTheme.create_migrate()
             await G2PRegistryThemeValue.create_migrate()
             await G2PRegisterDocumentHistory.create_migrate()

@@ -4,6 +4,7 @@ from openg2p_fastapi_common.schemas import (
 )
 from .register_payload import (
     ChangeRequestRequestPayload,
+    GetLanguageRequestPayload,
     SaveSubmissionDraftRequestPayload,
     FinalizeSubmissionRequestPayload,
     ApproveRejectSubmissionRequestPayload,
@@ -62,6 +63,9 @@ from .register_payload import (
     RemoveThemeRequestPayload,
     UpdateThemeValuesRequestPayload,
     GetThemeValuesRequestPayload,
+    CreateLanguageRequestPayload,
+    UpdateLanguageRequestPayload,
+    RemoveLanguageRequestPayload,
     GetG2PAttributeValuesRequestPayload,
     GetAllowedParentsForChildSectionRequestPayload,
 )
@@ -785,6 +789,46 @@ class GetThemeValuesRequestBody(G2PRequestBody):
 
 class GetThemeValuesRequest(G2PRequest):
     request_body: GetThemeValuesRequestBody
+
+
+class GetLanguageRequestBody(G2PRequestBody):
+    request_payload: GetLanguageRequestPayload
+
+
+class GetLanguageRequest(G2PRequest):
+    request_body: GetLanguageRequestBody
+
+    
+class GetAllLanguagesRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetAllLanguagesRequest(G2PRequest):
+    request_body: GetAllLanguagesRequestBody
+
+
+class CreateLanguageRequestBody(G2PRequestBody):
+    request_payload: CreateLanguageRequestPayload
+
+
+class CreateLanguageRequest(G2PRequest):
+    request_body: CreateLanguageRequestBody
+
+
+class UpdateLanguageRequestBody(G2PRequestBody):
+    request_payload: UpdateLanguageRequestPayload
+
+
+class UpdateLanguageRequest(G2PRequest):
+    request_body: UpdateLanguageRequestBody
+
+
+class RemoveLanguageRequestBody(G2PRequestBody):
+    request_payload: RemoveLanguageRequestPayload
+
+
+class RemoveLanguageRequest(G2PRequest):
+    request_body: RemoveLanguageRequestBody
 
 
 # =============================================================================
