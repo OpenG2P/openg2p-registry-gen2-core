@@ -11,7 +11,7 @@ from openg2p_fastapi_common.context import dbengine
 from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_
+from sqlalchemy import func, insert, select, inspect, Date as SQLDate, or_, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from .g2p_register_hierarchical_service import G2PRegisterHierarchicalService
@@ -26,7 +26,9 @@ from ..models import (
     DeduplicationRegisterResult, DeduplicationChangerequestResult, G2PRegisterSchema,
     G2PRegisterSection, G2PRegisterUITab, RegisterPurposeEnum, ChangeRequestSourceEnum,
     G2PRegisterSectionDocument, G2PRegisterDocumentHistory,
-    G2PRegistryConfiguration, G2PRegistryDocument, G2PFunctionalIdGenerationQueue, RecordStatusEnum
+    G2PRegistryConfiguration, G2PRegistryTheme, G2PRegistryThemeValue, RegistryThemeAttributeNameEnum,
+    G2PRegistryLanguage,
+    G2PRegistryDocument, G2PFunctionalIdGenerationQueue, RecordStatusEnum
 )
 from ..schemas import (
     ChangeRequestRequestPayload, RegisterSummaryData, ChangeRequestSummaryData, RegisterData, AllRegistersRegisterData, ChildRegisterData,
@@ -40,7 +42,9 @@ from ..schemas import (
     DeduplicationRegisterResultData, DeduplicationChangerequestResultData,
     RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData, DisplayField,
     UploadedDocumentData, UploadDocumentsResponseData,
-    RegistryConfigurationData, EarliestPendingChangeRequestData,
+    RegistryConfigurationData, RegistryThemeData, RegistryThemeValueData, ThemeAttributeValueInput, ThemeOperationData,
+    RegistryLanguageData, LanguageOperationData,
+    EarliestPendingChangeRequestData,
     ChangePayload, EditActionEnum, ChangeRequestDocumentsData, SectionDocumentData, SectionDocumentsData,
     RegisterRelationEnum
 )
@@ -4421,11 +4425,32 @@ class G2PRegisterService(BaseService):
     async def create_registry_configuration(
         self,
         registry_name: str,
-        registry_logo: str = None
+        registry_logo: str = None,
+        registry_theme_id: str = None,
+        registry_language_id: str = None
     ) -> RegistryConfigurationData:
         """Create a new registry configuration"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            if registry_theme_id:
+                theme_result = await session.execute(
+                    select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == registry_theme_id)
+                )
+                if not theme_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                    )
+            if registry_language_id:
+                language_result = await session.execute(
+                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_id == registry_language_id)
+                )
+                if not language_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
+                    )
+
             # Check if configuration already exists
             stmt = select(G2PRegistryConfiguration)
             result = await session.execute(stmt)
@@ -4441,15 +4466,21 @@ class G2PRegisterService(BaseService):
             registry_configuration = G2PRegistryConfiguration(
                 configuration_id=configuration_id,
                 registry_name=registry_name,
-                registry_logo=registry_logo
+                registry_logo=registry_logo,
+                registry_theme_id=registry_theme_id,
+                registry_language_id=registry_language_id
             )
             session.add(registry_configuration)
+            if registry_language_id:
+                await self._set_default_language(session, registry_language_id)
             await session.commit()
 
             return RegistryConfigurationData(
                 configuration_id=configuration_id,
                 registry_name=registry_name,
-                registry_logo=registry_logo
+                registry_logo=registry_logo,
+                registry_theme_id=registry_theme_id,
+                registry_language_id=registry_language_id
             )
 
     async def get_registry_configuration(self) -> RegistryConfigurationData:
@@ -4469,18 +4500,42 @@ class G2PRegisterService(BaseService):
             return RegistryConfigurationData(
                 configuration_id=registry_configuration.configuration_id,
                 registry_name=registry_configuration.registry_name,
-                registry_logo=registry_configuration.registry_logo
+                registry_logo=registry_configuration.registry_logo,
+                registry_theme_id=registry_configuration.registry_theme_id,
+                registry_language_id=registry_configuration.registry_language_id
             )
 
     async def update_registry_configuration(
         self,
         configuration_id: str,
         registry_name: str = None,
-        registry_logo: str = None
+        registry_logo: str = None,
+        registry_theme_id: str = None,
+        registry_language_id: str = None
     ) -> RegistryConfigurationData:
         """Update the registry configuration"""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
+            if registry_theme_id:
+                theme_result = await session.execute(
+                    select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == registry_theme_id)
+                )
+                if not theme_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                    )
+
+            if registry_language_id:
+                language_result = await session.execute(
+                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_id == registry_language_id)
+                )
+                if not language_result.scalar_one_or_none():
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
+                    )
+
             stmt = select(G2PRegistryConfiguration).where(
                 G2PRegistryConfiguration.configuration_id == configuration_id
             )
@@ -4497,14 +4552,339 @@ class G2PRegisterService(BaseService):
                 registry_configuration.registry_name = registry_name
             if registry_logo is not None:
                 registry_configuration.registry_logo = registry_logo
+            if registry_theme_id is not None:
+                registry_configuration.registry_theme_id = registry_theme_id
+            if registry_language_id is not None:
+                registry_configuration.registry_language_id = registry_language_id
+                await self._set_default_language(session, registry_language_id)
 
             await session.commit()
 
             return RegistryConfigurationData(
                 configuration_id=registry_configuration.configuration_id,
                 registry_name=registry_configuration.registry_name,
-                registry_logo=registry_configuration.registry_logo
+                registry_logo=registry_configuration.registry_logo,
+                registry_theme_id=registry_configuration.registry_theme_id,
+                registry_language_id=registry_configuration.registry_language_id
             )
+
+    async def _set_default_language(self, session, language_id: str):
+        # Set all languages to False
+        await session.execute(
+            update(G2PRegistryLanguage).values(is_default=False)
+        )
+
+        # Set selected language to True
+        await session.execute(
+            update(G2PRegistryLanguage)
+            .where(G2PRegistryLanguage.language_id == language_id)
+            .values(is_default=True)
+        )
+
+    async def get_all_themes(self) -> list[RegistryThemeData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(select(G2PRegistryTheme))
+            themes = result.scalars().all()
+            registry_theme_data_list: list[RegistryThemeData] = [
+                RegistryThemeData(
+                    theme_id=theme.theme_id,
+                    theme_mnemonic=theme.theme_mnemonic,
+                    is_factory_shipped=theme.is_factory_shipped
+                )
+                for theme in themes
+            ]
+            return registry_theme_data_list
+
+    async def create_theme(
+        self,
+        theme_mnemonic: str,
+        theme_values: list[ThemeAttributeValueInput]
+    ) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            existing = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_mnemonic == theme_mnemonic)
+            )
+            if existing.scalar_one_or_none():
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_EXISTS.value[0]
+                )
+
+            theme = G2PRegistryTheme(
+                theme_mnemonic=theme_mnemonic,
+                is_factory_shipped=False
+            )
+            session.add(theme)
+            await session.flush()
+
+            for item in theme_values:
+                theme_value = G2PRegistryThemeValue(
+                    theme_id=theme.theme_id,
+                    attribute_name=RegistryThemeAttributeNameEnum(item.attribute_name),
+                    attribute_value=item.attribute_value
+                )
+                session.add(theme_value)
+
+            await session.commit()
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme.theme_id, success=True)
+            return theme_operation_data
+
+    async def remove_theme(self, theme_id: str) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+            if theme.is_factory_shipped:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.FACTORY_THEME_DELETE_NOT_ALLOWED.value[1],
+                    message=G2PRegistryErrorCodes.FACTORY_THEME_DELETE_NOT_ALLOWED.value[0]
+                )
+
+            values_result = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            for value_row in values_result.scalars().all():
+                await session.delete(value_row)
+
+            await session.delete(theme)
+            await session.commit()
+            theme_operation_data: ThemeOperationData =  ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
+
+    async def update_theme_values(
+        self,
+        theme_id: str,
+        theme_attribute_values: list[ThemeAttributeValueInput]
+    ) -> ThemeOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+            if theme.is_factory_shipped:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.FACTORY_THEME_UPDATE_NOT_ALLOWED.value[1],
+                    message=G2PRegistryErrorCodes.FACTORY_THEME_UPDATE_NOT_ALLOWED.value[0]
+                )
+
+            existing_values = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            for value_row in existing_values.scalars().all():
+                await session.delete(value_row)
+
+            for item in theme_attribute_values:
+                session.add(
+                    G2PRegistryThemeValue(
+                        theme_id=theme_id,
+                        attribute_name=RegistryThemeAttributeNameEnum(item.attribute_name),
+                        attribute_value=item.attribute_value
+                    )
+                )
+
+            await session.commit()
+            theme_operation_data: ThemeOperationData = ThemeOperationData(theme_id=theme_id, success=True)
+            return theme_operation_data
+
+    async def get_theme_values(self, theme_id: str) -> list[RegistryThemeValueData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            theme_result = await session.execute(
+                select(G2PRegistryTheme).where(G2PRegistryTheme.theme_id == theme_id)
+            )
+            theme = theme_result.scalar_one_or_none()
+            if not theme:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_THEME_NOT_FOUND.value[0]
+                )
+
+            values_result = await session.execute(
+                select(G2PRegistryThemeValue).where(G2PRegistryThemeValue.theme_id == theme_id)
+            )
+            registry_theme_value_data_list: list[RegistryThemeValueData] = [
+                RegistryThemeValueData(
+                    theme_value_id=value_row.theme_value_id,
+                    theme_id=value_row.theme_id,
+                    attribute_name=value_row.attribute_name.value,
+                    attribute_value=value_row.attribute_value
+                )
+                for value_row in values_result.scalars().all()
+            ]
+            return registry_theme_value_data_list
+
+    async def get_all_languages(self) -> list[RegistryLanguageData]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(select(G2PRegistryLanguage))
+            languages = result.scalars().all()
+            registry_list_language_data: list[RegistryLanguageData] = [
+                RegistryLanguageData(
+                    language_id=language.language_id,
+                    language_code=language.language_code,
+                    language_label=language.language_label,
+                    language_flag_base64=language.language_flag_base64,
+                    is_default=language.is_default,
+                    language_translation=language.language_translation,
+                )
+                for language in languages
+            ]
+            return registry_list_language_data
+
+    async def get_language(self, language_id: str) -> RegistryLanguageData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryLanguage).where(
+                    G2PRegistryLanguage.language_id == language_id
+                )
+            )
+            language = result.scalar_one_or_none()
+
+            if not language:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
+                )
+            registry_language_data: RegistryLanguageData = RegistryLanguageData(
+                language_id=language.language_id,
+                language_code=language.language_code,
+                language_label=language.language_label,
+                language_flag_base64=language.language_flag_base64,
+                is_default=language.is_default,
+                language_translation=language.language_translation,
+            )
+            return registry_language_data
+
+    async def create_language(
+        self,
+        language_code: str,
+        language_label: str,
+        language_flag_base64: str = None,
+        is_default: bool = False,
+        language_translation: dict = None
+    ) -> LanguageOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            existing_registry_language = await session.execute(
+                select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_code == language_code)
+            )
+            if existing_registry_language.scalar_one_or_none():
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[0]
+                )
+
+            if is_default:
+                default_registry_language = await session.execute(
+                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.is_default.is_(True))
+                )
+                existing_default = default_registry_language.scalar_one_or_none()
+                if existing_default:
+                    existing_default.is_default = False
+
+            language = G2PRegistryLanguage(
+                language_code=language_code,
+                language_label=language_label,
+                language_flag_base64=language_flag_base64,
+                is_default=is_default,
+                language_translation=language_translation
+            )
+            session.add(language)
+            await session.commit()
+            language_operation_data: LanguageOperationData =  LanguageOperationData(language_id=language.language_id, success=True)
+            return language_operation_data
+
+    async def update_language(
+        self,
+        language_id: str,
+        language_code: str = None,
+        language_label: str = None,
+        language_flag_base64: str = None,
+        is_default: bool = None,
+        language_translation: dict = None
+    ) -> LanguageOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_id == language_id)
+            )
+            language = result.scalar_one_or_none()
+            if not language:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
+                )
+
+            if language_code is not None and language_code != language.language_code:
+                existing_code_result = await session.execute(
+                    select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_code == language_code)
+                )
+                existing_code_language = existing_code_result.scalar_one_or_none()
+                if existing_code_language:
+                    raise G2PRegistryException(
+                        code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[1],
+                        message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_EXISTS.value[0]
+                    )
+                language.language_code = language_code
+
+            if language_label is not None:
+                language.language_label = language_label
+            if language_flag_base64 is not None:
+                language.language_flag_base64 = language_flag_base64
+            if language_translation is not None:
+                language.language_translation = language_translation
+
+            if is_default is not None:
+                if is_default:
+                    default_result = await session.execute(
+                        select(G2PRegistryLanguage).where(
+                            G2PRegistryLanguage.is_default.is_(True),
+                            G2PRegistryLanguage.language_id != language_id
+                        )
+                    )
+                    existing_default = default_result.scalar_one_or_none()
+                    if existing_default:
+                        existing_default.is_default = False
+                language.is_default = is_default
+
+            await session.commit()
+            language_operation_data: LanguageOperationData = LanguageOperationData(language_id=language_id, success=True)
+            return language_operation_data
+
+    async def remove_language(self, language_id: str) -> LanguageOperationData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            result = await session.execute(
+                select(G2PRegistryLanguage).where(G2PRegistryLanguage.language_id == language_id)
+            )
+            language = result.scalar_one_or_none()
+            if not language:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.REGISTRY_LANGUAGE_NOT_FOUND.value[0]
+                )
+
+            await session.delete(language)
+            await session.commit()
+            language_operation_data: LanguageOperationData = LanguageOperationData(language_id=language_id, success=True)
+            return language_operation_data
 
     async def get_total_pending_change_requests(self) -> int:
         """Get the total number of pending change requests across all registers"""

@@ -14,6 +14,8 @@ from .register_payload import (
     DeduplicationChangerequestResultsData, RegisterSchemaData, RegisterSectionData, RegisterSectionUISchemaData,
     RegisterTabRecordData,
     RegistryConfigurationData, NumberOfRequestsPendingData, EarliestPendingChangeRequestData,
+    RegistryThemeData, RegistryThemeValueData, ThemeOperationData,
+    RegistryLanguageData, LanguageOperationData,
     RecordHistoryData, RecordHistoryListData, VersionDatesData, VersionForDateData, VersionsForDateData,
     G2PAttributeValueData, AllowedParentsData,
     SubmissionResponsePayload, IntakeFormSubmissionsSummaryData, NumberOfPendingChangeRequestsForSubmissionData
@@ -474,6 +476,54 @@ class RegistryConfigurationDataResponseBody(G2PResponseBody):
 
 class RegistryConfigurationDataResponse(G2PResponse):
     response_body: Optional[RegistryConfigurationDataResponseBody] = None
+
+
+class RegistryThemesResponseBody(G2PResponseBody):
+    response_payload: Optional[List["RegistryThemeData"]] = None
+
+
+class RegistryThemesResponse(G2PResponse):
+    response_body: Optional[RegistryThemesResponseBody] = None
+
+
+class ThemeOperationResponseBody(G2PResponseBody):
+    response_payload: Optional["ThemeOperationData"] = None
+
+
+class ThemeOperationResponse(G2PResponse):
+    response_body: Optional[ThemeOperationResponseBody] = None
+
+
+class RegistryThemeValuesResponseBody(G2PResponseBody):
+    response_payload: Optional[List["RegistryThemeValueData"]] = None
+
+
+class RegistryThemeValuesResponse(G2PResponse):
+    response_body: Optional[RegistryThemeValuesResponseBody] = None
+
+
+class RegistryLanguagesResponseBody(G2PResponseBody):
+    response_payload: Optional[List["RegistryLanguageData"]] = None
+
+
+class RegistryLanguagesResponse(G2PResponse):
+    response_body: Optional[RegistryLanguagesResponseBody] = None
+
+
+class LanguageOperationResponseBody(G2PResponseBody):
+    response_payload: Optional["LanguageOperationData"] = None
+
+
+class LanguageOperationResponse(G2PResponse):
+    response_body: Optional[LanguageOperationResponseBody] = None
+
+
+class RegistryLanguageResponseBody(G2PResponseBody):
+    response_payload: Optional[RegistryLanguageData] = None
+
+
+class RegistryLanguageResponse(G2PResponse):
+    response_body: Optional[RegistryLanguageResponseBody] = None
 
 
 # =============================================================================
