@@ -307,7 +307,8 @@ class G2PRegisterMetadataControllerService(BaseService):
             cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
             cr_auto_approve_for_intake_form=payload.cr_auto_approve_for_intake_form,
             is_primary_section=payload.is_primary_section,
-            is_core_section=payload.is_core_section
+            is_core_section=payload.is_core_section,
+            section_weightage=payload.section_weightage,
         )
         return section_data
 
@@ -353,6 +354,7 @@ class G2PRegisterMetadataControllerService(BaseService):
             register_rank=payload.register_rank,
             register_purpose=payload.register_purpose,
             functional_id_generation_required=payload.functional_id_generation_required,
+            completion_score_required=payload.completion_score_required,
         )
         return register_data
 
@@ -375,6 +377,7 @@ class G2PRegisterMetadataControllerService(BaseService):
             register_rank=payload.register_rank,
             register_purpose=payload.register_purpose,
             functional_id_generation_required=payload.functional_id_generation_required,
+            completion_score_required=payload.completion_score_required,
         )
         return register_data
 
