@@ -1205,11 +1205,11 @@ class ThemeOperationData(BaseModel):
 
 class RegistryLanguageData(BaseModel):
     language_id: str
-    code: str
-    label: str
-    flag: Optional[str] = None
+    language_code: str
+    language_label: str
+    language_flag_base64: Optional[str] = None
     is_default: bool = False
-    translation: Optional[dict] = None
+    language_translation: Optional[dict] = None
 
     class Config:
         from_attributes: bool = True
@@ -1219,20 +1219,20 @@ class GetLanguageRequestPayload(BaseModel):
 
 
 class CreateLanguageRequestPayload(BaseModel):
-    code: str
-    label: str
-    flag: Optional[str] = None
+    language_code: str
+    language_label: str
+    language_flag_base64: Optional[str] = None
     is_default: bool = False
-    translation: Optional[dict] = None
+    language_translation: Optional[dict] = None
 
 
 class UpdateLanguageRequestPayload(BaseModel):
     language_id: str
-    code: Optional[str] = None
-    label: Optional[str] = None
-    flag: Optional[str] = None
+    language_code: Optional[str] = None
+    language_label: Optional[str] = None
+    language_flag_base64: Optional[str] = None
     is_default: Optional[bool] = None
-    translation: Optional[dict] = None
+    language_translation: Optional[dict] = None
 
 
 class RemoveLanguageRequestPayload(BaseModel):

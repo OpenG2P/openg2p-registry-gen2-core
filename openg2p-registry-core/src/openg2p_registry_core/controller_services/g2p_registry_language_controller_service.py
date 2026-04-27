@@ -27,14 +27,14 @@ class G2PRegistryLanguageControllerService(BaseService):
 
     async def create_language(self, create_request: CreateLanguageRequest) -> LanguageOperationData:
         create_language_request_payload: CreateLanguageRequestPayload = create_request.request_body.request_payload
-        _logger.info(f"Creating language with code: {create_language_request_payload.code}")
+        _logger.info(f"Creating language with code: {create_language_request_payload.language_code}")
         g2p_register_service = G2PRegisterService.get_component()
         language_operation_data: LanguageOperationData = await g2p_register_service.create_language(
-            code=create_language_request_payload.code,
-            label=create_language_request_payload.label,
-            flag=create_language_request_payload.flag,
+            language_code=create_language_request_payload.language_code,
+            language_label=create_language_request_payload.language_label,
+            language_flag_base64=create_language_request_payload.language_flag_base64,
             is_default=create_language_request_payload.is_default,
-            translation=create_language_request_payload.translation,
+            language_translation=create_language_request_payload.language_translation,
         )
         return language_operation_data
 
@@ -52,11 +52,11 @@ class G2PRegistryLanguageControllerService(BaseService):
         g2p_register_service = G2PRegisterService.get_component()
         language_operation_data: LanguageOperationData = await g2p_register_service.update_language(
             language_id=update_language_request_payload.language_id,
-            code=update_language_request_payload.code,
-            label=update_language_request_payload.label,
-            flag=update_language_request_payload.flag,
+            language_code=update_language_request_payload.language_code,
+            language_label=update_language_request_payload.language_label,
+            language_flag_base64=update_language_request_payload.language_flag_base64,
             is_default=update_language_request_payload.is_default,
-            translation=update_language_request_payload.translation,
+            language_translation=update_language_request_payload.language_translation,
         )
         return language_operation_data
 
