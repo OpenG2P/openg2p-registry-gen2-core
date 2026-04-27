@@ -22,10 +22,13 @@ from .controller_services import (
     G2PRegisterDataControllerService,
     G2PRegisterMetadataControllerService,
     G2PRegistryConfigurationControllerService,
+    G2PRegistryThemeControllerService,
+    G2PRegistryLanguageControllerService,
     G2PUIHelperControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
     G2PScoreControllerService,
+    G2PCompletionScoreControllerService,
 )
 from .helpers import MinioClient, PatternMatcher, TemplateHelper
 from .models import (
@@ -53,6 +56,9 @@ from .models import (
     G2PRegisterUITab,
     G2PRegisterVerification,
     G2PRegistryConfiguration,
+    G2PRegistryLanguage,
+    G2PRegistryTheme,
+    G2PRegistryThemeValue,
     G2PRegistryDocument,
     G2PRegistryVcConfiguration,
     IncomingClassifiedData,
@@ -68,7 +74,9 @@ from .models import (
     OutgoingTopic,
     OutgoingTransformedDataPayload,
     SubscriptionActivityLog,
-    G2PFunctionalIdGenerationQueue
+    G2PFunctionalIdGenerationQueue,
+    G2PRegisterSectionCompletionScore,
+    G2PCompletionScoreComputationQueue,
 )
 from .services import (
     G2PDataModelService,
@@ -89,6 +97,8 @@ from .services import (
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
     G2PScoreComputeService,
+    G2PCompletionScoreService,
+    G2PGeoHierarchyService
 )
 
 _config = Settings.get_config(strict=False)
@@ -135,6 +145,8 @@ class Initializer(BaseInitializer):
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
         G2PScoreComputeService()
+        G2PCompletionScoreService()
+        G2PGeoHierarchyService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -149,12 +161,15 @@ class Initializer(BaseInitializer):
         G2PDocumentControllerService()
         G2PTemplateFileControllerService()
         G2PRegistryConfigurationControllerService()
+        G2PRegistryThemeControllerService()
+        G2PRegistryLanguageControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
         G2PUIHelperControllerService()
         G2PIntakeFormControllerService()
         G2PVerificationControllerService()
         G2PScoreControllerService()
+        G2PCompletionScoreControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -176,6 +191,9 @@ class Initializer(BaseInitializer):
             await G2PRegisterScore.create_migrate()
             await G2PRegisterScoreHistory.create_migrate()
             await G2PRegistryConfiguration.create_migrate()
+            await G2PRegistryLanguage.create_migrate()
+            await G2PRegistryTheme.create_migrate()
+            await G2PRegistryThemeValue.create_migrate()
             await G2PRegisterDocumentHistory.create_migrate()
             await G2PRegisterSectionDocument.create_migrate()
             await G2PIntakeFormSectionPayload.create_migrate()
@@ -215,5 +233,9 @@ class Initializer(BaseInitializer):
 
             # Id Generation Queue Models
             await G2PFunctionalIdGenerationQueue.create_migrate()
+
+            # Completion Score Models
+            await G2PCompletionScoreComputationQueue.create_migrate()
+            await G2PRegisterSectionCompletionScore.create_migrate()
 
         asyncio.run(migrate())

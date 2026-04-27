@@ -159,6 +159,7 @@ class RegisterData(BaseModel):
     register_rank: Optional[int] = None
     register_icon: Optional[str] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class AllRegistersRegisterData(RegisterData):
@@ -175,6 +176,7 @@ class AllRegistersRegisterData(RegisterData):
     dedup_is_enabled: bool = False
     dedup_threshold_score: Optional[float] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class ChildRegisterData(BaseModel):
@@ -252,6 +254,11 @@ class RecordData(BaseModel):
     Extra fields from the register implementation table are included at root level.
     """
     model_config = ConfigDict(extra="allow", from_attributes=True)
+    
+    actual_score: float = 0.0
+    ideal_score: float = 0.0
+    completion_score_required: bool = False
+    
 
 
 # =============================================================================
@@ -782,6 +789,7 @@ class RegisterSectionData(BaseModel):
     section_order: int = 0
     section_ui_schema: Optional[dict] = None
     register_relation: Optional[RegisterRelationEnum] = None
+    section_weightage: Optional[float] = 0.0
 
     class Config:
         from_attributes: bool = True
@@ -807,6 +815,8 @@ class RegistryConfigurationData(BaseModel):
     configuration_id: str
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
     class Config:
         from_attributes: bool = True
@@ -816,6 +826,8 @@ class RegistryConfigurationPayload(BaseModel):
     """Payload for creating registry configuration"""
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class RegistryConfigurationUpdatePayload(BaseModel):
@@ -823,6 +835,8 @@ class RegistryConfigurationUpdatePayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 # =============================================================================
@@ -1055,6 +1069,7 @@ class UpdateRegisterSectionRequestPayload(BaseModel):
     cr_auto_approve_for_intake_form: Optional[bool] = None
     is_primary_section: Optional[bool] = None
     is_core_section: Optional[bool] = None
+    section_weightage: Optional[float] = None
 
 
 class UpdateRegisterSectionUISchemaRequestPayload(BaseModel):
@@ -1073,6 +1088,7 @@ class CreateRegisterRequestPayload(BaseModel):
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
     functional_id_generation_required: bool = False
+    completion_score_required: bool = False
 
 
 class EditRegisterRequestPayload(BaseModel):
@@ -1086,6 +1102,7 @@ class EditRegisterRequestPayload(BaseModel):
     register_rank: Optional[int] = None
     register_purpose: Optional[str] = None
     functional_id_generation_required: Optional[bool] = None
+    completion_score_required: Optional[bool] = None
 
 
 class DeleteRegisterRequestPayload(BaseModel):
@@ -1134,12 +1151,108 @@ class GetRegisterTabRecordsRequestPayload(BaseModel):
 class CreateRegistryConfigurationRequestPayload(BaseModel):
     registry_name: str
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
 
 
 class UpdateRegistryConfigurationRequestPayload(BaseModel):
     configuration_id: str
     registry_name: Optional[str] = None
     registry_logo: Optional[str] = None  # BASE64 encoded image
+    registry_theme_id: Optional[str] = None
+    registry_language_id: Optional[str] = None
+
+
+class RegistryThemeData(BaseModel):
+    theme_id: str
+    theme_mnemonic: str
+    is_factory_shipped: bool
+
+    class Config:
+        from_attributes: bool = True
+
+
+class RegistryThemeValueData(BaseModel):
+    theme_value_id: str
+    theme_id: str
+    attribute_name: str
+    attribute_value: str
+
+    class Config:
+        from_attributes: bool = True
+
+
+class CreateThemeRequestPayload(BaseModel):
+    theme_mnemonic: str
+    theme_values: list["ThemeAttributeValueInput"]
+
+
+class RemoveThemeRequestPayload(BaseModel):
+    theme_id: str
+
+
+class UpdateThemeValuesRequestPayload(BaseModel):
+    theme_id: str
+    theme_attribute_values: list["ThemeAttributeValueInput"]
+
+
+class GetThemeValuesRequestPayload(BaseModel):
+    theme_id: str
+
+
+class ThemeAttributeValueInput(BaseModel):
+    attribute_name: str
+    attribute_value: str
+
+
+class ThemeOperationData(BaseModel):
+    theme_id: str
+    success: bool = True
+
+
+# =============================================================================
+# Registry Languages Schemas
+# =============================================================================
+
+class RegistryLanguageData(BaseModel):
+    language_id: str
+    language_code: str
+    language_label: str
+    language_flag_base64: Optional[str] = None
+    is_default: bool = False
+    language_translation: Optional[dict] = None
+
+    class Config:
+        from_attributes: bool = True
+
+class GetLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class CreateLanguageRequestPayload(BaseModel):
+    language_code: str
+    language_label: str
+    language_flag_base64: Optional[str] = None
+    is_default: bool = False
+    language_translation: Optional[dict] = None
+
+
+class UpdateLanguageRequestPayload(BaseModel):
+    language_id: str
+    language_code: Optional[str] = None
+    language_label: Optional[str] = None
+    language_flag_base64: Optional[str] = None
+    is_default: Optional[bool] = None
+    language_translation: Optional[dict] = None
+
+
+class RemoveLanguageRequestPayload(BaseModel):
+    language_id: str
+
+
+class LanguageOperationData(BaseModel):
+    language_id: str
+    success: bool = True
 
 
 # =============================================================================

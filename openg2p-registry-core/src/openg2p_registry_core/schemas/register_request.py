@@ -4,6 +4,7 @@ from openg2p_fastapi_common.schemas import (
 )
 from .register_payload import (
     ChangeRequestRequestPayload,
+    GetLanguageRequestPayload,
     SaveSubmissionDraftRequestPayload,
     FinalizeSubmissionRequestPayload,
     ApproveRejectSubmissionRequestPayload,
@@ -58,6 +59,13 @@ from .register_payload import (
     GetRegisterTabRecordsRequestPayload,
     CreateRegistryConfigurationRequestPayload,
     UpdateRegistryConfigurationRequestPayload,
+    CreateThemeRequestPayload,
+    RemoveThemeRequestPayload,
+    UpdateThemeValuesRequestPayload,
+    GetThemeValuesRequestPayload,
+    CreateLanguageRequestPayload,
+    UpdateLanguageRequestPayload,
+    RemoveLanguageRequestPayload,
     GetG2PAttributeValuesRequestPayload,
     GetAllowedParentsForChildSectionRequestPayload,
 )
@@ -741,6 +749,86 @@ class UpdateRegistryConfigurationRequestBody(G2PRequestBody):
 
 class UpdateRegistryConfigurationRequest(G2PRequest):
     request_body: UpdateRegistryConfigurationRequestBody
+
+
+class GetAllThemesRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetAllThemesRequest(G2PRequest):
+    request_body: GetAllThemesRequestBody
+
+
+class CreateThemeRequestBody(G2PRequestBody):
+    request_payload: CreateThemeRequestPayload
+
+
+class CreateThemeRequest(G2PRequest):
+    request_body: CreateThemeRequestBody
+
+
+class RemoveThemeRequestBody(G2PRequestBody):
+    request_payload: RemoveThemeRequestPayload
+
+
+class RemoveThemeRequest(G2PRequest):
+    request_body: RemoveThemeRequestBody
+
+
+class UpdateThemeValuesRequestBody(G2PRequestBody):
+    request_payload: UpdateThemeValuesRequestPayload
+
+
+class UpdateThemeValuesRequest(G2PRequest):
+    request_body: UpdateThemeValuesRequestBody
+
+
+class GetThemeValuesRequestBody(G2PRequestBody):
+    request_payload: GetThemeValuesRequestPayload
+
+
+class GetThemeValuesRequest(G2PRequest):
+    request_body: GetThemeValuesRequestBody
+
+
+class GetLanguageRequestBody(G2PRequestBody):
+    request_payload: GetLanguageRequestPayload
+
+
+class GetLanguageRequest(G2PRequest):
+    request_body: GetLanguageRequestBody
+
+    
+class GetAllLanguagesRequestBody(G2PRequestBody):
+    request_payload: EmptyRequestPayload
+
+
+class GetAllLanguagesRequest(G2PRequest):
+    request_body: GetAllLanguagesRequestBody
+
+
+class CreateLanguageRequestBody(G2PRequestBody):
+    request_payload: CreateLanguageRequestPayload
+
+
+class CreateLanguageRequest(G2PRequest):
+    request_body: CreateLanguageRequestBody
+
+
+class UpdateLanguageRequestBody(G2PRequestBody):
+    request_payload: UpdateLanguageRequestPayload
+
+
+class UpdateLanguageRequest(G2PRequest):
+    request_body: UpdateLanguageRequestBody
+
+
+class RemoveLanguageRequestBody(G2PRequestBody):
+    request_payload: RemoveLanguageRequestPayload
+
+
+class RemoveLanguageRequest(G2PRequest):
+    request_body: RemoveLanguageRequestBody
 
 
 # =============================================================================
