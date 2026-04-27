@@ -83,6 +83,7 @@ from .services import (
     G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
+    G2PGeoHierarchyService
 )
 
 _config = Settings.get_config(strict=False)
@@ -128,6 +129,7 @@ class Initializer(BaseInitializer):
         G2PRegisterVerificationService()
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
+        G2PGeoHierarchyService()
 
         # Controller Services
         G2PDataModelControllerService()
