@@ -17,11 +17,13 @@ from ..schemas import (
     GetIntakeFormTabRequestPayload,
     IntakeFormDefinitionData,
     IntakeFormIdData,
+    IntakeFormRenderedData,
     IntakeFormTabIdData,
     IntakeFormTabSectionIdData,
     IntakeFormUITabData,
     IntakeFormUITabSectionData,
     RemoveIntakeFormSectionRequestPayload,
+    RenderIntakeFormRequestPayload,
     UpdateIntakeFormRequestPayload,
     UpdateIntakeFormSectionRequestPayload,
     UpdateIntakeFormTabRequestPayload,
@@ -90,6 +92,16 @@ class G2PIntakeFormMetadataControllerService(BaseService):
         pagination_request: Optional[G2PPaginationRequest] = None,
     ) -> tuple[IntakeFormDefinitionData, Optional[G2PPaginationResponse]]:
         response_payload = await G2PIntakeFormMetadataService.get_component().get_intake_form(request_payload.form_id)
+        return response_payload, None
+
+    async def render_intake_form(
+        self,
+        request_payload: RenderIntakeFormRequestPayload,
+        pagination_request: Optional[G2PPaginationRequest] = None,
+    ) -> tuple[IntakeFormRenderedData, Optional[G2PPaginationResponse]]:
+        response_payload = await G2PIntakeFormMetadataService.get_component().render_intake_form(
+            form_id=request_payload.form_id,
+        )
         return response_payload, None
 
     async def create_tab(

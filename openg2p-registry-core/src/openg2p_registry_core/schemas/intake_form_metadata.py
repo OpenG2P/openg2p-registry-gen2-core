@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict
 
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 
+from .register_metadata_payload import G2PRegisterSectionData
+
 
 class IntakeFormDefinitionData(BaseModel):
     form_id: str
@@ -48,6 +50,33 @@ class IntakeFormTabSectionIdData(BaseModel):
     tab_section_id: str
 
 
+class IntakeFormRenderedSectionData(G2PRegisterSectionData):
+    tab_section_id: str
+    section_order: int
+
+
+class IntakeFormRenderedTabData(BaseModel):
+    tab_id: str
+    form_id: str
+    tab_label: str
+    tab_order: int = 0
+    sections: List[IntakeFormRenderedSectionData]
+
+    model_config = ConfigDict(from_attributes=True, extra="allow")
+
+
+class IntakeFormRenderedData(BaseModel):
+    form_id: str
+    register_id: str
+    form_mnemonic: str
+    form_description: Optional[str] = None
+    number_of_verifications: int = 0
+    used_only_in_ingestion_pipeline: bool = False
+    tabs: List[IntakeFormRenderedTabData]
+
+    model_config = ConfigDict(from_attributes=True, extra="allow")
+
+
 class CreateIntakeFormRequestPayload(BaseModel):
     register_id: str
     form_mnemonic: str
@@ -74,6 +103,10 @@ class GetAllIntakeFormsRequestPayload(BaseModel):
 
 
 class GetIntakeFormRequestPayload(BaseModel):
+    form_id: str
+
+
+class RenderIntakeFormRequestPayload(BaseModel):
     form_id: str
 
 
@@ -158,6 +191,14 @@ class GetIntakeFormRequestBody(G2PRequestBody):
 
 class GetIntakeFormRequest(G2PRequest):
     request_body: GetIntakeFormRequestBody
+
+
+class RenderIntakeFormRequestBody(G2PRequestBody):
+    request_payload: RenderIntakeFormRequestPayload
+
+
+class RenderIntakeFormRequest(G2PRequest):
+    request_body: RenderIntakeFormRequestBody
 
 
 class CreateIntakeFormTabRequestBody(G2PRequestBody):
@@ -248,6 +289,14 @@ class IntakeFormDefinitionListResponse(G2PResponse):
     response_body: Optional[IntakeFormDefinitionListResponseBody] = None
 
 
+class RenderIntakeFormDataResponseBody(G2PResponseBody):
+    response_payload: Optional[IntakeFormRenderedData] = None
+
+
+class RenderIntakeFormDataResponse(G2PResponse):
+    response_body: Optional[RenderIntakeFormDataResponseBody] = None
+
+
 class IntakeFormUITabDataResponseBody(G2PResponseBody):
     response_payload: Optional[IntakeFormUITabData | IntakeFormTabIdData] = None
 
@@ -309,6 +358,14 @@ __all__ = [
     "GetIntakeFormRequestBody",
     "GetIntakeFormRequestPayload",
     "GetIntakeFormTabRequest",
+    "IntakeFormRenderedData",
+    "IntakeFormRenderedSectionData",
+    "IntakeFormRenderedTabData",
+    "RenderIntakeFormDataResponse",
+    "RenderIntakeFormDataResponseBody",
+    "RenderIntakeFormRequest",
+    "RenderIntakeFormRequestBody",
+    "RenderIntakeFormRequestPayload",
     "GetIntakeFormTabRequestBody",
     "GetIntakeFormTabRequestPayload",
     "IntakeFormDefinitionData",

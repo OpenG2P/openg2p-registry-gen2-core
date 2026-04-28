@@ -175,7 +175,7 @@ class G2PRegisterMetadataService(BaseService):
             response: list[G2PRegisterUITabSectionData] = []
             for tab_section in tab_sections:
                 section = await self._validate_section(tab_section.section_id, session, tab.register_id)
-                section_data = await self._build_section_data(
+                section_data = await self.build_section_data(
                     section=section,
                     session=session,
                     include_ui_schema=True,
@@ -205,7 +205,7 @@ class G2PRegisterMetadataService(BaseService):
             await session.refresh(tab_section)
 
             section = await self._validate_section(tab_section.section_id, session, tab_section.register_id)
-            section_data = await self._build_section_data(
+            section_data = await self.build_section_data(
                 section=section,
                 session=session,
                 include_ui_schema=True,
@@ -339,7 +339,7 @@ class G2PRegisterMetadataService(BaseService):
         async with session_maker() as session:
             section = await self._validate_section(section_id, session, register_id)
             relation_register_id = register_id or section.register_id
-            return await self._build_section_data(
+            return await self.build_section_data(
                 section=section,
                 session=session,
                 include_ui_schema=True,
@@ -453,7 +453,7 @@ class G2PRegisterMetadataService(BaseService):
             query = self._apply_pagination(query, current_page, page_size)
             sections = (await session.execute(query)).scalars().all()
             return [
-                await self._build_section_data(
+                await self.build_section_data(
                     section=section,
                     session=session,
                     include_ui_schema=include_ui_schema,
@@ -517,7 +517,7 @@ class G2PRegisterMetadataService(BaseService):
             raise ValueError(f"Tab section with tab_section_id '{tab_section_id}' not found.")
         return tab_section
 
-    async def _build_section_data(
+    async def build_section_data(
         self,
         section: G2PRegisterSection,
         session,
