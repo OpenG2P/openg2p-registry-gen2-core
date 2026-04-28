@@ -17,14 +17,13 @@ class G2PRegisterSectionData(BaseModel):
     register_id: str
     section_id: str
     section_register_id: str
-    is_primary_section: bool = False
     is_core_section: Optional[bool] = False
-    section_order: int = 0
     section_mnemonic: str
     section_description: Optional[str] = None
     documents_required: bool = False
     no_of_verifications_required: int = 0
     is_list: bool = False
+    section_weightage: float = 0.0
     section_ui_schema: Optional[dict] = None
     cr_auto_approve_for_bene_portal: bool = False
     cr_auto_approve_for_agent_portal: bool = False
@@ -120,9 +119,8 @@ class CreateRegisterSectionMetadataRequestPayload(BaseModel):
     cr_auto_approve_for_staff_portal: bool = False
     cr_auto_approve_for_partner: bool = False
     is_list: bool = False
-    is_primary_section: bool = False
     is_core_section: Optional[bool] = False
-    section_order: int = 0
+    section_weightage: float = 0.0
     section_ui_schema: Optional[dict] = None
 
 
@@ -156,9 +154,8 @@ class UpdateRegisterSectionMetadataRequestPayload(BaseModel):
     cr_auto_approve_for_staff_portal: Optional[bool] = None
     cr_auto_approve_for_partner: Optional[bool] = None
     is_list: Optional[bool] = None
-    is_primary_section: Optional[bool] = None
     is_core_section: Optional[bool] = None
-    section_order: Optional[int] = None
+    section_weightage: Optional[float] = None
 
 
 class UpdateRegisterSectionMetadataUISchemaRequestPayload(BaseModel):
