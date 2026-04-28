@@ -17,3 +17,5 @@ from .g2p_intake_form_service import G2PIntakeFormService
 from .g2p_verification_service import G2PRegisterVerificationService
 from .g2p_change_request_worker_service import G2PChangeRequestWorkerService
 from .g2p_change_request_core_service import G2PChangeRequestCoreService
+from .g2p_score_compute_service import G2PScoreComputeService
+from .g2p_completion_score_service import G2PCompletionScoreService
