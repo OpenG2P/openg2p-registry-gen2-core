@@ -6,12 +6,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
-from .g2p_register import MaritalStatusEnum, GenderEnum, RecordStatusEnum, ShapeTypeEnum
+from .enum import MaritalStatusEnum, GenderEnum, RecordStatusEnum, ShapeTypeEnum, ChangeRequestSourceEnum
 
-
-class ChangeRequestSourceEnum(enum.Enum):
-    INTAKE_FORM = "INTAKE_FORM"
-    DIRECT = "DIRECT"
 
 class G2PTableHistory(BaseORMModel):
     __abstract__ = True

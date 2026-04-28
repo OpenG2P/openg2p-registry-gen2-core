@@ -295,7 +295,7 @@ class BaseChangePayload(BaseModel):
     pass
 
 
-class EditActionEnum(str, Enum):
+class ChangeActionEnum(str, Enum):
     ADD = "ADD"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
@@ -313,7 +313,7 @@ class RegisterRelationEnum(str, Enum):
 
 class ChangePayload(BaseChangePayload):
     internal_record_id: Optional[str] = None
-    edit_action: str = EditActionEnum.ADD.value
+    edit_action: str = ChangeActionEnum.ADD.value
     class Config:
         from_attributes: bool = True
         extra = "allow"  # Allow extra fields to be preserved and accessible
@@ -330,7 +330,7 @@ class ChangeRequestRequestPayload(RegisterPayload):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
     tab_id: Optional[str] = None
-    edit_action: str = EditActionEnum.ADD.value
+    edit_action: str = ChangeActionEnum.ADD.value
     section_id: Optional[str] = None
     section_register_id: Optional[str] = None
     internal_record_id: Optional[str] = None
@@ -377,28 +377,23 @@ class IntakeFormDocumentPayload(BaseModel):
 class IntakeFormData(BaseModel):
     """Intake form data."""
     submission_id: Optional[str] = None
-    submission_reference: Optional[int] = None
-    record_name: Optional[str] = None
+    form_id: Optional[str] = None
     register_id: Optional[str] = None
-    tab_id: Optional[str] = None
-    foundational_id: Optional[str] = None
-    link_foundational_id: Optional[str] = None
-    edit_action: str = EditActionEnum.ADD.value
-    internal_record_id: Optional[str] = None
-    intake_form_status: Optional[str] = None
-    change_request_submission_status: Optional[str] = None
-    change_request_id: Optional[str] = None
-    submission_no_of_attempts: Optional[int] = None
-    submission_latest_datetime: Optional[str] = None
-    submission_latest_error_code: Optional[str] = None
-    no_of_verifications_required: Optional[int] = None
-    no_of_verifications_done: Optional[int] = None
+    draft_status: Optional[str] = None
     approval_status: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
+    finalized_at: Optional[str] = None
+    first_created_at: Optional[str] = None
+    submission_source: Optional[str] = None
+    partner_id: Optional[str] = None
+    register_ingest_process_status: Optional[str] = None
+    register_ingest_processed_timestamp: Optional[str] = None
+    register_ingest_process_attempts: Optional[int] = None
+    register_ingest_process_last_error_code: Optional[str] = None
+    number_of_verifications_required: Optional[int] = None
+    number_of_verifications_done: Optional[int] = None
     created_by: Optional[str] = None
-    created_at: Optional[str] = None
-    last_updated_by: Optional[str] = None
     last_updated_at: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -427,13 +422,10 @@ class SectionPayloadInput(BaseModel):
 class SaveSubmissionDraftRequestPayload(BaseModel):
     """Request payload for save_submission_draft (create or update, always DRAFT)."""
     submission_id: Optional[str] = None
+    form_id: str
     register_id: str
-    tab_id: str
-    foundational_id: Optional[str] = None
-    link_foundational_id: Optional[str] = None
-    edit_action: str = EditActionEnum.ADD.value
-    internal_record_id: Optional[str] = None
-    no_of_verifications_required: Optional[int] = 0
+    submission_source: Optional[str] = None
+    partner_id: Optional[str] = None
     section_payloads: Optional[List[SectionPayloadInput]] = None
     created_by: Optional[str] = None
 
@@ -457,7 +449,7 @@ class GetSubmissionRequestPayload(BaseModel):
 class SearchInSubmissionRequestPayload(BaseModel):
     """Search in submission section payloads request payload."""
     register_id: Optional[str] = None
-    tab_id: Optional[str] = None
+    form_id: Optional[str] = None
 
 
 class GetChangeRequestsForSubmissionRequestPayload(BaseModel):
@@ -767,11 +759,11 @@ class RegisterSectionData(BaseModel):
     section_register_id: str
     register_id: str
     section_id: str
-    tab_id: str
-    used_for_new_intake_form: bool = False
-    tab_label: Optional[str] = None
-    intake_form_name: Optional[str] = None
-    intake_form_description: Optional[str] = None
+    # tab_id: str
+    # used_for_new_intake_form: bool = False
+    # tab_label: Optional[str] = None
+    # intake_form_name: Optional[str] = None
+    # intake_form_description: Optional[str] = None
     section_mnemonic: str
     section_description: Optional[str] = None
     documents_required: bool = False

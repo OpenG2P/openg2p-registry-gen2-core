@@ -8,7 +8,7 @@ from openg2p_fastapi_common.context import dbengine
 from sqlalchemy import select, inspect as sa_inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..models import G2PRegisterDefinition, G2PRegisterSection, G2PRegisterSectionCompletionScore, RegisterPurposeEnum
+from ..models import G2PRegisterDefinition, G2PRegisterSection, G2PRegisterUITabSection, G2PRegisterSectionCompletionScore, RegisterPurposeEnum
 from ..schemas import RecordData, RegisterTabRecordData, AllowedParentsData, AllowedParentRecordData
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 
@@ -541,10 +541,17 @@ class G2PRegisterHierarchicalService(BaseService):
 
             # Fetch all sections for this tab
             result = await session.execute(
-                select(G2PRegisterSection).where(
-                    G2PRegisterSection.register_id == subject_register_id,
-                    G2PRegisterSection.tab_id == tab_id
+                select(G2PRegisterSection)
+                .join(
+                    G2PRegisterUITabSection,
+                    G2PRegisterUITabSection.section_id == G2PRegisterSection.section_id,
                 )
+                .where(
+                    G2PRegisterSection.register_id == subject_register_id,
+                    G2PRegisterUITabSection.register_id == subject_register_id,
+                    G2PRegisterUITabSection.tab_id == tab_id,
+                )
+                .order_by(G2PRegisterUITabSection.section_order, G2PRegisterSection.section_order)
             )
             sections = result.scalars().all()
 
