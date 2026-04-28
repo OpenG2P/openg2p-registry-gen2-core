@@ -37,7 +37,7 @@ class G2PRegisterTabMetadataControllerService(BaseService):
         await G2PRegisterMetadataService.get_component().delete_tab(payload.tab_id)
         return None
 
-    async def get_all_tabs(self, request: GetRegisterTabMetadataListRequest) -> list[G2PRegisterUITabData]:
+    async def get_all_tabs(self, request: GetRegisterTabMetadataListRequest) -> tuple[list[G2PRegisterUITabData], int, int]:
         payload = request.request_body.request_payload
         pagination = request.request_body.pagination_request
         current_page = pagination.current_page if pagination else None

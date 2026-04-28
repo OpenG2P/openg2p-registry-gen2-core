@@ -45,7 +45,7 @@ class GetRegisterTabMetadataRequest(G2PRequest):
 
 
 class GetRegisterTabMetadataListRequestBody(G2PRequestBody):
-    request_payload: GetRegisterTabMetadataListRequestPayload = GetRegisterTabMetadataListRequestPayload()
+    request_payload: GetRegisterTabMetadataListRequestPayload
 
 
 class GetRegisterTabMetadataListRequest(G2PRequest):
