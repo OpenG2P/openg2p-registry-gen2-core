@@ -14,7 +14,12 @@ from .enum import (
 )
 SubmissionSourceEnum = ChangeRequestSourceEnum
 from .data_models import DataModel
-from .deduplication_results import DeduplicationChangerequestResult, DeduplicationRegisterResult
+from .deduplication_results import (
+    DeduplicationChangerequestResult,
+    DeduplicationRegisterResult,
+    DeduplicationIntakeFormRegisterResult,
+    DeduplicationIntakeFormIntakeFormResult,
+)
 from .g2p_attributes import G2PAttribute, G2PAttributeValue
 from .g2p_functional_id_generation_queue import G2PFunctionalIdGenerationQueue
 from .g2p_input_mechanisms import G2PInputMechanism

@@ -12,6 +12,8 @@ from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..models import (
     ApprovalStatusEnum,
     ChangeRequestSourceEnum,
+    DeduplicationIntakeFormRegisterResult,
+    DeduplicationIntakeFormIntakeFormResult,
     G2PFunctionalIdGenerationQueue,
     G2PIntakeFormDefinition,
     G2PIntakeFormSubmission,
@@ -31,6 +33,8 @@ from ..models import (
 )
 from .filter_builder import FilterBuilder
 from ..schemas import (
+    DeduplicationIntakeFormRegisterResultData,
+    DeduplicationIntakeFormIntakeFormResultData,
     IntakeFormDocumentPayload,
     SectionPayloadInput,
     SectionPayloadResponseItem,
@@ -1167,3 +1171,79 @@ class G2PIntakeFormDataService(BaseService):
             code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
             message=message,
         )
+
+    async def get_deduplication_intake_form_register_results(
+        self,
+        submission_id: str,
+        current_page: int = 1,
+        page_size: int = 10,
+        sort_by: str = None,
+        filter_by: dict = None,
+    ) -> tuple[list[DeduplicationIntakeFormRegisterResultData], int]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            count_result = await session.execute(
+                select(func.count()).select_from(DeduplicationIntakeFormRegisterResult).where(
+                    DeduplicationIntakeFormRegisterResult.submission_id == submission_id
+                )
+            )
+            total_items = count_result.scalar() or 0
+
+            offset = (current_page - 1) * page_size
+            results = (
+                await session.execute(
+                    select(DeduplicationIntakeFormRegisterResult).where(
+                        DeduplicationIntakeFormRegisterResult.submission_id == submission_id
+                    ).offset(offset).limit(page_size)
+                )
+            ).scalars().all()
+
+            return [
+                DeduplicationIntakeFormRegisterResultData(
+                    dedup_result_id=r.dedup_result_id,
+                    submission_id=r.submission_id,
+                    internal_record_id=r.internal_record_id,
+                    match_score=r.match_score,
+                    field_matches=r.field_matches,
+                    created_at=r.created_at.isoformat() if r.created_at else None,
+                )
+                for r in results
+            ], total_items
+
+    async def get_deduplication_intake_form_intake_form_results(
+        self,
+        submission_id: str,
+        current_page: int = 1,
+        page_size: int = 10,
+        sort_by: str = None,
+        filter_by: dict = None,
+    ) -> tuple[list[DeduplicationIntakeFormIntakeFormResultData], int]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            count_result = await session.execute(
+                select(func.count()).select_from(DeduplicationIntakeFormIntakeFormResult).where(
+                    DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id
+                )
+            )
+            total_items = count_result.scalar() or 0
+
+            offset = (current_page - 1) * page_size
+            results = (
+                await session.execute(
+                    select(DeduplicationIntakeFormIntakeFormResult).where(
+                        DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id
+                    ).offset(offset).limit(page_size)
+                )
+            ).scalars().all()
+
+            return [
+                DeduplicationIntakeFormIntakeFormResultData(
+                    dedup_result_id=r.dedup_result_id,
+                    submission_id=r.submission_id,
+                    candidate_submission_id=r.candidate_submission_id,
+                    match_score=r.match_score,
+                    field_matches=r.field_matches,
+                    created_at=r.created_at.isoformat() if r.created_at else None,
+                )
+                for r in results
+            ], total_items
