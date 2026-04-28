@@ -33,6 +33,7 @@ class G2PIntakeFormMetadataService(BaseService):
         form_mnemonic: str,
         form_description: str | None = None,
         number_of_verifications: int = 0,
+        used_only_in_ingestion_pipeline: bool = False,
     ) -> IntakeFormIdData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -43,6 +44,7 @@ class G2PIntakeFormMetadataService(BaseService):
                 form_mnemonic=form_mnemonic,
                 form_description=form_description,
                 number_of_verifications=number_of_verifications,
+                used_only_in_ingestion_pipeline=used_only_in_ingestion_pipeline,
             )
             session.add(intake_form)
             await session.commit()
@@ -55,6 +57,7 @@ class G2PIntakeFormMetadataService(BaseService):
         form_mnemonic: str | None = None,
         form_description: str | None = None,
         number_of_verifications: int | None = None,
+        used_only_in_ingestion_pipeline: bool | None = None,
     ) -> IntakeFormIdData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -66,6 +69,8 @@ class G2PIntakeFormMetadataService(BaseService):
                 intake_form.form_description = form_description
             if number_of_verifications is not None:
                 intake_form.number_of_verifications = number_of_verifications
+            if used_only_in_ingestion_pipeline is not None:
+                intake_form.used_only_in_ingestion_pipeline = used_only_in_ingestion_pipeline
 
             await session.commit()
             return IntakeFormIdData(form_id=intake_form.form_id)
@@ -100,6 +105,7 @@ class G2PIntakeFormMetadataService(BaseService):
         register_id: str | None = None,
         current_page: int | None = None,
         page_size: int | None = None,
+        used_only_in_ingestion_pipeline: bool | None = None,
     ) -> tuple[list[IntakeFormDefinitionData], int]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -125,6 +131,10 @@ class G2PIntakeFormMetadataService(BaseService):
                 query = query.where(G2PIntakeFormDefinition.register_id == register_id)
                 count_query = count_query.where(G2PIntakeFormDefinition.register_id == register_id)
 
+            if used_only_in_ingestion_pipeline is not None:
+                query = query.where(G2PIntakeFormDefinition.used_only_in_ingestion_pipeline.is_(used_only_in_ingestion_pipeline))
+                count_query = count_query.where(G2PIntakeFormDefinition.used_only_in_ingestion_pipeline.is_(used_only_in_ingestion_pipeline))
+
             query = self._apply_pagination(query, current_page, page_size)
 
             rows = (await session.execute(query)).all()
@@ -137,6 +147,7 @@ class G2PIntakeFormMetadataService(BaseService):
                     form_mnemonic=intake_form.form_mnemonic,
                     form_description=intake_form.form_description,
                     number_of_verifications=intake_form.number_of_verifications,
+                    used_only_in_ingestion_pipeline=intake_form.used_only_in_ingestion_pipeline,
                     register_mnemonic=register_mnemonic,
                 )
                 for intake_form, register_mnemonic in rows
@@ -170,6 +181,7 @@ class G2PIntakeFormMetadataService(BaseService):
                 form_mnemonic=intake_form.form_mnemonic,
                 form_description=intake_form.form_description,
                 number_of_verifications=intake_form.number_of_verifications,
+                used_only_in_ingestion_pipeline=intake_form.used_only_in_ingestion_pipeline,
                 register_mnemonic=register_mnemonic,
             )
 

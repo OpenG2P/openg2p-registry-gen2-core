@@ -42,6 +42,7 @@ class G2PIntakeFormMetadataControllerService(BaseService):
             form_mnemonic=request_payload.form_mnemonic,
             form_description=request_payload.form_description,
             number_of_verifications=request_payload.number_of_verifications,
+            used_only_in_ingestion_pipeline=request_payload.used_only_in_ingestion_pipeline,
         )
         return response_payload, None
 
@@ -55,6 +56,7 @@ class G2PIntakeFormMetadataControllerService(BaseService):
             form_mnemonic=request_payload.form_mnemonic,
             form_description=request_payload.form_description,
             number_of_verifications=request_payload.number_of_verifications,
+            used_only_in_ingestion_pipeline=request_payload.used_only_in_ingestion_pipeline,
         )
         return response_payload, None
 
@@ -77,6 +79,7 @@ class G2PIntakeFormMetadataControllerService(BaseService):
             register_id=request_payload.register_id,
             current_page=current_page,
             page_size=page_size,
+            used_only_in_ingestion_pipeline=request_payload.used_only_in_ingestion_pipeline,
         )
         pagination_response = self._build_pagination_response(total_items, page_size, pagination_request)
         return response_payload, pagination_response

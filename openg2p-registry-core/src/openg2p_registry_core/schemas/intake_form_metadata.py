@@ -13,6 +13,7 @@ class IntakeFormDefinitionData(BaseModel):
     form_mnemonic: str
     form_description: Optional[str] = None
     number_of_verifications: int = 0
+    used_only_in_ingestion_pipeline: bool = False
 
     model_config = ConfigDict(from_attributes=True, extra="allow")
 
@@ -52,6 +53,7 @@ class CreateIntakeFormRequestPayload(BaseModel):
     form_mnemonic: str
     form_description: Optional[str] = None
     number_of_verifications: int = 0
+    used_only_in_ingestion_pipeline: bool = False
 
 
 class UpdateIntakeFormRequestPayload(BaseModel):
@@ -59,6 +61,7 @@ class UpdateIntakeFormRequestPayload(BaseModel):
     form_mnemonic: Optional[str] = None
     form_description: Optional[str] = None
     number_of_verifications: Optional[int] = None
+    used_only_in_ingestion_pipeline: Optional[bool] = None
 
 
 class DeleteIntakeFormRequestPayload(BaseModel):
@@ -67,6 +70,7 @@ class DeleteIntakeFormRequestPayload(BaseModel):
 
 class GetAllIntakeFormsRequestPayload(BaseModel):
     register_id: Optional[str] = None
+    used_only_in_ingestion_pipeline: Optional[bool] = None
 
 
 class GetIntakeFormRequestPayload(BaseModel):
