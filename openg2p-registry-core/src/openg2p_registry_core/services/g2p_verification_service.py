@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
-from ..models import G2PIntakeForm, G2PRegisterChangeRequest, G2PRegisterVerification
+from ..models import G2PIntakeFormSubmission, G2PRegisterChangeRequest, G2PRegisterVerification
 from ..schemas import AddVerificationPayload, VerificationData
 
 _logger = logging.getLogger("g2p-register-verification-service")
@@ -61,7 +61,8 @@ class G2PRegisterVerificationService(BaseService):
 
     async def add_verification(self, payload: AddVerificationPayload) -> VerificationData:
         """Add verification for either change_request_id or submission_id (exactly one target)."""
-        self._validate_target_ids(payload.change_request_id, payload.submission_id)
+        submission_id = getattr(payload, "submission_id", None)
+        self._validate_target_ids(payload.change_request_id, submission_id)
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         verified_by = payload.verified_by
 
@@ -87,7 +88,7 @@ class G2PRegisterVerificationService(BaseService):
                 change_request.no_of_verifications_done = (change_request.no_of_verifications_done or 0) + 1
                 session.add(change_request)
             else:
-                intake_form = await self._validate_intake_form_exists(payload.submission_id, session)
+                intake_form = await self._validate_intake_form_exists(submission_id, session)
                 verification = G2PRegisterVerification(
                     verification_id=verification_id,
                     register_id=intake_form.register_id,
@@ -100,7 +101,7 @@ class G2PRegisterVerificationService(BaseService):
                     verification_observations=payload.verification_observations,
                     is_approved=payload.is_approved,
                 )
-                intake_form.no_of_verifications_done = (intake_form.no_of_verifications_done or 0) + 1
+                intake_form.number_of_verifications_done = (intake_form.number_of_verifications_done or 0) + 1
                 session.add(intake_form)
 
             session.add(verification)
@@ -131,8 +132,8 @@ class G2PRegisterVerificationService(BaseService):
             )
         return change_request
 
-    async def _validate_intake_form_exists(self, submission_id: str, session) -> G2PIntakeForm:
-        intake_form = await session.get(G2PIntakeForm, submission_id)
+    async def _validate_intake_form_exists(self, submission_id: str, session) -> G2PIntakeFormSubmission:
+        intake_form = await session.get(G2PIntakeFormSubmission, submission_id)
         if not intake_form:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[1],

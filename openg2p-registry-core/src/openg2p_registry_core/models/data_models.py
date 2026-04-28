@@ -1,8 +1,9 @@
-import enum
 import uuid
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
+
+from .enum import ProcessStatusEnum
 
 class DataModel(BaseORMModel):
     __tablename__ = "data_models"
@@ -12,10 +13,3 @@ class DataModel(BaseORMModel):
     pattern_for_data_model: Mapped[str] = mapped_column(String, nullable=False)
     response_template_file_id: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-
-class ProcessStatusEnum(enum.Enum):
-    NOT_APPLICABLE = "NOT_APPLICABLE"
-    PENDING = "PENDING"
-    PROCESSING = "PROCESSING"
-    PROCESSED = "PROCESSED"         # COMPLETED
-    FAILED = "FAILED"

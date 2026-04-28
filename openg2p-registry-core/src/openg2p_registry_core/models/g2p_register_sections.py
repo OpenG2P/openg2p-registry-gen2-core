@@ -17,11 +17,6 @@ class G2PRegisterSection(BaseORMModel):
         nullable=False,
         index=True
     )
-    tab_id: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-        index=True
-    )
     section_id: Mapped[str] = mapped_column(
         String,
         nullable=False,
@@ -34,21 +29,17 @@ class G2PRegisterSection(BaseORMModel):
         nullable=False,
         index=True,
     )
-    is_primary_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_core_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    section_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     section_mnemonic: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_description: Mapped[Text] = mapped_column(Text, nullable=True)
     documents_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     no_of_verifications_required: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    # TODO: remove
-    auto_approval: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     is_list: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     section_weightage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
-    # Section UI schema configuration (JSONB for PostgreSQL)
     # JSON structure to define UI rendering for this section
     section_ui_schema: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
@@ -57,8 +48,6 @@ class G2PRegisterSection(BaseORMModel):
     cr_auto_approve_for_agent_portal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cr_auto_approve_for_staff_portal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     cr_auto_approve_for_partner: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    # TODO: remove
-    cr_auto_approve_for_intake_form: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     
 class G2PRegisterSectionDocument(BaseORMModel):

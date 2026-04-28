@@ -2,7 +2,7 @@ import logging
 from openg2p_fastapi_common.service import BaseService
 
 from .. helpers import MinioClient
-from ..services import G2PRegisterService
+from ..services import G2PRegisterChangeRequestService, G2PRegisterService
 from ..schemas import (
     UploadDocumentsResponseData,
     UploadRecordImageData,
@@ -83,8 +83,8 @@ class G2PDocumentControllerService(BaseService):
         payload = request.request_body.request_payload
         change_request_id = payload.change_request_id
         _logger.info(f"Getting documents for change_request_id: {change_request_id}")
-        g2p_register_service = G2PRegisterService.get_component()
-        return await g2p_register_service.get_change_request_documents(change_request_id)
+        change_request_service = G2PRegisterChangeRequestService.get_component()
+        return await change_request_service.get_change_request_documents(change_request_id)
 
     async def get_file_url(
         self,

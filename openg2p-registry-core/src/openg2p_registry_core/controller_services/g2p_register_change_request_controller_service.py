@@ -1,11 +1,12 @@
 import logging
 import importlib
+from openg2p_fastapi_common.schemas import G2PPaginationResponse
 from openg2p_fastapi_common.service import BaseService
 
 from openg2p_registry_core.models import G2PRegisterChangeRequest
 
-from ..services import G2PRegisterService, G2PRegisterDomainService, G2PRegisterVerificationService
-from ..schemas import (
+from ..services import G2PRegisterChangeRequestService, G2PRegisterDomainService, G2PRegisterVerificationService
+from ..schemas.change_request import (
     ChangeRequestRequest, ChangeRequestRequestPayload, ChangeRequestResponsePayload,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, ChangeRequestData,
@@ -25,7 +26,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
 
     async def create_change_request(self, change_request_request: ChangeRequestRequest) -> ChangeRequestResponsePayload:
         _logger.info("Creating change request through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
+        service = G2PRegisterChangeRequestService.get_component()
         change_request_request_payload: ChangeRequestRequestPayload = change_request_request.request_body.request_payload
         created_by = change_request_request_payload.created_by or change_request_request.request_header.sender_app_mnemonic
 
@@ -35,7 +36,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
         domain_service: G2PRegisterDomainService = g2p_registry_domain_factory.get_domain_service(change_request_request_payload.register_mnemonic)
         await domain_service.validate_domain_attributes(change_request_request_payload)
 
-        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.create_change_request(
+        g2p_register_change_request: G2PRegisterChangeRequest = await service.create_change_request(
             change_request_request_payload=change_request_request_payload,
             source_partner_id=change_request_request.request_header.sender_app_mnemonic,
             created_by=created_by,
@@ -52,8 +53,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
             or change_request_request.request_header.sender_app_mnemonic
         )
         _logger.info(f"Approving change request with change_request_id: {change_request_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.approve_change_request(
+        service = G2PRegisterChangeRequestService.get_component()
+        g2p_register_change_request: G2PRegisterChangeRequest = await service.approve_change_request(
             change_request_id,
             approved_by=approved_by,
         )
@@ -68,8 +69,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
             or change_request_request.request_header.sender_app_mnemonic
         )
         _logger.info(f"Rejecting change request with change_request_id: {change_request_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        g2p_register_change_request: G2PRegisterChangeRequest = await g2p_register_service.reject_change_request(
+        service = G2PRegisterChangeRequestService.get_component()
+        g2p_register_change_request: G2PRegisterChangeRequest = await service.reject_change_request(
             change_request_id,
             rejection_reason,
             rejected_by=rejected_by,
@@ -82,46 +83,46 @@ class G2PRegisterChangerequestControllerService(BaseService):
         subject_record_id = get_number_of_pending_change_requests_request.request_body.request_payload.subject_record_id
         tab_id = get_number_of_pending_change_requests_request.request_body.request_payload.tab_id
         _logger.info(f"Getting number of pending change requests for subject_register_id: {subject_register_id}, subject_record_id: {subject_record_id}, tab_id: {tab_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        number_of_pending_change_requests_data: NumberOfPendingChangeRequestsData = await g2p_register_service.get_number_of_pending_change_requests(subject_register_id, subject_record_id, tab_id)
+        service = G2PRegisterChangeRequestService.get_component()
+        number_of_pending_change_requests_data: NumberOfPendingChangeRequestsData = await service.get_number_of_pending_change_requests(subject_register_id, subject_record_id, tab_id)
         return number_of_pending_change_requests_data
 
     async def get_number_of_cross_register_changes(self, get_number_of_cross_register_changes_request: GetNumberOfCrossRegisterChangesRequest) -> NumberOfCrossRegisterChangesData:
         subject_register_id = get_number_of_cross_register_changes_request.request_body.request_payload.subject_register_id
         subject_record_id = get_number_of_cross_register_changes_request.request_body.request_payload.subject_record_id
         _logger.info(f"Getting number of cross-register changes for subject_register_id: {subject_register_id}, subject_record_id: {subject_record_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        number_of_cross_register_changes_data: NumberOfCrossRegisterChangesData = await g2p_register_service.get_number_of_cross_register_changes(subject_register_id, subject_record_id)
+        service = G2PRegisterChangeRequestService.get_component()
+        number_of_cross_register_changes_data: NumberOfCrossRegisterChangesData = await service.get_number_of_cross_register_changes(subject_register_id, subject_record_id)
         return number_of_cross_register_changes_data
 
     async def get_cross_register_changes(self, get_cross_register_changes_request: GetCrossRegisterChangesRequest) -> list[CrossRegisterChangeRequestData]:
         subject_register_id = get_cross_register_changes_request.request_body.request_payload.subject_register_id
         subject_record_id = get_cross_register_changes_request.request_body.request_payload.subject_record_id
         _logger.info(f"Getting cross-register changes for subject_register_id: {subject_register_id}, subject_record_id: {subject_record_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        cross_register_changes: list[CrossRegisterChangeRequestData] = await g2p_register_service.get_cross_register_changes(subject_register_id, subject_record_id)
+        service = G2PRegisterChangeRequestService.get_component()
+        cross_register_changes: list[CrossRegisterChangeRequestData] = await service.get_cross_register_changes(subject_register_id, subject_record_id)
         return cross_register_changes
 
-    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> tuple[list[dict], int, int]:
+    async def get_change_requests(self, get_change_requests_request: GetChangeRequestsRequest) -> tuple[list[dict], G2PPaginationResponse]:
         payload = get_change_requests_request.request_body.request_payload
         pagination = get_change_requests_request.request_body.pagination_request
         subject_register_id = payload.subject_register_id
         subject_record_id = payload.subject_record_id
         tab_id = payload.tab_id
         _logger.info(f"Getting change requests for subject_register_id: {subject_register_id}, subject_record_id: {subject_record_id}, tab_id: {tab_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
+        service = G2PRegisterChangeRequestService.get_component()
         # Use flattened version to return change_payload fields at root level
-        change_requests_list, total_items = await g2p_register_service.get_change_requests_flattened(
+        change_requests_list, total_items = await service.get_change_requests_flattened(
             subject_register_id, subject_record_id, tab_id, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
-        return change_requests_list, total_items, number_of_pages
+        pagination_response = self._build_pagination_response(total_items, pagination.page_size)
+        return change_requests_list, pagination_response
 
     async def get_change_request(self, get_change_request_request: GetChangeRequestRequest) -> ChangeRequestData:
         change_request_id = get_change_request_request.request_body.request_payload.change_request_id
         _logger.info(f"Getting change request for change_request_id: {change_request_id} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        change_request_data: ChangeRequestData = await g2p_register_service.get_change_request(change_request_id)
+        service = G2PRegisterChangeRequestService.get_component()
+        change_request_data: ChangeRequestData = await service.get_change_request(change_request_id)
         return change_request_data
 
     def _build_change_request_response_payload(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_change_request: G2PRegisterChangeRequest) -> ChangeRequestResponsePayload:
@@ -142,7 +143,7 @@ class G2PRegisterChangerequestControllerService(BaseService):
             approved_at=str(g2p_register_change_request.approved_at) if g2p_register_change_request.approved_at else None
         )
 
-    async def get_verifications_for_change_request(self, get_verifications_request: GetVerificationsRequest) -> tuple[list[VerificationData], int, int]:
+    async def get_verifications_for_change_request(self, get_verifications_request: GetVerificationsRequest) -> tuple[list[VerificationData], G2PPaginationResponse]:
         # Deprecated wrapper.
         # NOTE: Migrate clients to /verifications/get_verifications directly.
         payload = get_verifications_request.request_body.request_payload
@@ -158,8 +159,8 @@ class G2PRegisterChangerequestControllerService(BaseService):
             sort_by=pagination.sort_by,
             filter_by=pagination.filter_by,
         )
-        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
-        return verifications_list, total_items, number_of_pages
+        pagination_response = self._build_pagination_response(total_items, pagination.page_size)
+        return verifications_list, pagination_response
 
     async def add_verification_for_change_request(self, add_verification_request: AddVerificationRequest) -> VerificationData:
         # Deprecated wrapper.
@@ -172,16 +173,29 @@ class G2PRegisterChangerequestControllerService(BaseService):
 
     async def get_change_request_summary_data(self, get_change_request_summary_data_request: GetChangeRequestSummaryDataRequest) -> ChangeRequestSummaryData:
         _logger.info("Fetching change_request summary data through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        change_request_summary_data: ChangeRequestSummaryData = await g2p_register_service.get_change_request_summary_data()
+        service = G2PRegisterChangeRequestService.get_component()
+        change_request_summary_data: ChangeRequestSummaryData = await service.get_change_request_summary_data()
         return change_request_summary_data
     
-    async def search_in_change_request(self, search_change_request_request: SearchChangeRequestRequest) -> tuple[list[ChangeRequestSearchResultData], int, int]:
+    async def search_in_change_request(self, search_change_request_request: SearchChangeRequestRequest) -> tuple[list[ChangeRequestSearchResultData], G2PPaginationResponse]:
         pagination = search_change_request_request.request_body.pagination_request
         _logger.info(f"Searching in change requests with search_text: {pagination.search_text} through controller service")
-        g2p_register_service = G2PRegisterService.get_component()
-        search_results_list, total_items = await g2p_register_service.search_in_change_request(
+        service = G2PRegisterChangeRequestService.get_component()
+        search_results_list, total_items = await service.search_in_change_request(
             pagination.search_text, pagination.current_page, pagination.page_size, pagination.sort_by, pagination.filter_by
         )
-        number_of_pages = (total_items + pagination.page_size - 1) // pagination.page_size if total_items > 0 else 0
-        return search_results_list, total_items, number_of_pages
+        pagination_response = self._build_pagination_response(total_items, pagination.page_size)
+        return search_results_list, pagination_response
+
+    def _build_pagination_response(self, total_items: int, page_size: int) -> G2PPaginationResponse:
+        return G2PPaginationResponse(
+            number_of_items=total_items,
+            number_of_pages=self._calculate_number_of_pages(total_items, page_size),
+        )
+
+    def _calculate_number_of_pages(self, total_items: int, page_size: int) -> int:
+        if total_items <= 0:
+            return 0
+        if page_size <= 0:
+            return 1
+        return (total_items + page_size - 1) // page_size
