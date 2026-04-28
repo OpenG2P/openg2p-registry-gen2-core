@@ -34,9 +34,8 @@ class G2PRegisterSectionMetadataControllerService(BaseService):
             cr_auto_approve_for_staff_portal=payload.cr_auto_approve_for_staff_portal,
             cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
             is_list=payload.is_list,
-            is_primary_section=payload.is_primary_section,
             is_core_section=bool(payload.is_core_section),
-            section_order=payload.section_order,
+            section_weightage=payload.section_weightage,
             section_ui_schema=payload.section_ui_schema,
         )
 
@@ -88,9 +87,8 @@ class G2PRegisterSectionMetadataControllerService(BaseService):
             cr_auto_approve_for_staff_portal=payload.cr_auto_approve_for_staff_portal,
             cr_auto_approve_for_partner=payload.cr_auto_approve_for_partner,
             is_list=payload.is_list,
-            is_primary_section=payload.is_primary_section,
             is_core_section=payload.is_core_section,
-            section_order=payload.section_order,
+            section_weightage=payload.section_weightage,
         )
 
     async def update_section_ui_schema(self, request: UpdateRegisterSectionMetadataUISchemaRequest) -> RegisterSectionIdData:

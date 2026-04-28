@@ -233,17 +233,14 @@ class G2PRegisterMetadataService(BaseService):
         cr_auto_approve_for_staff_portal: bool = False,
         cr_auto_approve_for_partner: bool = False,
         is_list: bool = False,
-        is_primary_section: bool = False,
         is_core_section: bool = False,
-        section_order: int = 0,
+        section_weightage: float = 0.0,
         section_ui_schema: dict | None = None,
     ) -> RegisterSectionIdData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self._validate_register(register_id, session)
             await self._validate_register(section_register_id, session)
-            if is_primary_section:
-                await self._unset_primary_section(register_id, session)
 
             section = G2PRegisterSection(
                 section_register_id=section_register_id,
@@ -257,9 +254,8 @@ class G2PRegisterMetadataService(BaseService):
                 cr_auto_approve_for_staff_portal=cr_auto_approve_for_staff_portal,
                 cr_auto_approve_for_partner=cr_auto_approve_for_partner,
                 is_list=is_list,
-                is_primary_section=is_primary_section,
                 is_core_section=is_core_section,
-                section_order=section_order,
+                section_weightage=section_weightage,
                 section_ui_schema=section_ui_schema,
             )
             session.add(section)
@@ -355,9 +351,8 @@ class G2PRegisterMetadataService(BaseService):
         cr_auto_approve_for_staff_portal: bool | None = None,
         cr_auto_approve_for_partner: bool | None = None,
         is_list: bool | None = None,
-        is_primary_section: bool | None = None,
         is_core_section: bool | None = None,
-        section_order: int | None = None,
+        section_weightage: float | None = None,
     ) -> RegisterSectionIdData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -386,16 +381,8 @@ class G2PRegisterMetadataService(BaseService):
                 section.is_list = is_list
             if is_core_section is not None:
                 section.is_core_section = is_core_section
-            if section_order is not None:
-                section.section_order = section_order
-            if is_primary_section is not None:
-                if is_primary_section:
-                    await self._unset_primary_section(
-                        register_id=section.register_id,
-                        session=session,
-                        exclude_section_id=section.section_id,
-                    )
-                section.is_primary_section = is_primary_section
+            if section_weightage is not None:
+                section.section_weightage = section_weightage
 
             await session.commit()
             return RegisterSectionIdData(section_id=section.section_id)
@@ -451,7 +438,7 @@ class G2PRegisterMetadataService(BaseService):
             query = (
                 select(G2PRegisterSection)
                 .where(G2PRegisterSection.register_id == register_id)
-                .order_by(G2PRegisterSection.section_order.asc(), G2PRegisterSection.section_mnemonic.asc())
+                .order_by(G2PRegisterSection.section_mnemonic.asc())
             )
             query = self._apply_pagination(query, current_page, page_size)
             sections = (await session.execute(query)).scalars().all()
@@ -500,22 +487,6 @@ class G2PRegisterMetadataService(BaseService):
             raise ValueError(f"Tab section with tab_section_id '{tab_section_id}' not found.")
         return tab_section
 
-    async def _unset_primary_section(
-        self,
-        register_id: str,
-        session,
-        exclude_section_id: str | None = None,
-    ) -> None:
-        query = select(G2PRegisterSection).where(
-            G2PRegisterSection.register_id == register_id,
-            G2PRegisterSection.is_primary_section.is_(True),
-        )
-        if exclude_section_id is not None:
-            query = query.where(G2PRegisterSection.section_id != exclude_section_id)
-        sections = (await session.execute(query)).scalars().all()
-        for section in sections:
-            section.is_primary_section = False
-
     async def _build_section_data(
         self,
         section: G2PRegisterSection,
@@ -558,9 +529,8 @@ class G2PRegisterMetadataService(BaseService):
             cr_auto_approve_for_staff_portal=section.cr_auto_approve_for_staff_portal,
             cr_auto_approve_for_partner=section.cr_auto_approve_for_partner,
             is_list=section.is_list,
-            is_primary_section=section.is_primary_section,
             is_core_section=section.is_core_section,
-            section_order=section.section_order,
+            section_weightage=section.section_weightage,
             section_ui_schema=section.section_ui_schema if include_ui_schema else None,
             register_purpose=register_purpose,
             register_relation=register_relation,
