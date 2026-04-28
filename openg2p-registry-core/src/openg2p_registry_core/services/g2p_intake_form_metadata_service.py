@@ -17,11 +17,15 @@ from ..models import (
 from ..schemas import (
     IntakeFormDefinitionData,
     IntakeFormIdData,
+    IntakeFormRenderedData,
+    IntakeFormRenderedSectionData,
+    IntakeFormRenderedTabData,
     IntakeFormTabIdData,
     IntakeFormTabSectionIdData,
     IntakeFormUITabData,
     IntakeFormUITabSectionData,
 )
+from .g2p_register_metadata_service import G2PRegisterMetadataService
 
 _logger = logging.getLogger("g2p-intake-form-metadata-service")
 
@@ -183,6 +187,74 @@ class G2PIntakeFormMetadataService(BaseService):
                 number_of_verifications=intake_form.number_of_verifications,
                 used_only_in_ingestion_pipeline=intake_form.used_only_in_ingestion_pipeline,
                 register_mnemonic=register_mnemonic,
+            )
+
+    async def render_intake_form(self, form_id: str) -> IntakeFormRenderedData:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            intake_form = await self._validate_intake_form(form_id, session)
+
+            tabs = (
+                await session.execute(
+                    select(G2PIntakeFormUITab)
+                    .where(G2PIntakeFormUITab.form_id == form_id)
+                    .order_by(G2PIntakeFormUITab.tab_order.asc())
+                )
+            ).scalars().all()
+
+            rendered_tabs: list[IntakeFormRenderedTabData] = []
+            for tab in tabs:
+                rows = (
+                    await session.execute(
+                        select(G2PIntakeFormUITabSection, G2PRegisterSection)
+                        .join(
+                            G2PRegisterSection,
+                            G2PIntakeFormUITabSection.section_id == G2PRegisterSection.section_id,
+                            isouter=True,
+                        )
+                        .where(G2PIntakeFormUITabSection.tab_id == tab.tab_id)
+                        .order_by(G2PIntakeFormUITabSection.section_order.asc())
+                    )
+                ).all()
+
+                rendered_sections: list[IntakeFormRenderedSectionData] = []
+                for tab_section, section in rows:
+                    if section is None:
+                        continue
+                    section_data = await G2PRegisterMetadataService.get_component().build_section_data(
+                        section=section,
+                        session=session,
+                        include_ui_schema=True,
+                        include_register_purpose=True,
+                        include_register_relation=True,
+                        register_id_for_relation=intake_form.register_id,
+                    )
+                    rendered_sections.append(
+                        IntakeFormRenderedSectionData(
+                            **section_data.model_dump(),
+                            tab_section_id=tab_section.tab_section_id,
+                            section_order=tab_section.section_order,
+                        )
+                    )
+
+                rendered_tabs.append(
+                    IntakeFormRenderedTabData(
+                        tab_id=tab.tab_id,
+                        form_id=tab.form_id,
+                        tab_label=tab.tab_label,
+                        tab_order=tab.tab_order,
+                        sections=rendered_sections,
+                    )
+                )
+
+            return IntakeFormRenderedData(
+                form_id=intake_form.form_id,
+                register_id=intake_form.register_id,
+                form_mnemonic=intake_form.form_mnemonic,
+                form_description=intake_form.form_description,
+                number_of_verifications=intake_form.number_of_verifications,
+                used_only_in_ingestion_pipeline=intake_form.used_only_in_ingestion_pipeline,
+                tabs=rendered_tabs,
             )
 
     async def create_tab(
