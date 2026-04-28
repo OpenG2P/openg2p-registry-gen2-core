@@ -14,13 +14,16 @@ from .controller_services import (
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2PIngestionDataControllerService,
-    G2PIntakeFormControllerService,
+    G2PIntakeFormDataControllerService,
+    G2PIntakeFormMetadataControllerService,
     G2POutgestionConfigurationControllerService,
     G2PTemplateFileControllerService,
     G2PRegisterChangerequestControllerService,
     G2PChangeRequestCoreControllerService,
     G2PRegisterDataControllerService,
     G2PRegisterMetadataControllerService,
+    G2PRegisterSectionMetadataControllerService,
+    G2PRegisterTabMetadataControllerService,
     G2PRegistryConfigurationControllerService,
     G2PRegistryThemeControllerService,
     G2PRegistryLanguageControllerService,
@@ -38,9 +41,12 @@ from .models import (
     G2PAttribute,
     G2PAttributeValue,
     G2PInputMechanism,
-    G2PIntakeForm,
+    G2PIntakeFormDefinition,
+    G2PIntakeFormSubmission,
     G2PIntakeFormSectionDocuments,
     G2PIntakeFormSectionPayload,
+    G2PIntakeFormUITab,
+    G2PIntakeFormUITabSection,
     G2PRegisterChangeRequest,
     G2PRegisterChangeRequestDocument,
     G2PRegisterChangeRequestPayload,
@@ -54,6 +60,7 @@ from .models import (
     G2PRegisterSection,
     G2PRegisterSectionDocument,
     G2PRegisterUITab,
+    G2PRegisterUITabSection,
     G2PRegisterVerification,
     G2PRegistryConfiguration,
     G2PRegistryLanguage,
@@ -85,11 +92,15 @@ from .services import (
     G2PIngestionConfigurationService,
     G2PIngestionDataService,
     G2PIngestService,
-    G2PIntakeFormService,
+    G2PIntakeFormDataService,
+    G2PIntakeFormMetadataService,
     G2POutgestionConfigurationService,
+    G2PRegisterMetadataService,
     G2PRegisterDomainService,
     G2PRegisterHierarchicalService,
+    G2PRegisterHistoryService,
     G2PRegisterService,
+    G2PRegisterChangeRequestService,
     G2PRegisterVerificationService,
     G2PTemplateService,
     G2PTemplateFileService,
@@ -131,6 +142,9 @@ class Initializer(BaseInitializer):
         G2PRegisterDomainService()
         G2PIngestService()
         G2PRegisterService()
+        G2PRegisterChangeRequestService()
+        G2PRegisterHistoryService()
+        G2PRegisterMetadataService()
         G2PRegisterHierarchicalService()
         G2PIngestionConfigurationService()
         G2PIngestionDataService()
@@ -140,7 +154,8 @@ class Initializer(BaseInitializer):
         G2PAttributeService()
         G2PVcConfigurationService()
         G2PUIHelperService()
-        G2PIntakeFormService()
+        G2PIntakeFormDataService()
+        G2PIntakeFormMetadataService()
         G2PRegisterVerificationService()
         G2PChangeRequestCoreService()
         G2PChangeRequestWorkerService()
@@ -155,6 +170,8 @@ class Initializer(BaseInitializer):
         G2PRegisterChangerequestControllerService()
         G2PChangeRequestCoreControllerService()
         G2PRegisterMetadataControllerService()
+        G2PRegisterTabMetadataControllerService()
+        G2PRegisterSectionMetadataControllerService()
         G2PIngestionConfigurationControllerService()
         G2PIngestionDataControllerService()
         G2POutgestionConfigurationControllerService()
@@ -166,7 +183,8 @@ class Initializer(BaseInitializer):
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
         G2PUIHelperControllerService()
-        G2PIntakeFormControllerService()
+        G2PIntakeFormDataControllerService()
+        G2PIntakeFormMetadataControllerService()
         G2PVerificationControllerService()
         G2PScoreControllerService()
         G2PCompletionScoreControllerService()
@@ -179,8 +197,12 @@ class Initializer(BaseInitializer):
             await DataModel.create_migrate()
 
             # Register Models
-            await G2PIntakeForm.create_migrate()
+            await G2PIntakeFormSubmission.create_migrate()
+            await G2PIntakeFormDefinition.create_migrate()
+            await G2PIntakeFormUITab.create_migrate()
+            await G2PIntakeFormUITabSection.create_migrate()
             await G2PRegisterUITab.create_migrate()
+            await G2PRegisterUITabSection.create_migrate()
             await G2PRegisterSchema.create_migrate()
             await G2PRegisterSection.create_migrate()
             await G2PRegisterDefinition.create_migrate()
