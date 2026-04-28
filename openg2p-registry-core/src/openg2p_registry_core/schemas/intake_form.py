@@ -54,6 +54,7 @@ class SectionPayloadResponseItem(BaseModel):
     section_id: str
     section_register_id: str
     is_list: bool
+    section_order: Optional[int] = None
     records: List[dict]
     documents: Optional[List[IntakeFormDocumentPayload]] = None
 
@@ -122,6 +123,11 @@ class SearchInSubmissionRequestPayload(BaseModel):
     register_id: str
 
 
+class GetIntakeFormTabRecordsRequestPayload(BaseModel):
+    submission_id: str
+    tab_id: str
+
+
 class SaveSubmissionDraftRequestBody(G2PRequestBody):
     request_payload: SaveSubmissionDraftRequestPayload
 
@@ -168,6 +174,22 @@ class SearchInSubmissionRequestBody(G2PRequestBody):
 
 class SearchInSubmissionRequest(G2PRequest):
     request_body: SearchInSubmissionRequestBody
+
+
+class GetIntakeFormTabRecordsRequestBody(G2PRequestBody):
+    request_payload: GetIntakeFormTabRecordsRequestPayload
+
+
+class GetIntakeFormTabRecordsRequest(G2PRequest):
+    request_body: GetIntakeFormTabRecordsRequestBody
+
+
+class GetIntakeFormTabRecordsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[SectionPayloadResponseItem]] = None
+
+
+class GetIntakeFormTabRecordsResponse(G2PResponse):
+    response_body: Optional[GetIntakeFormTabRecordsResponseBody] = None
 
 
 class SubmissionResponseBody(G2PResponseBody):

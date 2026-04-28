@@ -8,12 +8,14 @@ from ..schemas import (
     DeleteIntakeFormSubmissionRequest,
     FinalizeSubmissionRequest,
     GetSubmissionRequest,
+    GetIntakeFormTabRecordsRequest,
     GetDeduplicationIntakeFormRegisterResultsRequest,
     GetDeduplicationIntakeFormIntakeFormResultsRequest,
     DeduplicationIntakeFormRegisterResultData,
     DeduplicationIntakeFormIntakeFormResultData,
     SaveIntakeFormSubmissionRequest,
     SearchInSubmissionRequest,
+    SectionPayloadResponseItem,
     SubmissionResponsePayload,
 )
 from ..services import G2PIntakeFormDataService
@@ -81,6 +83,16 @@ class G2PIntakeFormDataControllerService(BaseService):
             payload.section_register_id,
             payload.register_id,
             payload.section_id,
+        )
+
+    async def get_tab_records(
+        self,
+        request: GetIntakeFormTabRecordsRequest,
+    ) -> list[SectionPayloadResponseItem]:
+        payload = request.request_body.request_payload
+        return await G2PIntakeFormDataService.get_component().get_tab_records(
+            payload.submission_id,
+            payload.tab_id,
         )
 
     async def search_in_intake_form_submissions(self, request: SearchInSubmissionRequest):

@@ -488,6 +488,69 @@ class G2PIntakeFormDataService(BaseService):
                 total_items,
             )
 
+    async def get_tab_records(self, submission_id: str, tab_id: str) -> list[SectionPayloadResponseItem]:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            submission = await self._get_submission_or_error(submission_id, session)
+
+            tab = await session.get(G2PIntakeFormUITab, tab_id)
+            if not tab or tab.form_id != submission.form_id:
+                self._invalid_request(
+                    f"Tab '{tab_id}' is not part of form '{submission.form_id}'"
+                )
+
+            result = await session.execute(
+                select(G2PRegisterSection, G2PIntakeFormUITabSection.section_order)
+                .join(
+                    G2PIntakeFormUITabSection,
+                    G2PRegisterSection.section_id == G2PIntakeFormUITabSection.section_id,
+                )
+                .where(
+                    G2PIntakeFormUITabSection.tab_id == tab_id,
+                )
+                .order_by(G2PIntakeFormUITabSection.section_order.asc())
+            )
+            sections = result.all()
+
+            documents_by_section = await self._get_submission_documents(submission_id, session)
+
+            response_items: list[SectionPayloadResponseItem] = []
+            for section, section_order in sections:
+                _register_definition, intake_class, _register_class, _schema_class, _history_class = (
+                    await self._resolve_submission_models(section.section_register_id, session)
+                )
+
+                rows = (
+                    await session.execute(
+                        select(intake_class).where(
+                            *self._submission_section_filters(
+                                intake_class,
+                                submission_id,
+                                section.section_id,
+                            )
+                        )
+                    )
+                ).scalars().all()
+
+                if not rows and not documents_by_section.get(section.section_id):
+                    continue
+
+                response_items.append(
+                    SectionPayloadResponseItem(
+                        section_id=section.section_id,
+                        section_register_id=section.section_register_id,
+                        is_list=section.is_list,
+                        section_order=section_order,
+                        records=[
+                            self._serialize_model(row, {"submission_id", "section_id"})
+                            for row in rows
+                        ],
+                        documents=documents_by_section.get(section.section_id),
+                    )
+                )
+
+            return response_items
+
     async def process_submission_register_ingest(self, submission_id: str) -> None:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
