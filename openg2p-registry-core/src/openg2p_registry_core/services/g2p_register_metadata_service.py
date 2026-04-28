@@ -75,7 +75,7 @@ class G2PRegisterMetadataService(BaseService):
         register_id: str | None = None,
         current_page: int | None = None,
         page_size: int | None = None,
-    ) -> list[G2PRegisterUITabData]:
+    ) -> tuple[list[G2PRegisterUITabData], int, int]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             query = select(G2PRegisterUITab)
@@ -86,7 +86,12 @@ class G2PRegisterMetadataService(BaseService):
             query = self._apply_pagination(query, current_page, page_size)
 
             tabs = (await session.execute(query)).scalars().all()
-            return [self._build_tab_data(tab) for tab in tabs]
+            tab_list = [self._build_tab_data(tab) for tab in tabs]
+            total_items = await self._count_tabs(register_id)
+            number_of_pages = 1
+            if page_size and page_size > 0:
+                number_of_pages = (total_items + page_size - 1) // page_size
+            return tab_list, total_items, number_of_pages
 
     async def get_tab(self, tab_id: str) -> G2PRegisterUITabData:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -467,6 +472,15 @@ class G2PRegisterMetadataService(BaseService):
                 .select_from(G2PRegisterSection)
                 .where(G2PRegisterSection.register_id == register_id)
             )
+            result = await session.execute(count_query)
+            return result.scalar() or 0
+
+    async def _count_tabs(self, register_id: str | None) -> int:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            count_query = select(func.count()).select_from(G2PRegisterUITab)
+            if register_id is not None:
+                count_query = count_query.where(G2PRegisterUITab.register_id == register_id)
             result = await session.execute(count_query)
             return result.scalar() or 0
 
