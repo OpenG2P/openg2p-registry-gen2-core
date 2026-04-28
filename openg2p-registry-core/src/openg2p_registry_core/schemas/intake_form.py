@@ -1,5 +1,5 @@
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 from pydantic import BaseModel, ConfigDict
@@ -34,6 +34,16 @@ class IntakeFormData(BaseModel):
     number_of_verifications_done: Optional[int] = None
     created_by: Optional[str] = None
     last_updated_at: Optional[str] = None
+
+    deduplication_status_vs_intake_forms: Optional[str] = None
+    deduplication_intake_forms_process_timestamp: Optional[str] = None
+    deduplication_intake_forms_attempts: Optional[int] = None
+    deduplication_intake_forms_error: Optional[str] = None
+
+    deduplication_status_vs_register: Optional[str] = None
+    deduplication_register_process_timestamp: Optional[str] = None
+    deduplication_register_forms_attempts: Optional[int] = None
+    deduplication_register_error: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -176,3 +186,79 @@ class SubmissionSearchResultsResponseBody(G2PResponseBody):
 
 class SubmissionSearchResultsResponse(G2PResponse):
     response_body: Optional[SubmissionSearchResultsResponseBody] = None
+
+
+# --- Intake Form Deduplication Schemas ---
+
+class DeduplicationIntakeFormRegisterResultData(BaseModel):
+    dedup_result_id: str
+    submission_id: str
+    internal_record_id: str
+    match_score: float
+    field_matches: Optional[Dict] = None
+    created_at: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DeduplicationIntakeFormIntakeFormResultData(BaseModel):
+    dedup_result_id: str
+    submission_id: str
+    candidate_submission_id: str
+    match_score: float
+    field_matches: Optional[Dict] = None
+    created_at: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GetDeduplicationIntakeFormRegisterResultsRequestPayload(BaseModel):
+    submission_id: str
+    current_page: int = 1
+    page_size: int = 10
+    sort_by: Optional[str] = None
+    filter_by: Optional[Dict] = None
+
+
+class GetDeduplicationIntakeFormRegisterResultsRequestBody(G2PRequestBody):
+    request_payload: GetDeduplicationIntakeFormRegisterResultsRequestPayload
+
+
+class GetDeduplicationIntakeFormRegisterResultsRequest(G2PRequest):
+    request_body: GetDeduplicationIntakeFormRegisterResultsRequestBody
+
+
+class GetDeduplicationIntakeFormIntakeFormResultsRequestPayload(BaseModel):
+    submission_id: str
+    current_page: int = 1
+    page_size: int = 10
+    sort_by: Optional[str] = None
+    filter_by: Optional[Dict] = None
+
+
+class GetDeduplicationIntakeFormIntakeFormResultsRequestBody(G2PRequestBody):
+    request_payload: GetDeduplicationIntakeFormIntakeFormResultsRequestPayload
+
+
+class GetDeduplicationIntakeFormIntakeFormResultsRequest(G2PRequest):
+    request_body: GetDeduplicationIntakeFormIntakeFormResultsRequestBody
+
+
+class DeduplicationIntakeFormRegisterResultsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[DeduplicationIntakeFormRegisterResultData]] = None
+    number_of_items: Optional[int] = None
+    number_of_pages: Optional[int] = None
+
+
+class DeduplicationIntakeFormRegisterResultsResponse(G2PResponse):
+    response_body: Optional[DeduplicationIntakeFormRegisterResultsResponseBody] = None
+
+
+class DeduplicationIntakeFormIntakeFormResultsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[DeduplicationIntakeFormIntakeFormResultData]] = None
+    number_of_items: Optional[int] = None
+    number_of_pages: Optional[int] = None
+
+
+class DeduplicationIntakeFormIntakeFormResultsResponse(G2PResponse):
+    response_body: Optional[DeduplicationIntakeFormIntakeFormResultsResponseBody] = None
