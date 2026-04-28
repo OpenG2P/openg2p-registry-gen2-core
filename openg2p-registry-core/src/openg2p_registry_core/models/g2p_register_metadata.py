@@ -1,16 +1,11 @@
 import uuid
-import re
-import enum
 
 from sqlalchemy import Boolean, Integer, String, Text, JSON, Float, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
-class RegisterPurposeEnum(enum.Enum):
-    REGISTER = "REGISTER"
-    PROGRAM_REGISTER = "PROGRAM_REGISTER"
-    TABLE = "TABLE"
-    CORE_TABLE = "CORE_TABLE"
+from .enum import RegisterPurposeEnum
+from .g2p_register_tab import G2PRegisterUITab, G2PRegisterUITabSection
 
 class G2PRegisterDefinition(BaseORMModel):
     __tablename__ = "g2p_register_definitions"
@@ -53,35 +48,3 @@ class G2PRegisterDefinition(BaseORMModel):
             capitalized_plural: str = plural_form[0].upper() + plural_form[1:]
             self.register_subject = capitalized_plural
         return register_mnemonic_value
-
-
-class G2PRegisterUITab(BaseORMModel):
-    __tablename__ = "g2p_register_ui_tabs"
-
-    tab_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    tab_label: Mapped[str] = mapped_column(String, nullable=False)
-    tab_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    used_for_new_intake_form: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    no_of_verifications_required: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-    intake_form_name: Mapped[str] = mapped_column(String, nullable=True)
-    intake_form_description: Mapped[str] = mapped_column(String, nullable=True)
-    intake_form_auto_approve: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-
-    @validates('tab_label')
-    def validate_tab_label(self, _key: str, tab_label_value: str) -> str:
-        """
-        Validate that tab_label is lowercase and uses underscores (no spaces or special characters).
-        Example valid: 'personal_info', 'contact_details'
-        Example invalid: 'Personal Info', 'contact-details', 'ContactDetails'
-        """
-        if tab_label_value:
-            pattern: str = r'^[a-z][a-z0-9_]*$'
-            if not re.match(pattern, tab_label_value):
-                raise ValueError(
-                    f"tab_label must be lowercase with underscores only. "
-                    f"Got: '{tab_label_value}'. Example valid: 'personal_info'"
-                )
-        return tab_label_value

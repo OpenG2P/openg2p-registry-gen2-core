@@ -3,8 +3,13 @@ from .g2p_register_history import *
 from .deduplication import *
 
 from .register_payload import *
+from .register_metadata_payload import *
+from .intake_form_metadata import *
 from .register_request import *
+from .register_metadata_request import *
 from .register_response import *
+from .register_metadata_response import *
+from .change_request import *
 
 from .file_payload import *
 from .file_request import *
@@ -24,3 +29,6 @@ from .vc_response import *
 
 from .g2p_score import *
 from .g2p_completion_score import *
+
+from .intake_form import *
+from .intake_form_metadata import *

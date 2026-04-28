@@ -1,10 +1,11 @@
-import enum
 import uuid
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text, Index, Date, event
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
+
+from .enum import GenderEnum, MaritalStatusEnum, RecordStatusEnum, ShapeTypeEnum
 
 
 class G2PTable(BaseORMModel):
@@ -20,11 +21,6 @@ class G2PProgramRegister(BaseORMModel):
     foundational_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     link_foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
-
-class RecordStatusEnum(enum.Enum):
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-    ARCHIVED = "ARCHIVED"
 
 class G2PRegister(BaseORMModel):
     __abstract__ = True
@@ -127,20 +123,6 @@ def _populate_record_name(target):
     if computed_record_name:
         target.record_name = computed_record_name
 
-class MaritalStatusEnum(enum.Enum):
-    SINGLE = "SINGLE"
-    MARRIED = "MARRIED"
-    DIVORCED = "DIVORCED"
-    WIDOWED = "WIDOWED"
-    SEPARATED = "SEPARATED"
-    UNKNOWN = "UNKNOWN"
-
-class GenderEnum(enum.Enum):
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHERS = "OTHERS"
-    UNKNOWN = "UNKNOWN"
-
 class G2PPerson(BaseORMModel):
     __abstract__ = True
 
@@ -192,18 +174,6 @@ class G2PGeo(BaseORMModel):
         return value
 
 
-
-class ShapeTypeEnum(enum.Enum):
-    # TODO: Add remaining shape types as needed
-    POINT = "POINT"
-    LINESTRING = "LINESTRING"
-    CIRCLE = "CIRCLE"
-    BOX = "BOX"
-    POLYGON = "POLYGON"
-    MULTIPOINT = "MULTIPOINT"
-    MULTILINESTRING = "MULTILINESTRING"
-    MULTIPOLYGON = "MULTIPOLYGON"
-    GEOMETRYCOLLECTION = "GEOMETRYCOLLECTION"
 
 class G2PGeoShape(BaseORMModel):
     __abstract__ = True

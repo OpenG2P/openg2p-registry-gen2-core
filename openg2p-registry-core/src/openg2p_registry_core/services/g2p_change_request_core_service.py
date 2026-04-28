@@ -8,7 +8,7 @@ from openg2p_fastapi_common.service import BaseService
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..models import G2PRegisterChangeRequest
 from ..schemas import ChangeRequestRequestPayload
-from .g2p_register_service import G2PRegisterService
+from .g2p_register_change_request_service import G2PRegisterChangeRequestService
 
 _logger = logging.getLogger("g2p-change-request-core-service")
 
@@ -21,16 +21,16 @@ class G2PChangeRequestCoreService(BaseService):
     ) -> G2PRegisterChangeRequest:
         _logger.info("Creating core-data change request")
 
-        g2p_register_service = G2PRegisterService.get_component()
+        change_request_service = G2PRegisterChangeRequestService.get_component()
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             await self._validate_section_is_core(
                 change_request_request_payload.section_id,
-                g2p_register_service,
+                change_request_service,
                 session,
             )
 
-        return await g2p_register_service.create_change_request(
+        return await change_request_service.create_change_request(
             change_request_request_payload=change_request_request_payload,
             source_partner_id=source_partner_id,
         )
@@ -43,9 +43,9 @@ class G2PChangeRequestCoreService(BaseService):
             change_request_id,
         )
 
-        g2p_register_service = G2PRegisterService.get_component()
-        await self._validate_change_request_section_is_core(change_request_id, g2p_register_service)
-        return await g2p_register_service.approve_change_request(change_request_id)
+        change_request_service = G2PRegisterChangeRequestService.get_component()
+        await self._validate_change_request_section_is_core(change_request_id, change_request_service)
+        return await change_request_service.approve_change_request(change_request_id)
 
     async def reject_change_request_for_core_data(
         self, change_request_id: str, reason: str | None
@@ -55,11 +55,11 @@ class G2PChangeRequestCoreService(BaseService):
             change_request_id,
         )
 
-        g2p_register_service = G2PRegisterService.get_component()
-        await self._validate_change_request_section_is_core(change_request_id, g2p_register_service)
-        return await g2p_register_service.reject_change_request(change_request_id, reason)
+        change_request_service = G2PRegisterChangeRequestService.get_component()
+        await self._validate_change_request_section_is_core(change_request_id, change_request_service)
+        return await change_request_service.reject_change_request(change_request_id, reason)
 
-    async def _validate_section_is_core(self, section_id: str | None, g2p_register_service: G2PRegisterService, session) -> None:
+    async def _validate_section_is_core(self, section_id: str | None, change_request_service: G2PRegisterChangeRequestService, session) -> None:
         if not section_id:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.INVALID_REQUEST.value[1],
@@ -67,7 +67,7 @@ class G2PChangeRequestCoreService(BaseService):
             )
 
         try:
-            section = await g2p_register_service.validate_section(section_id, session)
+            section = await change_request_service.validate_section(section_id, session)
         except ValueError as error:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
@@ -81,7 +81,7 @@ class G2PChangeRequestCoreService(BaseService):
             )
 
     async def _validate_change_request_section_is_core(
-        self, change_request_id: str | None, g2p_register_service: G2PRegisterService
+        self, change_request_id: str | None, change_request_service: G2PRegisterChangeRequestService
     ) -> None:
         if not change_request_id:
             raise G2PRegistryException(
@@ -91,12 +91,12 @@ class G2PChangeRequestCoreService(BaseService):
 
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            change_request = await g2p_register_service.validate_change_request_exists(
+            change_request = await change_request_service.validate_change_request_exists(
                 change_request_id,
                 session,
             )
             await self._validate_section_is_core(
                 change_request.section_id,
-                g2p_register_service,
+                change_request_service,
                 session,
             )
