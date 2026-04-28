@@ -145,7 +145,7 @@ class DeleteIntakeFormRequest(G2PRequest):
 
 
 class GetAllIntakeFormsRequestBody(G2PRequestBody):
-    request_payload: GetAllIntakeFormsRequestPayload = GetAllIntakeFormsRequestPayload()
+    request_payload: GetAllIntakeFormsRequestPayload
 
 
 class GetAllIntakeFormsRequest(G2PRequest):
@@ -193,7 +193,7 @@ class GetIntakeFormTabRequest(G2PRequest):
 
 
 class GetAllIntakeFormTabsRequestBody(G2PRequestBody):
-    request_payload: GetAllIntakeFormTabsRequestPayload = GetAllIntakeFormTabsRequestPayload()
+    request_payload: GetAllIntakeFormTabsRequestPayload
 
 
 class GetAllIntakeFormTabsRequest(G2PRequest):
@@ -225,7 +225,7 @@ class UpdateIntakeFormSectionRequest(G2PRequest):
 
 
 class GetAllIntakeFormSectionsRequestBody(G2PRequestBody):
-    request_payload: GetAllIntakeFormSectionsRequestPayload = GetAllIntakeFormSectionsRequestPayload()
+    request_payload: GetAllIntakeFormSectionsRequestPayload
 
 
 class GetAllIntakeFormSectionsRequest(G2PRequest):
