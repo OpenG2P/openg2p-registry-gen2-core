@@ -35,6 +35,7 @@ from .filter_builder import FilterBuilder
 from ..schemas import (
     DeduplicationIntakeFormRegisterResultData,
     DeduplicationIntakeFormIntakeFormResultData,
+    DisplayField,
     IntakeFormDocumentPayload,
     SectionPayloadInput,
     SectionPayloadResponseItem,
@@ -221,13 +222,37 @@ class G2PIntakeFormDataService(BaseService):
     async def _build_submission_search_payloads(
         self,
         matches: list[tuple[str, str | None]],
+        intake_class,
+        display_fields_sorted: list,
         session,
     ) -> list[SubmissionResponsePayload]:
         payloads: list[SubmissionResponsePayload] = []
         for submission_id, record_name in matches:
             submission = await session.get(G2PIntakeFormSubmission, submission_id)
             if submission:
-                payloads.append(self._build_submission_response_payload(submission, None, record_name))
+                payload = self._build_submission_response_payload(submission, None, record_name)
+                if display_fields_sorted:
+                    intake_rows = await self._get_intake_rows_list(intake_class, submission_id, session)
+                    display_fields_list: list[DisplayField] = []
+                    source_row = intake_rows[0] if intake_rows else None
+                    for field_config in display_fields_sorted:
+                        field_name: str = field_config.get("field_name")
+                        value = None
+                        if source_row and hasattr(source_row, field_name):
+                            value = getattr(source_row, field_name, None)
+                        if value is not None and hasattr(value, "isoformat"):
+                            value = value.isoformat()
+                        if value is not None and not isinstance(value, str):
+                            value = str(value)
+                        display_fields_list.append(
+                            DisplayField(
+                                field_name=field_name,
+                                value=value,
+                                order=field_config.get("order", 999),
+                            )
+                        )
+                    payload.display_fields = display_fields_list if display_fields_list else None
+                payloads.append(payload)
         return payloads
 
     async def _upsert_intake_rows(
@@ -449,7 +474,19 @@ class G2PIntakeFormDataService(BaseService):
                 sort_by,
                 session,
             )
-            return await self._build_submission_search_payloads(matches, session), total_items
+            register_schema = await session.get(G2PRegisterSchema, register_id)
+            search_result_schema: list = (
+                register_schema.search_result_schema if register_schema and register_schema.search_result_schema else []
+            )
+            display_fields_sorted: list = (
+                sorted(search_result_schema, key=lambda x: x.get("order", 999)) if search_result_schema else []
+            )
+            return (
+                await self._build_submission_search_payloads(
+                    matches, intake_class, display_fields_sorted, session
+                ),
+                total_items,
+            )
 
     async def process_submission_register_ingest(self, submission_id: str) -> None:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)

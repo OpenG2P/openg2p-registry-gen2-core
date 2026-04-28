@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 from pydantic import BaseModel, ConfigDict
 
+from .register_payload import DisplayField
+
 
 class G2PIntakeFormSchemaBase:
     submission_id: Optional[str] = None
@@ -59,6 +61,7 @@ class SectionPayloadResponseItem(BaseModel):
 class SubmissionResponsePayload(IntakeFormData):
     record_name: Optional[str] = None
     section_payloads: Optional[List[SectionPayloadResponseItem]] = None
+    display_fields: Optional[List[DisplayField]] = None
 
 
 class SectionPayloadInput(BaseModel):
@@ -117,11 +120,6 @@ class GetSubmissionRequestPayload(BaseModel):
 
 class SearchInSubmissionRequestPayload(BaseModel):
     register_id: str
-    search_text: Optional[str] = None
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[dict[str, Any]] = None
 
 
 class SaveSubmissionDraftRequestBody(G2PRequestBody):
