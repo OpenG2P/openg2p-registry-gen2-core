@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 from sqlalchemy.dialects.postgresql import UUID
 
-from .enum import ApprovalStatusEnum, ChangeRequestSourceEnum, IntakeFormStatusEnum, ProcessStatusEnum
+from .enum import ApprovalStatusEnum, ChangeRequestSourceEnum, DeduplicationStatusEnum, IntakeFormStatusEnum, ProcessStatusEnum
 
 
 class G2PIntakeForm(BaseORMModel):
@@ -54,6 +54,20 @@ class G2PIntakeFormSubmission(BaseORMModel):
     register_ingest_process_last_error_code: Mapped[str] = mapped_column(Text, nullable=True)
     number_of_verifications_required: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     number_of_verifications_done: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    deduplication_status_vs_intake_forms: Mapped[str] = mapped_column(
+        String, nullable=False, default=DeduplicationStatusEnum.PENDING.value, index=True
+    )
+    deduplication_intake_forms_process_timestamp: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    deduplication_intake_forms_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deduplication_intake_forms_error: Mapped[str] = mapped_column(Text, nullable=True)
+
+    deduplication_status_vs_register: Mapped[str] = mapped_column(
+        String, nullable=False, default=DeduplicationStatusEnum.PENDING.value, index=True
+    )
+    deduplication_register_process_timestamp: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
+    deduplication_register_forms_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deduplication_register_error: Mapped[str] = mapped_column(Text, nullable=True)
 
 
 G2PIntakeFormSubmissions = G2PIntakeFormSubmission

@@ -8,6 +8,10 @@ from ..schemas import (
     DeleteIntakeFormSubmissionRequest,
     FinalizeSubmissionRequest,
     GetSubmissionRequest,
+    GetDeduplicationIntakeFormRegisterResultsRequest,
+    GetDeduplicationIntakeFormIntakeFormResultsRequest,
+    DeduplicationIntakeFormRegisterResultData,
+    DeduplicationIntakeFormIntakeFormResultData,
     SaveIntakeFormSubmissionRequest,
     SearchInSubmissionRequest,
     SubmissionResponsePayload,
@@ -90,3 +94,33 @@ class G2PIntakeFormDataControllerService(BaseService):
             payload.filter_by,
         )
         return records, total_items, math.ceil(total_items / payload.page_size) if payload.page_size else 0
+
+    async def get_deduplication_intake_form_register_results(
+        self,
+        request: GetDeduplicationIntakeFormRegisterResultsRequest,
+    ) -> tuple[list[DeduplicationIntakeFormRegisterResultData], int, int]:
+        payload = request.request_body.request_payload
+        results, total_items = await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_register_results(
+            submission_id=payload.submission_id,
+            current_page=payload.current_page,
+            page_size=payload.page_size,
+            sort_by=payload.sort_by,
+            filter_by=payload.filter_by,
+        )
+        number_of_pages = math.ceil(total_items / payload.page_size) if payload.page_size and total_items > 0 else 0
+        return results, total_items, number_of_pages
+
+    async def get_deduplication_intake_form_intake_form_results(
+        self,
+        request: GetDeduplicationIntakeFormIntakeFormResultsRequest,
+    ) -> tuple[list[DeduplicationIntakeFormIntakeFormResultData], int, int]:
+        payload = request.request_body.request_payload
+        results, total_items = await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_intake_form_results(
+            submission_id=payload.submission_id,
+            current_page=payload.current_page,
+            page_size=payload.page_size,
+            sort_by=payload.sort_by,
+            filter_by=payload.filter_by,
+        )
+        number_of_pages = math.ceil(total_items / payload.page_size) if payload.page_size and total_items > 0 else 0
+        return results, total_items, number_of_pages
