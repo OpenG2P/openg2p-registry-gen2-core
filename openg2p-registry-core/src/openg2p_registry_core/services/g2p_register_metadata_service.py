@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from openg2p_fastapi_common.context import dbengine
@@ -310,8 +310,8 @@ class G2PRegisterMetadataService(BaseService):
         register_id: str,
         current_page: int | None = None,
         page_size: int | None = None,
-    ) -> list[G2PRegisterSectionData]:
-        return await self._get_sections(
+    ) -> tuple[list[G2PRegisterSectionData], int, int]:
+        sections = await self._get_sections(
             register_id=register_id,
             include_ui_schema=True,
             include_register_purpose=True,
@@ -319,6 +319,11 @@ class G2PRegisterMetadataService(BaseService):
             current_page=current_page,
             page_size=page_size,
         )
+        total_items = await self._count_sections(register_id)
+        number_of_pages = 1
+        if page_size and page_size > 0:
+            number_of_pages = (total_items + page_size - 1) // page_size
+        return sections, total_items, number_of_pages
 
     async def get_section(
         self,
@@ -453,6 +458,17 @@ class G2PRegisterMetadataService(BaseService):
                 )
                 for section in sections
             ]
+
+    async def _count_sections(self, register_id: str) -> int:
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            count_query = (
+                select(func.count())
+                .select_from(G2PRegisterSection)
+                .where(G2PRegisterSection.register_id == register_id)
+            )
+            result = await session.execute(count_query)
+            return result.scalar() or 0
 
     async def _validate_register(self, register_id: str, session) -> G2PRegisterDefinition:
         register = await session.get(G2PRegisterDefinition, register_id)
