@@ -975,7 +975,7 @@ class G2PIntakeFormDataService(BaseService):
 
     async def _get_form_verification_requirement(self, form_id: str, session) -> int:
         result = await session.execute(
-            select(G2PIntakeFormDefinition.number_of_verifications_required).where(
+            select(G2PIntakeFormDefinition.number_of_verifications).where(
                 G2PIntakeFormDefinition.form_id == form_id
             )
         )
