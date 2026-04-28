@@ -46,16 +46,11 @@ class G2PRegisterSectionMetadataControllerService(BaseService):
 
     async def get_all_sections_brief(self, request: GetRegisterSectionsMetadataRequest) -> list[G2PRegisterSectionData]:
         payload = request.request_body.request_payload
-        pagination = request.request_body.pagination_request
-        current_page = pagination.current_page if pagination else None
-        page_size = pagination.page_size if pagination else None
         return await G2PRegisterMetadataService.get_component().get_all_sections_brief(
             register_id=payload.register_id,
-            current_page=current_page,
-            page_size=page_size,
         )
 
-    async def get_all_sections(self, request: GetRegisterSectionsMetadataRequest) -> list[G2PRegisterSectionData]:
+    async def get_all_sections(self, request: GetRegisterSectionsMetadataRequest) -> tuple[list[G2PRegisterSectionData], int, int]:
         payload = request.request_body.request_payload
         pagination = request.request_body.pagination_request
         current_page = pagination.current_page if pagination else None
