@@ -69,6 +69,9 @@ class G2PRegisterDomainService(BaseService):
     async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
         pass
 
+    async def populate_link_internal_record_id_for_intake_form(self, session: AsyncSession):
+        pass
+
     def compute_deduplication_score_for_register(
         self,
         change_request_id: str,

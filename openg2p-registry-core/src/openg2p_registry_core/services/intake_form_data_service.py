@@ -277,9 +277,11 @@ class G2PIntakeFormDataService(BaseService):
             incoming_ids.add(internal_record_id)
             existing = existing_rows.get(internal_record_id)
             if existing:
-                self._update_existing_record(existing, record_data, intake_class)
+                self._update_existing_record(existing, record_data, intake_class, session)
             else:
-                session.add(intake_class(**record_data))
+                new_row = intake_class(**record_data)
+                new_row.get_link_internal_record_id(session)
+                session.add(new_row)
         await session.flush()
         return incoming_ids
 
@@ -1211,12 +1213,13 @@ class G2PIntakeFormDataService(BaseService):
                 record_data[key] = value
         return self._convert_date_strings_to_objects(record_data, model_class)
 
-    def _update_existing_record(self, existing, record_data: dict, model_class) -> None:
+    def _update_existing_record(self, existing, record_data: dict, model_class, session) -> None:
         mapper = inspect(model_class)
         for key, value in record_data.items():
             if key in {"internal_record_id", "submission_id", "section_id"} or key not in mapper.columns:
                 continue
             setattr(existing, key, self._normalize_model_value(value, key, mapper))
+        existing.get_link_internal_record_id(session)
 
     def _normalize_model_value(self, value, key: str, mapper):
         if value is None or key not in mapper.columns:
