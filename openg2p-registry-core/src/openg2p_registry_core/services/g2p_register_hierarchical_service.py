@@ -551,7 +551,7 @@ class G2PRegisterHierarchicalService(BaseService):
                     G2PRegisterUITabSection.register_id == subject_register_id,
                     G2PRegisterUITabSection.tab_id == tab_id,
                 )
-                .order_by(G2PRegisterUITabSection.section_order, G2PRegisterSection.section_order)
+                .order_by(G2PRegisterUITabSection.section_order)
             )
             sections = result.scalars().all()
 

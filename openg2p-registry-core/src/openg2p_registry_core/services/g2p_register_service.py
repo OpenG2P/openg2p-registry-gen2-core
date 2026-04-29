@@ -714,7 +714,7 @@ class G2PRegisterService(BaseService):
         register_definitions: list[G2PRegisterDefinition] = (
             await session.execute(
                 select(G2PRegisterDefinition)
-                .where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value)
+                .where(G2PRegisterDefinition.register_purpose == RegisterPurposeEnum.REGISTER.value)
             )
         ).scalars().all()
 
@@ -876,7 +876,7 @@ class G2PRegisterService(BaseService):
         register_definitions: list[G2PRegisterDefinition] = (
             await session.execute(
                 select(G2PRegisterDefinition)
-                .where(G2PRegisterDefinition.register_purpose != RegisterPurposeEnum.TABLE.value)
+                .where(G2PRegisterDefinition.register_purpose == RegisterPurposeEnum.REGISTER.value)
                 .order_by(G2PRegisterDefinition.register_rank)
             )
         ).scalars().all()
