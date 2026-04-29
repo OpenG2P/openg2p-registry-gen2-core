@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 from pydantic import BaseModel, ConfigDict
 
+from .register_payload import DisplayField
+
 
 class G2PIntakeFormSchemaBase:
     submission_id: Optional[str] = None
@@ -52,6 +54,7 @@ class SectionPayloadResponseItem(BaseModel):
     section_id: str
     section_register_id: str
     is_list: bool
+    section_order: Optional[int] = None
     records: List[dict]
     documents: Optional[List[IntakeFormDocumentPayload]] = None
 
@@ -59,6 +62,7 @@ class SectionPayloadResponseItem(BaseModel):
 class SubmissionResponsePayload(IntakeFormData):
     record_name: Optional[str] = None
     section_payloads: Optional[List[SectionPayloadResponseItem]] = None
+    display_fields: Optional[List[DisplayField]] = None
 
 
 class SectionPayloadInput(BaseModel):
@@ -117,11 +121,11 @@ class GetSubmissionRequestPayload(BaseModel):
 
 class SearchInSubmissionRequestPayload(BaseModel):
     register_id: str
-    search_text: Optional[str] = None
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[dict[str, Any]] = None
+
+
+class GetIntakeFormTabRecordsRequestPayload(BaseModel):
+    submission_id: str
+    tab_id: str
 
 
 class SaveSubmissionDraftRequestBody(G2PRequestBody):
@@ -170,6 +174,22 @@ class SearchInSubmissionRequestBody(G2PRequestBody):
 
 class SearchInSubmissionRequest(G2PRequest):
     request_body: SearchInSubmissionRequestBody
+
+
+class GetIntakeFormTabRecordsRequestBody(G2PRequestBody):
+    request_payload: GetIntakeFormTabRecordsRequestPayload
+
+
+class GetIntakeFormTabRecordsRequest(G2PRequest):
+    request_body: GetIntakeFormTabRecordsRequestBody
+
+
+class GetIntakeFormTabRecordsResponseBody(G2PResponseBody):
+    response_payload: Optional[List[SectionPayloadResponseItem]] = None
+
+
+class GetIntakeFormTabRecordsResponse(G2PResponse):
+    response_body: Optional[GetIntakeFormTabRecordsResponseBody] = None
 
 
 class SubmissionResponseBody(G2PResponseBody):

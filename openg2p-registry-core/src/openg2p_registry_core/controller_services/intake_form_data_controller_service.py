@@ -8,12 +8,14 @@ from ..schemas import (
     DeleteIntakeFormSubmissionRequest,
     FinalizeSubmissionRequest,
     GetSubmissionRequest,
+    GetIntakeFormTabRecordsRequest,
     GetDeduplicationIntakeFormRegisterResultsRequest,
     GetDeduplicationIntakeFormIntakeFormResultsRequest,
     DeduplicationIntakeFormRegisterResultData,
     DeduplicationIntakeFormIntakeFormResultData,
     SaveIntakeFormSubmissionRequest,
     SearchInSubmissionRequest,
+    SectionPayloadResponseItem,
     SubmissionResponsePayload,
 )
 from ..services import G2PIntakeFormDataService
@@ -83,17 +85,29 @@ class G2PIntakeFormDataControllerService(BaseService):
             payload.section_id,
         )
 
+    async def get_tab_records(
+        self,
+        request: GetIntakeFormTabRecordsRequest,
+    ) -> list[SectionPayloadResponseItem]:
+        payload = request.request_body.request_payload
+        return await G2PIntakeFormDataService.get_component().get_tab_records(
+            payload.submission_id,
+            payload.tab_id,
+        )
+
     async def search_in_intake_form_submissions(self, request: SearchInSubmissionRequest):
         payload = request.request_body.request_payload
+        pagination = request.request_body.pagination_request
         records, total_items = await G2PIntakeFormDataService.get_component().search_submissions(
             payload.register_id,
-            payload.search_text,
-            payload.current_page,
-            payload.page_size,
-            payload.sort_by,
-            payload.filter_by,
+            pagination.search_text if pagination else None,
+            pagination.current_page if pagination else 1,
+            pagination.page_size if pagination else 10,
+            pagination.sort_by if pagination else None,
+            pagination.filter_by if pagination else None,
         )
-        return records, total_items, math.ceil(total_items / payload.page_size) if payload.page_size else 0
+        page_size = pagination.page_size if pagination else 10
+        return records, total_items, math.ceil(total_items / page_size) if page_size else 0
 
     async def get_deduplication_intake_form_register_results(
         self,

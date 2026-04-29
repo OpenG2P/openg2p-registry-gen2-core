@@ -404,6 +404,7 @@ class SectionPayloadResponseItem(BaseModel):
     section_id: str
     section_register_id: str
     is_list: bool
+    section_order: Optional[int] = None
     records: List[dict]
     documents: Optional[List[IntakeFormDocumentPayload]] = None
 
