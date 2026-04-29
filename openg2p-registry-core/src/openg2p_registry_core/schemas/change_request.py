@@ -284,9 +284,11 @@ class GetChangeRequestRequestPayload(BaseModel):
 
 class GetVerificationsRequestPayload(BaseModel):
     change_request_id: Optional[str] = None
+    submission_id: Optional[str] = None
 
 
 class AddVerificationPayload(BaseModel):
+    submission_id: Optional[str] = None
     change_request_id: Optional[str] = None
     verification_observations: Optional[str] = None
     verified_by: Optional[str] = None
