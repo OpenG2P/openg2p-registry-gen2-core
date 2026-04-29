@@ -17,8 +17,10 @@ from ..schemas import (
     SearchInSubmissionRequest,
     SectionPayloadResponseItem,
     SubmissionResponsePayload,
+    GetIntakeFormSubmissionsSummaryRequest,
+    IntakeFormSubmissionsSummaryData
 )
-from ..services import G2PIntakeFormDataService
+from ..services import G2PIntakeFormDataService, G2PIntakeFormDataService
 
 _logger = logging.getLogger("g2p-intake-form-data-controller-service")
 
@@ -138,3 +140,11 @@ class G2PIntakeFormDataControllerService(BaseService):
         )
         number_of_pages = math.ceil(total_items / payload.page_size) if payload.page_size and total_items > 0 else 0
         return results, total_items, number_of_pages
+    
+    async def get_intake_form_submissions_summary(
+        self, get_intake_form_submissions_summary_request: GetIntakeFormSubmissionsSummaryRequest
+    ) -> IntakeFormSubmissionsSummaryData:
+        _ = get_intake_form_submissions_summary_request
+        _logger.info("Getting intake form submissions summary through controller service")
+        g2p_intake_form_data_service = G2PIntakeFormDataService.get_component()
+        return await g2p_intake_form_data_service.get_intake_form_submissions_summary()

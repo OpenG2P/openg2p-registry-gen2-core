@@ -61,10 +61,6 @@ _config = Settings.get_config(strict=False)
 
 class G2PRegisterService(BaseService):
 
-
-    @cache(expire=_config.cache_expires_in_seconds, key_builder=metadata_key_builder)
-
-
     async def get_register_summary_data(self) -> list[RegisterSummaryData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
