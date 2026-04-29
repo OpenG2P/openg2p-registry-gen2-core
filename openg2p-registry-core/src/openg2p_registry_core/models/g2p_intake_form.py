@@ -13,7 +13,7 @@ class G2PIntakeForm(BaseORMModel):
 
     submission_id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    def get_link_internal_record_id(self, session=None):
+    async def get_link_internal_record_id(self, session=None):
         pass
 
 class G2PIntakeFormSubmission(BaseORMModel):
