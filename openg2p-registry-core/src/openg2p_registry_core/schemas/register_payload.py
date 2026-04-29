@@ -483,7 +483,7 @@ class IntakeFormSubmissionsSummaryData(BaseModel):
     total_draft_submissions: int
     total_final_submissions: int
     total_approval_pending_submissions: int
-    total_change_request_created_submissions: int
+    total_ingested_submissions: int
     total_approved_submissions: int
     total_rejected_submissions: int
 
