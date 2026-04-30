@@ -262,8 +262,6 @@ class GetDeduplicationIntakeFormIntakeFormResultsRequest(G2PRequest):
 
 class DeduplicationIntakeFormRegisterResultsResponseBody(G2PResponseBody):
     response_payload: Optional[List[DeduplicationIntakeFormRegisterResultData]] = None
-    number_of_items: Optional[int] = None
-    number_of_pages: Optional[int] = None
 
 
 class DeduplicationIntakeFormRegisterResultsResponse(G2PResponse):
@@ -272,8 +270,6 @@ class DeduplicationIntakeFormRegisterResultsResponse(G2PResponse):
 
 class DeduplicationIntakeFormIntakeFormResultsResponseBody(G2PResponseBody):
     response_payload: Optional[List[DeduplicationIntakeFormIntakeFormResultData]] = None
-    number_of_items: Optional[int] = None
-    number_of_pages: Optional[int] = None
 
 
 class DeduplicationIntakeFormIntakeFormResultsResponse(G2PResponse):
