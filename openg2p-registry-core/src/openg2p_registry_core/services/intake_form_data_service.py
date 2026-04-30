@@ -1353,7 +1353,7 @@ class G2PIntakeFormDataService(BaseService):
                 for r in results
             ], total_items
 
-async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:
+    async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:
         """Fetch aggregate summary counts for intake form submissions."""
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
