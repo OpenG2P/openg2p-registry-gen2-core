@@ -213,7 +213,7 @@ class G2PIntakeFormDataService(BaseService):
 
     def _apply_intake_search_sort(self, query, intake_class, sort_by: str | None):
         if not sort_by:
-            return query.order_by(intake_class.submission_id.asc())
+            return query.order_by(func.max(intake_class.created_at).desc())
         sort_field = sort_by.lstrip("-")
         if not hasattr(intake_class, sort_field):
             return query.order_by(intake_class.submission_id.asc())
