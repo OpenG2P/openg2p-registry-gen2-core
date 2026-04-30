@@ -114,32 +114,20 @@ class G2PIntakeFormDataControllerService(BaseService):
     async def get_deduplication_intake_form_register_results(
         self,
         request: GetDeduplicationIntakeFormRegisterResultsRequest,
-    ) -> tuple[list[DeduplicationIntakeFormRegisterResultData], int, int]:
+    ) -> list[DeduplicationIntakeFormRegisterResultData]:
         payload = request.request_body.request_payload
-        results, total_items = await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_register_results(
+        return await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_register_results(
             submission_id=payload.submission_id,
-            current_page=payload.current_page,
-            page_size=payload.page_size,
-            sort_by=payload.sort_by,
-            filter_by=payload.filter_by,
         )
-        number_of_pages = math.ceil(total_items / payload.page_size) if payload.page_size and total_items > 0 else 0
-        return results, total_items, number_of_pages
 
     async def get_deduplication_intake_form_intake_form_results(
         self,
         request: GetDeduplicationIntakeFormIntakeFormResultsRequest,
-    ) -> tuple[list[DeduplicationIntakeFormIntakeFormResultData], int, int]:
+    ) -> list[DeduplicationIntakeFormIntakeFormResultData]:
         payload = request.request_body.request_payload
-        results, total_items = await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_intake_form_results(
+        return await G2PIntakeFormDataService.get_component().get_deduplication_intake_form_intake_form_results(
             submission_id=payload.submission_id,
-            current_page=payload.current_page,
-            page_size=payload.page_size,
-            sort_by=payload.sort_by,
-            filter_by=payload.filter_by,
         )
-        number_of_pages = math.ceil(total_items / payload.page_size) if payload.page_size and total_items > 0 else 0
-        return results, total_items, number_of_pages
     
     async def get_intake_form_submissions_summary(
         self, get_intake_form_submissions_summary_request: GetIntakeFormSubmissionsSummaryRequest

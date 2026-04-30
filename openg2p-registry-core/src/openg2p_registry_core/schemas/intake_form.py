@@ -1,5 +1,5 @@
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 from pydantic import BaseModel, ConfigDict
@@ -213,6 +213,8 @@ class SubmissionSearchResultsResponse(G2PResponse):
 class DeduplicationIntakeFormRegisterResultData(BaseModel):
     dedup_result_id: str
     submission_id: str
+    section_register_id: str
+    section_register_mnemonic: str
     internal_record_id: str
     match_score: float
     field_matches: Optional[Dict] = None
@@ -224,6 +226,8 @@ class DeduplicationIntakeFormRegisterResultData(BaseModel):
 class DeduplicationIntakeFormIntakeFormResultData(BaseModel):
     dedup_result_id: str
     submission_id: str
+    section_register_id: str
+    section_register_mnemonic: str
     candidate_submission_id: str
     match_score: float
     field_matches: Optional[Dict] = None
@@ -234,10 +238,6 @@ class DeduplicationIntakeFormIntakeFormResultData(BaseModel):
 
 class GetDeduplicationIntakeFormRegisterResultsRequestPayload(BaseModel):
     submission_id: str
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[Dict] = None
 
 
 class GetDeduplicationIntakeFormRegisterResultsRequestBody(G2PRequestBody):
@@ -250,10 +250,6 @@ class GetDeduplicationIntakeFormRegisterResultsRequest(G2PRequest):
 
 class GetDeduplicationIntakeFormIntakeFormResultsRequestPayload(BaseModel):
     submission_id: str
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[Dict] = None
 
 
 class GetDeduplicationIntakeFormIntakeFormResultsRequestBody(G2PRequestBody):

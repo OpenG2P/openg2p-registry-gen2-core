@@ -1280,78 +1280,66 @@ class G2PIntakeFormDataService(BaseService):
     async def get_deduplication_intake_form_register_results(
         self,
         submission_id: str,
-        current_page: int = 1,
-        page_size: int = 10,
-        sort_by: str = None,
-        filter_by: dict = None,
-    ) -> tuple[list[DeduplicationIntakeFormRegisterResultData], int]:
+    ) -> list[DeduplicationIntakeFormRegisterResultData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            count_result = await session.execute(
-                select(func.count()).select_from(DeduplicationIntakeFormRegisterResult).where(
-                    DeduplicationIntakeFormRegisterResult.submission_id == submission_id
-                )
-            )
-            total_items = count_result.scalar() or 0
-
-            offset = (current_page - 1) * page_size
-            results = (
+            rows = (
                 await session.execute(
-                    select(DeduplicationIntakeFormRegisterResult).where(
-                        DeduplicationIntakeFormRegisterResult.submission_id == submission_id
-                    ).offset(offset).limit(page_size)
+                    select(DeduplicationIntakeFormRegisterResult, G2PRegisterDefinition)
+                    .join(
+                        G2PRegisterDefinition,
+                        G2PRegisterDefinition.register_id == DeduplicationIntakeFormRegisterResult.section_register_id,
+                        isouter=True,
+                    )
+                    .where(DeduplicationIntakeFormRegisterResult.submission_id == submission_id)
                 )
-            ).scalars().all()
+            ).all()
 
             return [
                 DeduplicationIntakeFormRegisterResultData(
                     dedup_result_id=r.dedup_result_id,
                     submission_id=r.submission_id,
+                    section_register_id=r.section_register_id,
+                    section_register_mnemonic=rd.register_mnemonic if rd else None,
                     internal_record_id=r.internal_record_id,
                     match_score=r.match_score,
                     field_matches=r.field_matches,
                     created_at=r.created_at.isoformat() if r.created_at else None,
                 )
-                for r in results
-            ], total_items
+                for r, rd in rows
+            ]
 
     async def get_deduplication_intake_form_intake_form_results(
         self,
         submission_id: str,
-        current_page: int = 1,
-        page_size: int = 10,
-        sort_by: str = None,
-        filter_by: dict = None,
-    ) -> tuple[list[DeduplicationIntakeFormIntakeFormResultData], int]:
+    ) -> list[DeduplicationIntakeFormIntakeFormResultData]:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            count_result = await session.execute(
-                select(func.count()).select_from(DeduplicationIntakeFormIntakeFormResult).where(
-                    DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id
-                )
-            )
-            total_items = count_result.scalar() or 0
-
-            offset = (current_page - 1) * page_size
-            results = (
+            rows = (
                 await session.execute(
-                    select(DeduplicationIntakeFormIntakeFormResult).where(
-                        DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id
-                    ).offset(offset).limit(page_size)
+                    select(DeduplicationIntakeFormIntakeFormResult, G2PRegisterDefinition)
+                    .join(
+                        G2PRegisterDefinition,
+                        G2PRegisterDefinition.register_id == DeduplicationIntakeFormIntakeFormResult.section_register_id,
+                        isouter=True,
+                    )
+                    .where(DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id)
                 )
-            ).scalars().all()
+            ).all()
 
             return [
                 DeduplicationIntakeFormIntakeFormResultData(
                     dedup_result_id=r.dedup_result_id,
                     submission_id=r.submission_id,
+                    section_register_id=r.section_register_id,
+                    section_register_mnemonic=rd.register_mnemonic if rd else None,
                     candidate_submission_id=r.candidate_submission_id,
                     match_score=r.match_score,
                     field_matches=r.field_matches,
                     created_at=r.created_at.isoformat() if r.created_at else None,
                 )
-                for r in results
-            ], total_items
+                for r, rd in rows
+            ]
 
     async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:
         """Fetch aggregate summary counts for intake form submissions."""
