@@ -71,7 +71,7 @@ class G2PRegisterHistoryService(BaseService):
         if "change_request_source" in history_class.__table__.columns:
             history_dict["change_request_source"] = change_request.change_request_source
         if "is_primary_section" in history_class.__table__.columns:
-            history_dict["is_primary_section"] = change_request.is_primary_section
+            history_dict["is_primary_section"] = getattr(change_request, "is_primary_section", False)
         history_dict["change_request_id"] = change_request.change_request_id
         history_dict["created_at"] = change_request.created_at
         history_dict["created_by"] = change_request.created_by
