@@ -1,5 +1,5 @@
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PResponse, G2PResponseBody
 from pydantic import BaseModel, ConfigDict
@@ -238,10 +238,6 @@ class DeduplicationIntakeFormIntakeFormResultData(BaseModel):
 
 class GetDeduplicationIntakeFormRegisterResultsRequestPayload(BaseModel):
     submission_id: str
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[Dict] = None
 
 
 class GetDeduplicationIntakeFormRegisterResultsRequestBody(G2PRequestBody):
@@ -254,10 +250,6 @@ class GetDeduplicationIntakeFormRegisterResultsRequest(G2PRequest):
 
 class GetDeduplicationIntakeFormIntakeFormResultsRequestPayload(BaseModel):
     submission_id: str
-    current_page: int = 1
-    page_size: int = 10
-    sort_by: Optional[str] = None
-    filter_by: Optional[Dict] = None
 
 
 class GetDeduplicationIntakeFormIntakeFormResultsRequestBody(G2PRequestBody):
