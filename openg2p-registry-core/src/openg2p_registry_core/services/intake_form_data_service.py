@@ -1295,24 +1295,31 @@ class G2PIntakeFormDataService(BaseService):
             total_items = count_result.scalar() or 0
 
             offset = (current_page - 1) * page_size
-            results = (
+            rows = (
                 await session.execute(
-                    select(DeduplicationIntakeFormRegisterResult).where(
-                        DeduplicationIntakeFormRegisterResult.submission_id == submission_id
-                    ).offset(offset).limit(page_size)
+                    select(DeduplicationIntakeFormRegisterResult, G2PRegisterDefinition)
+                    .join(
+                        G2PRegisterDefinition,
+                        G2PRegisterDefinition.register_id == DeduplicationIntakeFormRegisterResult.section_register_id,
+                        isouter=True,
+                    )
+                    .where(DeduplicationIntakeFormRegisterResult.submission_id == submission_id)
+                    .offset(offset).limit(page_size)
                 )
-            ).scalars().all()
+            ).all()
 
             return [
                 DeduplicationIntakeFormRegisterResultData(
                     dedup_result_id=r.dedup_result_id,
                     submission_id=r.submission_id,
+                    section_register_id=r.section_register_id,
+                    section_register_mnemonic=rd.register_mnemonic if rd else None,
                     internal_record_id=r.internal_record_id,
                     match_score=r.match_score,
                     field_matches=r.field_matches,
                     created_at=r.created_at.isoformat() if r.created_at else None,
                 )
-                for r in results
+                for r, rd in rows
             ], total_items
 
     async def get_deduplication_intake_form_intake_form_results(
@@ -1333,24 +1340,31 @@ class G2PIntakeFormDataService(BaseService):
             total_items = count_result.scalar() or 0
 
             offset = (current_page - 1) * page_size
-            results = (
+            rows = (
                 await session.execute(
-                    select(DeduplicationIntakeFormIntakeFormResult).where(
-                        DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id
-                    ).offset(offset).limit(page_size)
+                    select(DeduplicationIntakeFormIntakeFormResult, G2PRegisterDefinition)
+                    .join(
+                        G2PRegisterDefinition,
+                        G2PRegisterDefinition.register_id == DeduplicationIntakeFormIntakeFormResult.section_register_id,
+                        isouter=True,
+                    )
+                    .where(DeduplicationIntakeFormIntakeFormResult.submission_id == submission_id)
+                    .offset(offset).limit(page_size)
                 )
-            ).scalars().all()
+            ).all()
 
             return [
                 DeduplicationIntakeFormIntakeFormResultData(
                     dedup_result_id=r.dedup_result_id,
                     submission_id=r.submission_id,
+                    section_register_id=r.section_register_id,
+                    section_register_mnemonic=rd.register_mnemonic if rd else None,
                     candidate_submission_id=r.candidate_submission_id,
                     match_score=r.match_score,
                     field_matches=r.field_matches,
                     created_at=r.created_at.isoformat() if r.created_at else None,
                 )
-                for r in results
+                for r, rd in rows
             ], total_items
 
     async def get_intake_form_submissions_summary(self) -> IntakeFormSubmissionsSummaryData:

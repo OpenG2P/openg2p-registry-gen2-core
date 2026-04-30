@@ -213,6 +213,8 @@ class SubmissionSearchResultsResponse(G2PResponse):
 class DeduplicationIntakeFormRegisterResultData(BaseModel):
     dedup_result_id: str
     submission_id: str
+    section_register_id: str
+    section_register_mnemonic: str
     internal_record_id: str
     match_score: float
     field_matches: Optional[Dict] = None
@@ -224,6 +226,8 @@ class DeduplicationIntakeFormRegisterResultData(BaseModel):
 class DeduplicationIntakeFormIntakeFormResultData(BaseModel):
     dedup_result_id: str
     submission_id: str
+    section_register_id: str
+    section_register_mnemonic: str
     candidate_submission_id: str
     match_score: float
     field_matches: Optional[Dict] = None
