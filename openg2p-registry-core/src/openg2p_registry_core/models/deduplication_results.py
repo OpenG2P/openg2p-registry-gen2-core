@@ -52,6 +52,7 @@ class DeduplicationIntakeFormRegisterResult(BaseORMModel):
 
     dedup_result_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     submission_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     match_score: Mapped[float] = mapped_column(Float, nullable=False)
     field_matches: Mapped[JSON] = mapped_column(JSON, nullable=False)

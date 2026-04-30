@@ -84,6 +84,8 @@ from .models import (
     G2PFunctionalIdGenerationQueue,
     G2PRegisterSectionCompletionScore,
     G2PCompletionScoreComputationQueue,
+    DeduplicationIntakeFormRegisterResult,
+    DeduplicationIntakeFormIntakeFormResult,
 )
 from .services import (
     G2PDataModelService,
@@ -227,6 +229,8 @@ class Initializer(BaseInitializer):
             # Deduplication Models
             await DeduplicationRegisterResult.create_migrate()
             await DeduplicationChangerequestResult.create_migrate()
+            await DeduplicationIntakeFormRegisterResult.create_migrate()
+            await DeduplicationIntakeFormIntakeFormResult.create_migrate()
 
             # Incoming Models (IncomingPartner removed - now in master-data-db)
             await IncomingRawData.create_migrate()
