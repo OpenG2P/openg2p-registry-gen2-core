@@ -1,9 +1,9 @@
 import importlib
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import inspect as sqla_inspect
-from sqlalchemy import select
+from sqlalchemy import Date as SQLDate, inspect as sqla_inspect, select
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -142,11 +142,122 @@ class G2PScoreComputeService(BaseService):
                 session=session,
                 register_id=register_definition.register_id,
                 internal_record_id=change_request.internal_record_id,
-                change_request_id=change_request.change_request_id,
+                change_request_id=change_request.change_request_id or "",  # Handle None case
                 score_definition_id=score_definition.score_definition_id,
                 score_type=score_definition.score_type,
                 contributing_attribute_values=contributing_values,
             )
+
+    async def enqueue_score_computations_for_submissions(
+        self,
+        submission_id: str,
+        section_register_ids: list[str],
+        session: Session,
+    ) -> None:
+        """
+        Populate/refresh PENDING rows in `g2p_score_compute_queue` for every
+        score type defined for the given register definitions when an intake submission is approved.
+        
+        This method processes only the specific register records that were created/updated
+        during the intake submission processing, not all records in the register.
+        
+        Args:
+            submission_id: The approved intake submission ID that triggered score computation
+            section_register_ids: List of register definition IDs from the intake submission
+            session: Database session for database operations
+            
+        Returns:
+            None
+        """
+        
+        _logger.info(f"enqueue_score_computations_for_submissions called for submission_id: {submission_id}, section_register_ids: {section_register_ids}")
+
+        for section_register_id in section_register_ids:
+            register_definition = await session.get(G2PRegisterDefinition, section_register_id)
+            if not register_definition:
+                _logger.warning(f"Register definition '{section_register_id}' not found, skipping")
+                continue
+
+            # Guard: only registers with purpose = REGISTER
+            if register_definition.register_purpose != RegisterPurposeEnum.REGISTER.value:
+                _logger.info(f"Register '{section_register_id}' purpose is not REGISTER, skipping")
+                continue
+
+            score_definitions = (
+                await session.execute(
+                    select(G2PRegisterScoreDefinition).where(
+                        G2PRegisterScoreDefinition.register_id == register_definition.register_id,
+                        G2PRegisterScoreDefinition.is_enabled.is_(True),
+                    )
+                )
+            ).scalars().all()
+            
+            if not score_definitions:
+                _logger.info(f"No enabled score definitions found for register '{section_register_id}', skipping")
+                continue
+
+            # Load the domain register model class using the same pattern as other services
+            try:
+                module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+                register_class = getattr(module, f"G2PRegister{register_definition.register_mnemonic}")
+            except (AttributeError, ModuleNotFoundError) as error:
+                _logger.error(f"Unable to load register model for '{register_definition.register_mnemonic}': {error}, skipping")
+                continue
+
+            # Load the intake model class to get internal_record_id for this submission
+            try:
+                intake_class = getattr(module, f"G2PIntakeForm{register_definition.register_mnemonic}")
+            except (AttributeError, ModuleNotFoundError) as error:
+                _logger.error(f"Unable to load intake model for '{register_definition.register_mnemonic}': {error}, skipping")
+                continue
+
+            # Get intake rows for this specific submission to get internal_record_id
+            intake_rows = (
+                await session.execute(
+                    select(intake_class).where(intake_class.submission_id == submission_id)
+                )
+            ).scalars().all()
+
+            if not intake_rows:
+                _logger.info(f"No intake rows found for submission '{submission_id}' in register '{section_register_id}', skipping")
+                continue
+
+            # For each intake row, get the corresponding register record using internal_record_id
+            for intake_row in intake_rows:
+                internal_record_id = intake_row.internal_record_id
+                if not internal_record_id:
+                    _logger.warning(f"No internal_record_id found for intake row in register '{section_register_id}', skipping")
+                    continue
+
+                # Get the actual register record using internal_record_id
+                register_record = await session.get(register_class, internal_record_id)
+                if not register_record:
+                    _logger.warning(f"Register record '{internal_record_id}' not found for register '{section_register_id}', skipping")
+                    continue
+
+                record_root = self._build_record_root(register_record)
+                
+                # For each score definition, compute the snapshot of all contributing values
+                for score_definition in score_definitions:
+                    contributing_paths = score_definition.contributing_attributes or []
+                    if not isinstance(contributing_paths, list) or not contributing_paths:
+                        continue
+
+                    contributing_values: dict[str, Any] = {
+                        path: self._get_value_by_dot_path(record_root, path)
+                        for path in contributing_paths
+                    }
+
+                    await self._upsert_pending_queue_row(
+                        session=session,
+                        register_id=register_definition.register_id,
+                        internal_record_id=internal_record_id,
+                        change_request_id="",  # Empty string for intake submissions (database constraint workaround)
+                        submission_id=submission_id,
+                        score_definition_id=score_definition.score_definition_id,
+                        score_type=score_definition.score_type,
+                        contributing_attribute_values=contributing_values,
+                    )
 
     # ----------------------------
     # Queue upsert helpers
@@ -157,9 +268,10 @@ class G2PScoreComputeService(BaseService):
         register_id: str,
         internal_record_id: str,
         change_request_id: str,
-        score_definition_id: str,
-        score_type: str,
-        contributing_attribute_values: dict[str, Any],
+        submission_id: str | None = None,
+        score_definition_id: str = "",
+        score_type: str = "",
+        contributing_attribute_values: dict[str, Any] | None = None,
     ) -> None:
         """
         Upsert a PENDING row in the score compute queue.
@@ -168,7 +280,8 @@ class G2PScoreComputeService(BaseService):
             session: Database session
             register_id: Register ID
             internal_record_id: Internal record ID
-            change_request_id: Change request ID
+            change_request_id: Change request ID (optional for intake submissions)
+            submission_id: Intake submission ID (optional for change requests)
             score_definition_id: Score definition ID
             score_type: Score type
             contributing_attribute_values: Contributing attribute values
@@ -185,6 +298,7 @@ class G2PScoreComputeService(BaseService):
 
         if existing_pending_queue_item:
             existing_pending_queue_item.change_request_id = change_request_id
+            existing_pending_queue_item.submission_id = submission_id
             existing_pending_queue_item.contributing_attribute_values = contributing_attribute_values
             existing_pending_queue_item.compute_no_of_attempts = 0
             existing_pending_queue_item.compute_latest_timestamp = None
@@ -199,6 +313,7 @@ class G2PScoreComputeService(BaseService):
             score_definition_id=score_definition_id,
             score_type=score_type,
             change_request_id=change_request_id,
+            submission_id=submission_id,
             contributing_attribute_values=contributing_attribute_values,
             compute_status=ScoreProcessStatusEnum.PENDING.value,
         )
@@ -507,6 +622,7 @@ class G2PScoreComputeService(BaseService):
                 current = getattr(current, part, None)
         return current
 
+    
     def _load_register_model(self, *, register_mnemonic: str):
         """
         Load domain register model class from extensions using the same naming

@@ -28,7 +28,10 @@ class G2PScoreComputeQueue(BaseORMModel):
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
     # FK to the change request that triggered this computation
-    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    
+    # FK to the intake submission that triggered this computation
+    submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     # Snapshot of contributing attribute values at time of CR approval
     contributing_attribute_values: Mapped[JSON] = mapped_column(JSON, nullable=False)
