@@ -17,6 +17,7 @@ class G2PCompletionScoreComputationQueue(BaseORMModel):
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     compute_status: Mapped[ProcessStatusEnum] = mapped_column(
         String, nullable=False, default=ProcessStatusEnum.PENDING

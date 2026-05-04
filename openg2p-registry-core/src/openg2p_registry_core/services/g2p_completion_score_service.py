@@ -1,5 +1,5 @@
-import logging
 import importlib
+import logging
 from datetime import datetime
 from typing import Optional
 
@@ -61,6 +61,7 @@ class G2PCompletionScoreService(BaseService):
         internal_record_id: str,
         session,
         change_request_id: Optional[str] = None,
+        submission_id: Optional[str] = None,
         section_id: Optional[str] = None,
     ) -> None:
         """
@@ -105,10 +106,82 @@ class G2PCompletionScoreService(BaseService):
                 internal_record_id=internal_record_id,
                 section_id=section.section_id,
                 change_request_id=change_request_id,
+                submission_id=submission_id,
                 compute_status=ProcessStatusEnum.PENDING.value,
                 compute_number_of_attempts=0,
             )
             session.add(queue_row)
+
+    async def enqueue_completion_score_computations_for_submissions(
+        self,
+        submission_id: str,
+        section_register_ids: list[str],
+        session,
+    ) -> None:
+        """
+        Enqueue completion score computations for all records created by an intake form submission.
+        Mirrors enqueue_score_computations_for_submissions() in G2PScoreComputeService.
+        """
+        _logger.info(
+            f"enqueue_completion_score_computations_for_submissions called for submission_id: {submission_id}, "
+            f"section_register_ids: {section_register_ids}"
+        )
+        module = importlib.import_module("openg2p_registry_extensions.register_domain.models")
+
+        for section_register_id in section_register_ids:
+            register_definition: G2PRegisterDefinition = (
+                await session.execute(
+                    select(G2PRegisterDefinition).where(
+                        G2PRegisterDefinition.register_id == section_register_id
+                    )
+                )
+            ).scalar()
+
+            if not register_definition:
+                _logger.warning(f"Register definition '{section_register_id}' not found, skipping")
+                continue
+
+            register_purpose = (
+                register_definition.register_purpose.value
+                if hasattr(register_definition.register_purpose, "value")
+                else register_definition.register_purpose
+            )
+            if register_purpose != RegisterPurposeEnum.REGISTER.value:
+                _logger.info(f"Register '{section_register_id}' is not a REGISTER, skipping completion score")
+                continue
+
+            try:
+                intake_class = getattr(module, f"G2PIntakeForm{register_definition.register_mnemonic}")
+            except AttributeError:
+                _logger.warning(
+                    f"Intake form class 'G2PIntakeForm{register_definition.register_mnemonic}' not found, skipping"
+                )
+                continue
+
+            intake_rows = (
+                (await session.execute(select(intake_class).where(intake_class.submission_id == submission_id)))
+                .scalars()
+                .all()
+            )
+
+            if not intake_rows:
+                _logger.info(f"No intake rows found for submission '{submission_id}' in register '{section_register_id}'")
+                continue
+
+            for intake_row in intake_rows:
+                internal_record_id = intake_row.internal_record_id
+                if not internal_record_id:
+                    _logger.warning(f"No internal_record_id on intake row for register '{section_register_id}', skipping")
+                    continue
+
+                await self.enqueue_completion_score_computations(
+                    register_id=section_register_id,
+                    internal_record_id=internal_record_id,
+                    session=session,
+                    submission_id=submission_id,
+                )
+
+        _logger.info(f"Completion score enqueue complete for submission {submission_id}")
 
     # ---------- Compute ----------
 
