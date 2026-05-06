@@ -31,7 +31,7 @@ class G2PRegisterSection(BaseORMModel):
     )
     is_core_section: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     
-    section_mnemonic: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    section_mnemonic: Mapped[str] = mapped_column(String, nullable=False, index=True, unique=True)
     section_description: Mapped[Text] = mapped_column(Text, nullable=True)
     documents_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     no_of_verifications_required: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

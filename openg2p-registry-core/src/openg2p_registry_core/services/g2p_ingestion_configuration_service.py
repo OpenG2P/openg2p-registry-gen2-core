@@ -7,6 +7,7 @@ from fastapi import UploadFile
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
+from openg2p_registry_core.models.g2p_intake_form_metadata import G2PIntakeFormDefinition
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy import select, func
 
@@ -17,7 +18,6 @@ from ..models import (
     DataModel,
     SubscriptionActivityLog,
     G2PRegisterDefinition,
-    G2PRegisterSection,
 )
 from ..schemas import (
     IncomingModelKeyPathPayload,
@@ -225,20 +225,20 @@ class G2PIngestionConfigurationService(BaseService):
             )
         return existing
     
-    async def _validate_section_id_exists(
-        self, session: AsyncSession, section_id: str
-    ) -> G2PRegisterSection:
-        """Validate and return the section for a given section_id."""
+    async def _validate_intake_form_id_exists(
+        self, session: AsyncSession, intake_form_id: str
+    ) -> G2PIntakeFormDefinition:
+        """Validate and return the intake form for a given intake_form_id."""
         existing = await session.execute(
-            select(G2PRegisterSection).where(
-                G2PRegisterSection.section_id == section_id
+            select(G2PIntakeFormDefinition).where(
+                G2PIntakeFormDefinition.form_id == intake_form_id
             )
         )
         existing = existing.scalar_one_or_none()
         if not existing:
             raise G2PRegistryException(
-                code=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[1],
-                message=G2PRegistryErrorCodes.SECTION_NOT_FOUND.value[0],
+                code=G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.INTAKE_FORM_NOT_FOUND.value[0],
             )
         return existing
 
@@ -266,13 +266,13 @@ class G2PIngestionConfigurationService(BaseService):
         async with session_maker() as session:
             await self._validate_data_model_id_exists(session, pattern_payload.data_model_id)
             await self._validate_register_id_exists(session, pattern_payload.register_id)
-            await self._validate_section_id_exists(session, pattern_payload.section_id)
+            await self._validate_intake_form_id_exists(session, pattern_payload.intake_form_id)
             pattern = IncomingModelSemanticPattern(
                 data_model_id=pattern_payload.data_model_id,
                 register_id=pattern_payload.register_id,
-                section_id=pattern_payload.section_id,
+                intake_form_id=pattern_payload.intake_form_id,
                 pattern_for_register=pattern_payload.pattern_for_register,
-                pattern_for_section=pattern_payload.pattern_for_section,
+                pattern_for_intake_form=pattern_payload.pattern_for_intake_form,
                 key_path_for_business_payload=pattern_payload.key_path_for_business_payload,
                 raw_payload_enricher_class=pattern_payload.raw_payload_enricher_class,
             )
@@ -327,8 +327,8 @@ class G2PIngestionConfigurationService(BaseService):
 
             if pattern_payload.pattern_for_register is not None:
                 pattern_obj.pattern_for_register = pattern_payload.pattern_for_register
-            if pattern_payload.pattern_for_section is not None:
-                pattern_obj.pattern_for_section = pattern_payload.pattern_for_section
+            if pattern_payload.pattern_for_intake_form is not None:
+                pattern_obj.pattern_for_intake_form = pattern_payload.pattern_for_intake_form
             if pattern_payload.key_path_for_business_payload is not None:
                 pattern_obj.key_path_for_business_payload = pattern_payload.key_path_for_business_payload
             if pattern_payload.raw_payload_enricher_class is not None:
@@ -377,8 +377,8 @@ class G2PIngestionConfigurationService(BaseService):
         register_obj = await self._validate_register_id_exists(
             session, pattern_obj.register_id
         )
-        section_obj = await self._validate_section_id_exists(
-            session, pattern_obj.section_id
+        intake_form_obj = await self._validate_intake_form_id_exists(
+            session, pattern_obj.intake_form_id
         )
 
         return IncomingModelSemanticPatternData(
@@ -387,10 +387,10 @@ class G2PIngestionConfigurationService(BaseService):
             data_model_mnemonic=data_model_obj.data_model_mnemonic,
             register_id=pattern_obj.register_id,
             register_mnemonic=register_obj.register_mnemonic,
-            section_id=pattern_obj.section_id,
-            section_mnemonic=section_obj.section_mnemonic,
+            intake_form_id=pattern_obj.intake_form_id,
+            intake_form_mnemonic=intake_form_obj.form_mnemonic,
             pattern_for_register=pattern_obj.pattern_for_register,
-            pattern_for_section=pattern_obj.pattern_for_section,
+            pattern_for_intake_form=pattern_obj.pattern_for_intake_form,
             key_path_for_business_payload=pattern_obj.key_path_for_business_payload,
             raw_payload_enricher_class=pattern_obj.raw_payload_enricher_class,
         )

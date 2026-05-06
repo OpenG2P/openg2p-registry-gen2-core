@@ -3,18 +3,18 @@ import logging
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import Date as select, func, and_
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from ..models import (
     DataModel,
+    G2PIntakeFormDefinition,
+    G2PRegisterDefinition,
+    IncomingClassifiedData,
+    IncomingEnrichedTransformedData,
     IncomingPartner,
     IncomingRawData,
-    IncomingClassifiedData,
     IncomingRawDataPayload,
     IncomingTemplate,
-    IncomingEnrichedTransformedData,
-    G2PRegisterDefinition,
-    G2PRegisterSection
 )
 from ..schemas import (
     IngestionSummaryData,
@@ -153,11 +153,11 @@ class G2PIngestionDataService(BaseService):
                 IncomingRawData.classification_number_of_attempts,
                 IncomingRawData.classification_latest_error_code,
 
-                IncomingClassifiedData.change_request_id,
+                IncomingClassifiedData.intake_form_id,
+                G2PIntakeFormDefinition.form_mnemonic.label("intake_form_mnemonic"),
+                IncomingClassifiedData.intake_form_submission_id,
                 IncomingClassifiedData.register_id,
                 G2PRegisterDefinition.register_mnemonic,
-                IncomingClassifiedData.section_id,
-                G2PRegisterSection.section_mnemonic,
                 IncomingClassifiedData.semantic_pattern_id,
 
                 IncomingTemplate.template_id,
@@ -192,10 +192,10 @@ class G2PIngestionDataService(BaseService):
                 G2PRegisterDefinition.register_id == IncomingClassifiedData.register_id,
             )
 
-            # needed for section_mnemonic
+            # needed for intake_form_mnemonic
             .outerjoin(
-                G2PRegisterSection,
-                G2PRegisterSection.section_id == IncomingClassifiedData.section_id,
+                G2PIntakeFormDefinition,
+                G2PIntakeFormDefinition.form_id == IncomingClassifiedData.intake_form_id,
             )
 
             # needed for template
@@ -242,11 +242,11 @@ class G2PIngestionDataService(BaseService):
                     classification_number_of_attempts=row.classification_number_of_attempts,
                     classification_latest_error_code=row.classification_latest_error_code,
 
-                    change_request_id=row.change_request_id,
+                    intake_form_id=row.intake_form_id,
+                    intake_form_mnemonic=row.intake_form_mnemonic,
+                    intake_form_submission_id=row.intake_form_submission_id,
                     register_id=row.register_id,
                     register_mnemonic=row.register_mnemonic,
-                    section_id=row.section_id,
-                    section_mnemonic=row.section_mnemonic,
                     semantic_pattern_id=row.semantic_pattern_id,
                     template_id=row.template_id,
                     template_file_id=row.template_file_id,

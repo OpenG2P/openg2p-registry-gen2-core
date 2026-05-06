@@ -103,10 +103,10 @@ class PatternMatcher(BaseService):
         register = self._extract_with_pattern(
             data, incoming_model_semantic_pattern.pattern_for_register
         )
-        section = self._extract_with_pattern(
-            data, incoming_model_semantic_pattern.pattern_for_section
+        intake_form = self._extract_with_pattern(
+            data, incoming_model_semantic_pattern.pattern_for_intake_form
         )
-        if register and section:
+        if register and intake_form:
             return True
 
         return False
