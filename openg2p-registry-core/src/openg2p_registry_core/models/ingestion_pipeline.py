@@ -63,7 +63,8 @@ class IncomingClassifiedData(BaseORMModel):
     data_model_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    # section_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    intake_form_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     semantic_pattern_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     classified_date_time: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     transformation_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
@@ -75,4 +76,4 @@ class IncomingClassifiedData(BaseORMModel):
     ingestion_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     ingestion_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
 
-    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)

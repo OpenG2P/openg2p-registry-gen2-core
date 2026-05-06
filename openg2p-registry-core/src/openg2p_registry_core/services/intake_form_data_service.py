@@ -61,35 +61,58 @@ class G2PIntakeFormDataService(BaseService):
     ) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            submission = await self._get_or_create_draft_submission(
+            submission = await self.save_intake_form_submission_with_session(
                 submission_id,
+                section_id,
+                section_payload,
+                section_register_id,
                 form_id,
                 register_id,
                 created_by,
                 session,
             )
-            section = await self._get_section_or_error(section_id, session)
-            intake_class = await self._resolve_intake_form_class(section_register_id, session)
-
-            existing_rows = await self._get_intake_rows(intake_class, submission.submission_id, session)
-            incoming_ids = await self._upsert_intake_rows(
-                intake_class,
-                submission,
-                section_payload or [],
-                existing_rows,
-                created_by,
-                session,
-            )
-            await self._delete_missing_intake_rows(existing_rows, incoming_ids, session)
-
-            submission.form_id = form_id
-            submission.register_id = register_id
-            submission.draft_status = IntakeFormStatusEnum.DRAFT.value
-            submission.last_updated_at = datetime.now()
-            session.add(submission)
-
             await session.commit()
             return await self.get_submission_payload(submission.submission_id)
+
+    async def save_intake_form_submission_with_session(
+        self,
+        submission_id: str | None,
+        section_id: str,
+        section_payload: list[dict],
+        section_register_id: str,
+        form_id: str,
+        register_id: str,
+        created_by: str,
+        session,
+    ) -> G2PIntakeFormSubmission:
+        submission = await self._get_or_create_draft_submission(
+            submission_id,
+            form_id,
+            register_id,
+            created_by,
+            session,
+        )
+        _section = await self._get_section_or_error(section_id, session)
+        intake_class = await self._resolve_intake_form_class(section_register_id, session)
+
+        existing_rows = await self._get_intake_rows(intake_class, submission.submission_id, session)
+        incoming_ids = await self._upsert_intake_rows(
+            intake_class,
+            submission,
+            section_payload or [],
+            existing_rows,
+            created_by,
+            session,
+        )
+        await self._delete_missing_intake_rows(existing_rows, incoming_ids, session)
+
+        submission.form_id = form_id
+        submission.register_id = register_id
+        submission.draft_status = IntakeFormStatusEnum.DRAFT.value
+        submission.last_updated_at = datetime.now()
+        session.add(submission)
+        await session.flush()
+        return submission
 
     async def _get_or_create_draft_submission(
         self,
@@ -322,44 +345,77 @@ class G2PIntakeFormDataService(BaseService):
     ) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            now = datetime.now()
-            await self._validate_form(form_id, register_id, session)
-
-            submission = G2PIntakeFormSubmission(
-                form_id=form_id,
-                register_id=register_id,
-                draft_status=IntakeFormStatusEnum.DRAFT.value,
-                approval_status=ApprovalStatusEnum.PENDING.value,
-                first_created_at=now,
-                last_updated_at=now,
-                created_by=created_by,
-                submission_source=self._normalize_submission_source(submission_source),
-                partner_id=partner_id,
-                register_ingest_process_status=ProcessStatusEnum.NOT_APPLICABLE.value,
-                number_of_verifications_required=await self._get_form_verification_requirement(form_id, session),
-                number_of_verifications_done=0,
+            submission = await self.create_submission_with_session(
+                form_id,
+                register_id,
+                submission_source,
+                partner_id,
+                section_payloads,
+                created_by,
+                session,
             )
-            session.add(submission)
-            await session.flush()
-
-            if section_payloads is not None:
-                await self._replace_submission_sections(submission, section_payloads, created_by, session)
-
-            await self._upsert_submission_search_text(submission, session)
             await session.commit()
             return await self.get_submission_payload(submission.submission_id)
+
+    async def create_submission_with_session(
+        self,
+        form_id: str,
+        register_id: str,
+        submission_source: str,
+        partner_id: str | None,
+        section_payloads: list[SectionPayloadInput] | None,
+        created_by: str,
+        session,
+    ) -> G2PIntakeFormSubmission:
+        now = datetime.now()
+        await self._validate_form(form_id, register_id, session)
+
+        submission = G2PIntakeFormSubmission(
+            form_id=form_id,
+            register_id=register_id,
+            draft_status=IntakeFormStatusEnum.DRAFT.value,
+            approval_status=ApprovalStatusEnum.PENDING.value,
+            first_created_at=now,
+            last_updated_at=now,
+            created_by=created_by,
+            submission_source=self._normalize_submission_source(submission_source),
+            partner_id=partner_id,
+            register_ingest_process_status=ProcessStatusEnum.NOT_APPLICABLE.value,
+            number_of_verifications_required=await self._get_form_verification_requirement(form_id, session),
+            number_of_verifications_done=0,
+        )
+        session.add(submission)
+        await session.flush()
+
+        if section_payloads is not None:
+            await self._replace_submission_sections(submission, section_payloads, created_by, session)
+
+        await self._upsert_submission_search_text(submission, session)
+        await session.flush()
+        return submission
 
     async def finalize_submission(self, submission_id: str, finalized_by: str | None = None) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            submission = await self._get_submission_or_error(submission_id, session)
-            now = datetime.now()
-            submission.draft_status = IntakeFormStatusEnum.FINAL.value
-            submission.finalized_at = now
-            submission.last_updated_at = now
-            session.add(submission)
+            submission = await self.finalize_submission_with_session(submission_id, session, finalized_by)
             await session.commit()
             return await self.get_submission_payload(submission.submission_id)
+
+    async def finalize_submission_with_session(
+        self,
+        submission_id: str,
+        session,
+        finalized_by: str | None = None,
+    ) -> G2PIntakeFormSubmission:
+        _ = finalized_by
+        submission = await self._get_submission_or_error(submission_id, session)
+        now = datetime.now()
+        submission.draft_status = IntakeFormStatusEnum.FINAL.value
+        submission.finalized_at = now
+        submission.last_updated_at = now
+        session.add(submission)
+        await session.flush()
+        return submission
 
     async def approve_submission(self, submission_id: str, approved_by: str) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
@@ -402,11 +458,20 @@ class G2PIntakeFormDataService(BaseService):
     async def delete_submission(self, submission_id: str) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            submission = await self._get_submission_or_error(submission_id, session)
-            response = self._build_submission_response_payload(submission, None, None)
-            await self._delete_submission_rows(submission, session)
+            response = await self.delete_submission_with_session(submission_id, session)
             await session.commit()
             return response
+
+    async def delete_submission_with_session(
+        self,
+        submission_id: str,
+        session,
+    ) -> SubmissionResponsePayload:
+        submission = await self._get_submission_or_error(submission_id, session)
+        response = self._build_submission_response_payload(submission, None, None)
+        await self._delete_submission_rows(submission, session)
+        await session.flush()
+        return response
 
     async def get_intake_form_submission(
         self,

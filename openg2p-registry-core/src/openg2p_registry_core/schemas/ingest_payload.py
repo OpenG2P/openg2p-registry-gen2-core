@@ -27,11 +27,11 @@ class IngestionDataSearchResultData(BaseModel):
     classification_number_of_attempts: Optional[int] = None
     classification_latest_error_code: Optional[str] = None
 
-    change_request_id: Optional[str] = None
+    intake_form_id: Optional[str] = None
+    intake_form_mnemonic: Optional[str] = None
+    intake_form_submission_id: Optional[str] = None
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
-    section_id: Optional[str] = None
-    section_mnemonic: Optional[str] = None
     semantic_pattern_id: Optional[str] = None
     template_id: Optional[str] = None
     template_file_id: Optional[str] = None
@@ -161,9 +161,11 @@ class IncomingModelKeyPathListData(BaseModel):
 class IncomingModelSemanticPatternPayload(BaseModel):
     data_model_id: str
     register_id: str
-    section_id: str
+    intake_form_id: str
+    # section_id: str
     pattern_for_register: str
-    pattern_for_section: str
+    pattern_for_intake_form: str
+    # pattern_for_section: str
     key_path_for_business_payload: str
     raw_payload_enricher_class: Optional[str] = None
 
@@ -175,7 +177,8 @@ class IncomingModelSemanticPatternUpdatePayload(BaseModel):
     """Update payload for IncomingModelSemanticPattern - only allows updating specific fields"""
     semantic_pattern_id: str
     pattern_for_register: Optional[str] = None
-    pattern_for_section: Optional[str] = None
+    pattern_for_intake_form: Optional[str] = None
+    # pattern_for_section: Optional[str] = None
     key_path_for_business_payload: Optional[str] = None
     raw_payload_enricher_class: Optional[str] = None
 
@@ -197,10 +200,11 @@ class IncomingModelSemanticPatternData(BaseModel):
     data_model_mnemonic: Optional[str] = None
     register_id: str
     register_mnemonic: Optional[str] = None
-    section_id: str
-    section_mnemonic: Optional[str] = None
+    intake_form_id: str
+    intake_form_mnemonic: Optional[str] = None
     pattern_for_register: str
-    pattern_for_section: str
+    # pattern_for_section: str
+    pattern_for_intake_form: str
     key_path_for_business_payload: str
     raw_payload_enricher_class: Optional[str] = None
 
