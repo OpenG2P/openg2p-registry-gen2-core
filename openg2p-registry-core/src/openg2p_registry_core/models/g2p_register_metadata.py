@@ -35,6 +35,11 @@ class G2PRegisterDefinition(BaseORMModel):
 
     # Completion score configuration
     completion_score_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    
+    # Registrant authentication configuration
+    requires_registrant_authentication: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    registrant_authentication_validity_days: Mapped[int] = mapped_column(Integer, nullable=True, default=730)
+    registrant_re_auth_warning_days_before: Mapped[int] = mapped_column(Integer, nullable=True, default=30)
 
     @validates('register_mnemonic')
     def set_register_subject(self, _key: str, register_mnemonic_value: str) -> str:

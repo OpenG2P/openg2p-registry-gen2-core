@@ -32,3 +32,4 @@ from .g2p_completion_score import *
 
 from .intake_form import *
 from .intake_form_metadata import *
+from .registrant_auth import *
