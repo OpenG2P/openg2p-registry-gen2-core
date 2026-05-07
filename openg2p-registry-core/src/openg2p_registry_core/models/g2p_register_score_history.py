@@ -19,19 +19,23 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_definition_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
     triggered_by_cr_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    triggered_by_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     computed_score: Mapped[float] = mapped_column(Float, nullable=False)
-    computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     __table_args__ = (
         Index(
-            "ix_g2p_register_score_history_internal_record_score_type",
+            "ix_g2p_register_score_history_internal_record_score_type_computed_at",
             "internal_record_id",
             "score_type",
+            "computed_at",
         ),
     )
 

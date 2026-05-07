@@ -23,6 +23,12 @@ class ScoreData(BaseModel):
     computed_score: float = Field(..., description="Computed score value")
     computed_at: Optional[str] = Field(None, description="Timestamp when score was computed")
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
+    triggered_by_submission_id: Optional[str] = Field(
+        None, description="Submission ID that triggered this computation (if any)"
+    )
+    link_internal_record_id: Optional[str] = Field(
+        None, description="Linked parent internal record ID (if any)"
+    )
 
 
 class GetScoresResponsePayload(BaseModel):
@@ -46,6 +52,12 @@ class ScoreHistoryData(BaseModel):
     computed_score: float = Field(..., description="Computed score value")
     computed_at: Optional[str] = Field(None, description="Timestamp when score was computed")
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
+    triggered_by_submission_id: Optional[str] = Field(
+        None, description="Submission ID that triggered this computation (if any)"
+    )
+    link_internal_record_id: Optional[str] = Field(
+        None, description="Linked parent internal record ID (if any)"
+    )
 
 
 class GetScoreHistoryResponsePayload(BaseModel):

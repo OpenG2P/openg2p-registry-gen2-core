@@ -137,12 +137,19 @@ class G2PScoreComputeService(BaseService):
                 path: self._get_value_by_dot_path(record_root, path)
                 for path in contributing_paths
             }
+            link_internal_record_id = (
+                record_root.get("link_internal_record_id")
+                if "link_internal_record_id" in record_root
+                else None
+            )
 
             await self._upsert_pending_queue_row(
                 session=session,
                 register_id=register_definition.register_id,
                 internal_record_id=change_request.internal_record_id,
                 change_request_id=change_request.change_request_id or "",  # Handle None case
+                submission_id="",
+                link_internal_record_id=link_internal_record_id,
                 score_definition_id=score_definition.score_definition_id,
                 score_type=score_definition.score_type,
                 contributing_attribute_values=contributing_values,
@@ -247,6 +254,11 @@ class G2PScoreComputeService(BaseService):
                         path: self._get_value_by_dot_path(record_root, path)
                         for path in contributing_paths
                     }
+                    link_internal_record_id = (
+                        record_root.get("link_internal_record_id")
+                        if "link_internal_record_id" in record_root
+                        else None
+                    )
 
                     await self._upsert_pending_queue_row(
                         session=session,
@@ -254,6 +266,7 @@ class G2PScoreComputeService(BaseService):
                         internal_record_id=internal_record_id,
                         change_request_id="",  # Empty string for intake submissions (database constraint workaround)
                         submission_id=submission_id,
+                        link_internal_record_id=link_internal_record_id,
                         score_definition_id=score_definition.score_definition_id,
                         score_type=score_definition.score_type,
                         contributing_attribute_values=contributing_values,
@@ -269,6 +282,7 @@ class G2PScoreComputeService(BaseService):
         internal_record_id: str,
         change_request_id: str,
         submission_id: str | None = None,
+        link_internal_record_id: str | None = None,
         score_definition_id: str = "",
         score_type: str = "",
         contributing_attribute_values: dict[str, Any] | None = None,
@@ -299,6 +313,7 @@ class G2PScoreComputeService(BaseService):
         if existing_pending_queue_item:
             existing_pending_queue_item.change_request_id = change_request_id
             existing_pending_queue_item.submission_id = submission_id
+            existing_pending_queue_item.link_internal_record_id = link_internal_record_id
             existing_pending_queue_item.contributing_attribute_values = contributing_attribute_values
             existing_pending_queue_item.compute_no_of_attempts = 0
             existing_pending_queue_item.compute_latest_timestamp = None
@@ -314,6 +329,7 @@ class G2PScoreComputeService(BaseService):
             score_type=score_type,
             change_request_id=change_request_id,
             submission_id=submission_id,
+            link_internal_record_id=link_internal_record_id,
             contributing_attribute_values=contributing_attribute_values,
             compute_status=ScoreProcessStatusEnum.PENDING.value,
         )
@@ -347,6 +363,8 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
+                triggered_by_submission_id=getattr(score, "triggered_by_submission_id", None),
+                link_internal_record_id=getattr(score, "link_internal_record_id", None),
             )
             for score in score_records
         ]
@@ -380,6 +398,8 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
+                triggered_by_submission_id=getattr(score, "triggered_by_submission_id", None),
+                link_internal_record_id=getattr(score, "link_internal_record_id", None),
             )
             for score in score_history_records
         ]

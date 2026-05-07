@@ -33,6 +33,9 @@ class G2PScoreComputeQueue(BaseORMModel):
     # FK to the intake submission that triggered this computation
     submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
+    # Parent record mapping for score registers (if any)
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
     # Snapshot of contributing attribute values at time of CR approval
     contributing_attribute_values: Mapped[JSON] = mapped_column(JSON, nullable=False)
 
