@@ -19,7 +19,6 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_definition_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
@@ -29,6 +28,7 @@ class G2PRegisterScoreHistory(BaseORMModel):
     triggered_by_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     computed_score: Mapped[float] = mapped_column(Float, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     __table_args__ = (
         Index(
