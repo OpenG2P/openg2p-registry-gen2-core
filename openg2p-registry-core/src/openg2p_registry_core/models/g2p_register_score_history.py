@@ -32,10 +32,9 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     __table_args__ = (
         Index(
-            "ix_g2p_register_score_history_internal_record_score_type_computed_at",
+            "ix_g2p_register_score_history_internal_record_score_type",
             "internal_record_id",
             "score_type",
-            "computed_at",
         ),
     )
 
