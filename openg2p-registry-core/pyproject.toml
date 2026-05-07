@@ -23,7 +23,9 @@ dependencies = [
   "minio",
   "pyld",
   "uuid",
-  "fastapi-cache2"
+  "fastapi-cache2",
+  "cryptography",
+  "redis"
 ]
 dynamic = ["version"]
 

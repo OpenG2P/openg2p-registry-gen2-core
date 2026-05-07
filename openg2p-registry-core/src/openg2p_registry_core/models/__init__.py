@@ -93,3 +93,7 @@ from .g2p_register_score_definition import G2PRegisterScoreDefinition
 from .g2p_score_compute_queue import G2PScoreComputeQueue
 from .g2p_register_score import G2PRegisterScore
 from .g2p_register_score_history import G2PRegisterScoreHistory
+
+from .g2p_registrant_authentication_provider import G2PRegistrantAuthenticationProvider
+from .g2p_registrant_authentication import G2PRegistrantAuthentication, AuthenticationStatusEnum
+from .g2p_register_authentication import G2PRegisterAuthentication
