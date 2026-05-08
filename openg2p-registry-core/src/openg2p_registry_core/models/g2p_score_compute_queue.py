@@ -44,7 +44,7 @@ class G2PScoreComputeQueue(BaseORMModel):
 
     __table_args__ = (
         Index(
-            "ix_g2p_score_compute_queue_register_link_internal_record_id_score_type_pending",
+            "ix_g2p_score_compute_queue_link_rec_id_score_type_status",
             "link_internal_record_id",
             "score_type",
             "compute_status",

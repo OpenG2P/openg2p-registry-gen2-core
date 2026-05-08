@@ -27,6 +27,14 @@ from .vc_payload import *
 from .vc_request import *
 from .vc_response import *
 
+from .import_file_payload import *
+from .import_file_request import *
+from .import_file_response import *
+
+from .input_mechanism_payload import *
+from .input_mechanism_request import *
+from .input_mechanism_response import *
+
 from .g2p_score import *
 from .g2p_completion_score import *
 

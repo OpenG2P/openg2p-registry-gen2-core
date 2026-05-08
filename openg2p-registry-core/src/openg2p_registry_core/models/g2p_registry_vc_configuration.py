@@ -10,6 +10,8 @@ class G2PRegistryVcConfiguration(BaseORMModel):
 
     vc_config_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    intake_form_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    data_model_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     vc_mnemonic: Mapped[str] = mapped_column(String, nullable=False, unique=False, index=True)
     descriptor_schema: Mapped[dict] = mapped_column(
         MutableDict.as_mutable(JSONB),

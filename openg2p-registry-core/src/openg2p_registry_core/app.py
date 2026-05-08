@@ -27,7 +27,8 @@ from .controller_services import (
     G2PRegistryConfigurationControllerService,
     G2PRegistryThemeControllerService,
     G2PRegistryLanguageControllerService,
-    G2PUIHelperControllerService,
+    InputMechanismMetadataControllerService,
+    ImportFileConfigurationControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
     G2PScoreControllerService,
@@ -68,7 +69,10 @@ from .models import (
     G2PRegistryTheme,
     G2PRegistryThemeValue,
     G2PRegistryDocument,
+    G2PRegistryImportFileConfiguration,
     G2PRegistryVcConfiguration,
+    ImportFileProcessQueue,
+    ImportFileProcessLog,
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingModelKeyPath,
@@ -109,13 +113,15 @@ from .services import (
     G2PRegisterVerificationService,
     G2PTemplateService,
     G2PTemplateFileService,
-    G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
     G2PScoreComputeService,
     G2PCompletionScoreService,
     G2PGeoHierarchyService,
     G2PRegistrantAuthenticationService,
+    InputMechanismMetadataService,
+    InputMechanismDataService,
+    ImportFileConfigurationService,
 )
 
 _config = Settings.get_config(strict=False)
@@ -159,7 +165,9 @@ class Initializer(BaseInitializer):
         G2PTemplateFileService()
         G2PAttributeService()
         G2PVcConfigurationService()
-        G2PUIHelperService()
+        InputMechanismMetadataService()
+        InputMechanismDataService()
+        ImportFileConfigurationService()
         G2PIntakeFormDataService()
         G2PIntakeFormMetadataService()
         G2PRegisterVerificationService()
@@ -189,7 +197,8 @@ class Initializer(BaseInitializer):
         G2PRegistryLanguageControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
-        G2PUIHelperControllerService()
+        InputMechanismMetadataControllerService()
+        ImportFileConfigurationControllerService()
         G2PIntakeFormDataControllerService()
         G2PIntakeFormMetadataControllerService()
         G2PVerificationControllerService()
@@ -262,8 +271,11 @@ class Initializer(BaseInitializer):
             # VC Configuration Models
             await G2PInputMechanism.create_migrate()
             await G2PRegistryVcConfiguration.create_migrate()
+            await G2PRegistryImportFileConfiguration.create_migrate()
 
             # Id Generation Queue Models
+            await ImportFileProcessQueue.create_migrate()
+            await ImportFileProcessLog.create_migrate()
             await G2PFunctionalIdGenerationQueue.create_migrate()
 
             # Completion Score Models
