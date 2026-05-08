@@ -349,8 +349,8 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
-                triggered_by_submission_id=getattr(score, "triggered_by_submission_id", None),
-                link_internal_record_id=getattr(score, "link_internal_record_id", None),
+                triggered_by_submission_id=score.triggered_by_submission_id,
+                link_internal_record_id=score.link_internal_record_id,
             )
             for score in score_records
         ]
@@ -384,8 +384,8 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
-                triggered_by_submission_id=getattr(score, "triggered_by_submission_id", None),
-                link_internal_record_id=getattr(score, "link_internal_record_id", None),
+                triggered_by_submission_id=score.triggered_by_submission_id,
+                link_internal_record_id=score.link_internal_record_id,
             )
             for score in score_history_records
         ]
