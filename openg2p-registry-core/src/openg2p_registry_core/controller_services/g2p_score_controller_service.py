@@ -33,17 +33,17 @@ class G2PScoreControllerService(BaseService):
     ) -> GetScoresResponsePayload:
         _logger.info("Fetching scores for record through controller service")
         scores_request_payload = get_scores_request.request_body.request_payload
-        internal_record_id: str = scores_request_payload.internal_record_id
+        link_internal_record_id: str = scores_request_payload.link_internal_record_id
         
         try:
             g2p_score_compute_service = G2PScoreComputeService.get_component()
             session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
             async with session_maker() as session:
                 scores_data = await g2p_score_compute_service.get_scores_for_record(
-                    internal_record_id=internal_record_id, session=session
+                    link_internal_record_id=link_internal_record_id, session=session
                 )
         except Exception as e:
-            _logger.error(f"Error fetching scores for record {internal_record_id}: {str(e)}")
+            _logger.error(f"Error fetching scores for record {link_internal_record_id}: {str(e)}")
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.SCORE_COMPUTE_SERVICE_ERROR.value[1],
                 message=f"Failed to fetch scores for record: {str(e)}"
@@ -56,14 +56,14 @@ class G2PScoreControllerService(BaseService):
     ) -> GetScoreHistoryResponsePayload:
         _logger.info("Getting score history through controller service")
         score_history_request_payload = get_score_history_request.request_body.request_payload
-        internal_record_id: str = score_history_request_payload.internal_record_id
+        link_internal_record_id: str = score_history_request_payload.link_internal_record_id
         score_type: str = score_history_request_payload.score_type
 
         g2p_score_compute_service = G2PScoreComputeService.get_component()
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             score_history_data = await g2p_score_compute_service.get_score_history(
-                internal_record_id=internal_record_id,
+                link_internal_record_id=link_internal_record_id,
                 score_type=score_type,
                 session=session,
             )
