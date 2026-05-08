@@ -11,7 +11,7 @@ from .g2p_functional_id_generation_queue import ProcessStatusEnum
 class G2PScoreComputeQueue(BaseORMModel):
     """
     Queue items for asynchronously computing scores for a given
-    (internal_record_id, score_type) after Change Request approval.
+    (link_internal_record_id, score_type) after Change Request approval.
     """
 
     __tablename__ = "g2p_score_compute_queue"
@@ -21,20 +21,12 @@ class G2PScoreComputeQueue(BaseORMModel):
     )
 
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-
-    # Domain-specific score identity + factory lookup key
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     score_definition_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
-    # FK to the change request that triggered this computation
     change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    
-    # FK to the intake submission that triggered this computation
     submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-
-    # Parent record mapping for score registers (if any)
-    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     # Snapshot of contributing attribute values at time of CR approval
     contributing_attribute_values: Mapped[JSON] = mapped_column(JSON, nullable=False)
@@ -52,8 +44,8 @@ class G2PScoreComputeQueue(BaseORMModel):
 
     __table_args__ = (
         Index(
-            "ix_g2p_score_compute_queue_register_internal_score_pending",
-            "internal_record_id",
+            "ix_g2p_score_compute_queue_register_link_internal_record_id_score_type_pending",
+            "link_internal_record_id",
             "score_type",
             "compute_status",
         ),

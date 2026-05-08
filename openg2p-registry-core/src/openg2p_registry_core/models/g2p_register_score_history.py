@@ -13,12 +13,9 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     __tablename__ = "g2p_register_score_history"
 
-    history_id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_definition_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
@@ -32,8 +29,8 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     __table_args__ = (
         Index(
-            "ix_g2p_register_score_history_internal_record_score_type",
-            "internal_record_id",
+            "ix_g2p_register_score_history_link_internal_record_id_score_type",
+            "link_internal_record_id",
             "score_type",
         ),
     )

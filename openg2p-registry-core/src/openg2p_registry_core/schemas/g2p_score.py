@@ -14,7 +14,7 @@ from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PRespon
 
 class GetScoresRequestPayload(BaseModel):
     """Payload for getting scores for a record."""
-    internal_record_id: str = Field(..., description="Internal record ID")
+    link_internal_record_id: str = Field(..., description="Linked record internal record ID")
 
 
 class ScoreData(BaseModel):
@@ -25,9 +25,6 @@ class ScoreData(BaseModel):
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
     triggered_by_submission_id: Optional[str] = Field(
         None, description="Submission ID that triggered this computation (if any)"
-    )
-    link_internal_record_id: Optional[str] = Field(
-        None, description="Linked parent internal record ID (if any)"
     )
 
 
@@ -43,7 +40,7 @@ class GetScoresResponsePayload(BaseModel):
 
 class GetScoreHistoryRequestPayload(BaseModel):
     """Payload for getting score history for a record."""
-    internal_record_id: str = Field(..., description="Internal record ID")
+    link_internal_record_id: str = Field(..., description="Linked record internal record ID")
     score_type: str = Field(..., description="Type of score")
 
 
@@ -54,9 +51,6 @@ class ScoreHistoryData(BaseModel):
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
     triggered_by_submission_id: Optional[str] = Field(
         None, description="Submission ID that triggered this computation (if any)"
-    )
-    link_internal_record_id: Optional[str] = Field(
-        None, description="Linked parent internal record ID (if any)"
     )
 
 
