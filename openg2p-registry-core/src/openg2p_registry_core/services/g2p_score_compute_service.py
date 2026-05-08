@@ -137,11 +137,6 @@ class G2PScoreComputeService(BaseService):
                 path: self._get_value_by_dot_path(record_root, path)
                 for path in contributing_paths
             }
-            link_internal_record_id = (
-                record_root.get("link_internal_record_id")
-                if "link_internal_record_id" in record_root
-                else None
-            )
 
             await self._upsert_pending_queue_row(
                 session=session,
@@ -253,11 +248,6 @@ class G2PScoreComputeService(BaseService):
                         path: self._get_value_by_dot_path(record_root, path)
                         for path in contributing_paths
                     }
-                    link_internal_record_id = (
-                        record_root.get("link_internal_record_id")
-                        if "link_internal_record_id" in record_root
-                        else None
-                    )
 
                     await self._upsert_pending_queue_row(
                         session=session,
