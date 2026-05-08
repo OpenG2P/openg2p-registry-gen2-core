@@ -29,7 +29,7 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     __table_args__ = (
         Index(
-            "ix_g2p_register_score_history_link_internal_record_id_score_type",
+            "ix_g2p_register_score_history_link_rec_id_score_type",
             "link_internal_record_id",
             "score_type",
         ),

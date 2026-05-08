@@ -13,6 +13,7 @@ class MinioBucketEnum(Enum):
     TEMPLATES = "templates"
     DOCUMENTS = "documents"
     RECORD_IMAGES = "record_images"
+    DATA_IMPORT_FILES = "data_import_files"
 
 class MinioClient(BaseService):
     """

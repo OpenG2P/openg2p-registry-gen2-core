@@ -11,6 +11,7 @@ from .enum import (
     RecordStatusEnum,
     RegisterPurposeEnum,
     ShapeTypeEnum,
+    InputMechanismTypeEnum,
 )
 SubmissionSourceEnum = ChangeRequestSourceEnum
 from .data_models import DataModel
@@ -68,7 +69,10 @@ from .g2p_register_tab import G2PRegisterUITab, G2PRegisterUITabSection
 from .g2p_register_verifications import G2PRegisterVerification
 from .g2p_registry_configuration import G2PRegistryConfiguration
 from .g2p_registry_document import G2PRegistryDocument
+from .g2p_registry_import_file_configuration import G2PRegistryImportFileConfiguration
 from .g2p_registry_vc_configuration import G2PRegistryVcConfiguration
+from .import_file_process_queue import ImportFileProcessQueue
+from .import_file_process_log import ImportFileProcessLog
 from .ingestion_configuration import (
     IncomingModelKeyPath,
     IncomingModelSemanticPattern,

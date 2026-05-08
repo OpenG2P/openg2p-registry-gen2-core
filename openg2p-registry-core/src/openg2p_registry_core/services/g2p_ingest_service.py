@@ -18,14 +18,24 @@ from ..models import (
     IncomingModelKeyPath,
     IncomingRawData,
     IncomingRawDataPayload,
+    IncomingClassifiedData,
     DataModel,
+    ProcessStatusEnum,
+    IncomingModelSemanticPattern,
 )
 from ..engine import get_engines
 
 _logger = logging.getLogger("g2p-partner-service")
 
 class G2PIngestService(BaseService):
-    async def ingest_data(self, data_model_mnemonic: Optional[str], ingest_data: Dict) -> Tuple[str, Optional[str]]:
+    async def ingest_data(
+        self,
+        data_model_mnemonic: Optional[str],
+        ingest_data: Dict,
+        *,
+        register_id: Optional[str] = None,
+        intake_form_id: Optional[str] = None,
+    ) -> Tuple[str, Optional[str]]:
         _logger.info("Starting data ingestion with received request")
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
@@ -67,6 +77,27 @@ class G2PIngestService(BaseService):
                 _logger.debug(f"Storing raw data and payload to db with ingest_id: {ingest_id}")
                 session.add(incoming_raw_data)
                 session.add(incoming_raw_data_payload)
+
+                # If classification information is already available, bypass classification stage
+                # and directly enqueue for transformation by writing to IncomingClassifiedData.
+                if register_id and intake_form_id:
+                    incoming_raw_data.classification_status = ProcessStatusEnum.PROCESSED.value
+                    incoming_raw_data.classification_date_time = datetime.now()
+
+                    semantic_pattern_id = await self._get_semantic_pattern_id(register_id, intake_form_id, session)
+
+                    session.add(
+                        IncomingClassifiedData(
+                            ingest_id=ingest_id,
+                            data_model_id=data_model.data_model_id,
+                            partner_id=incoming_partner.partner_id,
+                            register_id=register_id,
+                            intake_form_id=intake_form_id,
+                            semantic_pattern_id=semantic_pattern_id,
+                            classified_date_time=datetime.now(),
+                            transformation_status=ProcessStatusEnum.PENDING.value,
+                        )
+                    )
 
             await session.commit()
 
@@ -224,3 +255,15 @@ class G2PIngestService(BaseService):
             ingest_data_payloads.append(payload_copy)
 
         return ingest_data_payloads
+
+    async def _get_semantic_pattern_id(
+        self, register_id: str, intake_form_id: str, session: Session
+    ) -> str:
+        semantic_pattern_id: str = await session.execute(
+            select(IncomingModelSemanticPattern).where(
+                IncomingModelSemanticPattern.register_id == register_id,
+                IncomingModelSemanticPattern.intake_form_id == intake_form_id,
+            )
+        ).scalar_one_or_none()
+
+        return semantic_pattern_id
