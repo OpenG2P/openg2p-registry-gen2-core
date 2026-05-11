@@ -259,11 +259,19 @@ class G2PIngestService(BaseService):
     async def _get_semantic_pattern_id(
         self, register_id: str, intake_form_id: str, session: Session
     ) -> str:
-        semantic_pattern_id: str = await session.execute(
-            select(IncomingModelSemanticPattern).where(
-                IncomingModelSemanticPattern.register_id == register_id,
-                IncomingModelSemanticPattern.intake_form_id == intake_form_id,
-            )
+        semantic_pattern: IncomingModelSemanticPattern | None = (
+            await session.execute(
+                select(IncomingModelSemanticPattern).where(
+                    IncomingModelSemanticPattern.register_id == register_id,
+                    IncomingModelSemanticPattern.intake_form_id == intake_form_id,
+                )
+            )   
         ).scalar_one_or_none()
+        
+        if not semantic_pattern:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
+            )
 
-        return semantic_pattern_id
+        return semantic_pattern.semantic_pattern_id
