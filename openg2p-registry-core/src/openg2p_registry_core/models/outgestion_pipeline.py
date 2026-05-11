@@ -29,7 +29,7 @@ class OutgoingRawData(BaseORMModel):
     transformation_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
     transformation_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
-    publish_status: Mapped[str] = mapped_column(String, nullable=False, index=True, default=ProcessStatusEnum.PENDING.value)
+    publish_status: Mapped[str] = mapped_column(String, nullable=True, index=True, default=None)
     publish_datetime: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
     publish_latest_error_code: Mapped[str] = mapped_column(String, nullable=True)
     publish_number_of_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
