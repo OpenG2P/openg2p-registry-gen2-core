@@ -38,3 +38,6 @@ class Settings(IamSettings):
 
     # Cache Configuration
     cache_expires_in_seconds: int = 60 * 5
+
+    # WebSub Hub
+    websub_base_url: str = "http://websub.play.svc.cluster.local"
