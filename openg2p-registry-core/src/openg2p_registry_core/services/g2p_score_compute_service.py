@@ -141,8 +141,9 @@ class G2PScoreComputeService(BaseService):
             await self._upsert_pending_queue_row(
                 session=session,
                 register_id=register_definition.register_id,
-                internal_record_id=change_request.internal_record_id,
+                link_internal_record_id=change_request.internal_record_id,
                 change_request_id=change_request.change_request_id or "",  # Handle None case
+                submission_id="",
                 score_definition_id=score_definition.score_definition_id,
                 score_type=score_definition.score_type,
                 contributing_attribute_values=contributing_values,
@@ -251,7 +252,7 @@ class G2PScoreComputeService(BaseService):
                     await self._upsert_pending_queue_row(
                         session=session,
                         register_id=register_definition.register_id,
-                        internal_record_id=internal_record_id,
+                        link_internal_record_id=internal_record_id,
                         change_request_id="",  # Empty string for intake submissions (database constraint workaround)
                         submission_id=submission_id,
                         score_definition_id=score_definition.score_definition_id,
@@ -266,7 +267,7 @@ class G2PScoreComputeService(BaseService):
         self,
         session: Session,
         register_id: str,
-        internal_record_id: str,
+        link_internal_record_id: str,
         change_request_id: str,
         submission_id: str | None = None,
         score_definition_id: str = "",
@@ -279,7 +280,7 @@ class G2PScoreComputeService(BaseService):
         Args:
             session: Database session
             register_id: Register ID
-            internal_record_id: Internal record ID
+            link_internal_record_id: Linked record internal record ID
             change_request_id: Change request ID (optional for intake submissions)
             submission_id: Intake submission ID (optional for change requests)
             score_definition_id: Score definition ID
@@ -289,7 +290,7 @@ class G2PScoreComputeService(BaseService):
         existing_pending_queue_item: Optional[G2PScoreComputeQueue] = (
             await session.execute(
                 select(G2PScoreComputeQueue).where(
-                    G2PScoreComputeQueue.internal_record_id == internal_record_id,
+                    G2PScoreComputeQueue.link_internal_record_id == link_internal_record_id,
                     G2PScoreComputeQueue.score_type == score_type,
                     G2PScoreComputeQueue.compute_status == ScoreProcessStatusEnum.PENDING.value,
                 )
@@ -299,6 +300,7 @@ class G2PScoreComputeService(BaseService):
         if existing_pending_queue_item:
             existing_pending_queue_item.change_request_id = change_request_id
             existing_pending_queue_item.submission_id = submission_id
+            existing_pending_queue_item.link_internal_record_id = link_internal_record_id
             existing_pending_queue_item.contributing_attribute_values = contributing_attribute_values
             existing_pending_queue_item.compute_no_of_attempts = 0
             existing_pending_queue_item.compute_latest_timestamp = None
@@ -309,7 +311,7 @@ class G2PScoreComputeService(BaseService):
 
         new_queue_item: G2PScoreComputeQueue = G2PScoreComputeQueue(
             register_id=register_id,
-            internal_record_id=internal_record_id,
+            link_internal_record_id=link_internal_record_id,
             score_definition_id=score_definition_id,
             score_type=score_type,
             change_request_id=change_request_id,
@@ -322,12 +324,12 @@ class G2PScoreComputeService(BaseService):
     # ----------------------------
     # Score result fetch (used by controller later)
     # ----------------------------
-    async def get_scores_for_record(self, internal_record_id: str, session: Session) -> list[ScoreData]:
+    async def get_scores_for_record(self, link_internal_record_id: str, session: Session) -> list[ScoreData]:
         """
         Get all scores for a specific record.
         
         Args:
-            internal_record_id: Internal record ID
+            link_internal_record_id: Linked record internal record ID
             session: Database session
             
         Returns:
@@ -336,7 +338,7 @@ class G2PScoreComputeService(BaseService):
         score_records: List[G2PRegisterScore] = (
             await session.execute(
                 select(G2PRegisterScore).where(
-                    G2PRegisterScore.internal_record_id == internal_record_id
+                    G2PRegisterScore.link_internal_record_id == link_internal_record_id
                 )
             )
         ).scalars().all()
@@ -347,19 +349,20 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
+                triggered_by_submission_id=score.triggered_by_submission_id
             )
             for score in score_records
         ]
         return scores_data
 
     async def get_score_history(
-        self, internal_record_id: str, score_type: str, session: Session
+        self, link_internal_record_id: str, score_type: str, session: Session
     ) -> list[ScoreHistoryData]:
         """
         Get score history for a specific record and score type.
         
         Args:
-            internal_record_id: Internal record ID
+            link_internal_record_id: Linked record internal record ID
             score_type: Score type
             session: Database session
             
@@ -369,7 +372,7 @@ class G2PScoreComputeService(BaseService):
         score_history_records: List[G2PRegisterScoreHistory] = (
             await session.execute(
                 select(G2PRegisterScoreHistory).where(
-                    G2PRegisterScoreHistory.internal_record_id == internal_record_id,
+                    G2PRegisterScoreHistory.link_internal_record_id == link_internal_record_id,
                     G2PRegisterScoreHistory.score_type == score_type,
                 )
             )
@@ -380,6 +383,7 @@ class G2PScoreComputeService(BaseService):
                 computed_score=score.computed_score,
                 computed_at=str(score.computed_at) if score.computed_at else None,
                 triggered_by_cr_id=score.triggered_by_cr_id,
+                triggered_by_submission_id=score.triggered_by_submission_id
             )
             for score in score_history_records
         ]

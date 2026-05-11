@@ -31,7 +31,6 @@ class G2PRegisterHierarchicalService(BaseService):
         Get records from section_register that are linked to subject_record.
         Handles both ancestor (traverse down) and descendant (traverse up) relationships.
         If subject_register_id == section_register_id, returns the subject record directly.
-        If section_register is CORE_TABLE, returns all records directly without hierarchy.
 
         Args:
             subject_register_id: The register we're starting from
@@ -53,15 +52,15 @@ class G2PRegisterHierarchicalService(BaseService):
             )
 
             # Check if section_register is CORE_TABLE - if so, return filtered records directly
-            if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
-                impl_class = self._get_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
-                result = await session.execute(
-                    select(impl_class).where(
-                        impl_class.internal_record_id == subject_record_id
-                    )
-                )
-                records = result.scalars().all()
-                return [self._convert_record_to_record_data(r) for r in records]
+            # if section_register.register_purpose == RegisterPurposeEnum.CORE_TABLE.value:
+            #     impl_class = self._get_implementation_class(section_register.register_mnemonic, section_register.register_purpose)
+            #     result = await session.execute(
+            #         select(impl_class).where(
+            #             impl_class.internal_record_id == subject_record_id
+            #         )
+            #     )
+            #     records = result.scalars().all()
+            #     return [self._convert_record_to_record_data(r) for r in records]
 
             # If same register, return the subject record directly
             if subject_register_id == section_register_id:
@@ -417,23 +416,23 @@ class G2PRegisterHierarchicalService(BaseService):
             register_def: G2PRegisterDefinition = path_reversed[i]
             impl_class = self._get_implementation_class(register_def.register_mnemonic, register_def.register_purpose)
 
-            # Check if this register supports hierarchical operations
-            if not hasattr(impl_class, 'link_internal_record_id'):
-                # For CORE_TABLE registers without link_internal_record_id, filter by internal_record_id
-                result = await session.execute(
-                    select(impl_class).where(
-                        impl_class.internal_record_id.in_(current_record_ids)
-                    )
-                )
-                records = result.scalars().all()
+            # # Check if this register supports hierarchical operations
+            # if not hasattr(impl_class, 'link_internal_record_id'):
+            #     # For CORE_TABLE registers without link_internal_record_id, filter by internal_record_id
+            #     result = await session.execute(
+            #         select(impl_class).where(
+            #             impl_class.internal_record_id.in_(current_record_ids)
+            #         )
+            #     )
+            #     records = result.scalars().all()
                 
-                # If this is the last level (related_register), convert to RecordData
-                if i == len(path_reversed) - 1:
-                    return [self._convert_record_to_record_data(r) for r in records]
+            #     # If this is the last level (related_register), convert to RecordData
+            #     if i == len(path_reversed) - 1:
+            #         return [self._convert_record_to_record_data(r) for r in records]
                 
-                # For CORE_TABLE registers, get the internal_record_ids for the next iteration
-                current_record_ids = [r.internal_record_id for r in records]
-                continue
+            #     # For CORE_TABLE registers, get the internal_record_ids for the next iteration
+            #     current_record_ids = [r.internal_record_id for r in records]
+            #     continue
 
             # Find all records in this register where link_internal_record_id is in current_record_ids
             result = await session.execute(

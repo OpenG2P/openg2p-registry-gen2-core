@@ -2,6 +2,8 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel
 
+from ..models import InputMechanismTypeEnum
+
 
 # =============================================================================
 # Ingest Data Schemas (response payloads)
@@ -379,7 +381,7 @@ class G2PInputMechanismPayload(BaseModel):
 class G2PInputMechanismData(BaseModel):
     mechanism_id: str
     register_id: str
-    mechanism_type: str
+    mechanism_type: InputMechanismTypeEnum
     display_key: str
 
     class Config:

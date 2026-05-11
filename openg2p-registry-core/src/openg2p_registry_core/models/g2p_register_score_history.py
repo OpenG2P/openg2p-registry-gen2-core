@@ -13,24 +13,24 @@ class G2PRegisterScoreHistory(BaseORMModel):
 
     __tablename__ = "g2p_register_score_history"
 
-    history_id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    internal_record_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
     score_definition_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
+    link_internal_record_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+
     triggered_by_cr_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    triggered_by_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
 
     computed_score: Mapped[float] = mapped_column(Float, nullable=False)
     computed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     __table_args__ = (
         Index(
-            "ix_g2p_register_score_history_internal_record_score_type",
-            "internal_record_id",
+            "ix_g2p_register_score_history_link_rec_id_score_type",
+            "link_internal_record_id",
             "score_type",
         ),
     )

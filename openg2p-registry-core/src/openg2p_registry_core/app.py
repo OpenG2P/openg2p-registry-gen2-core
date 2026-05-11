@@ -27,11 +27,13 @@ from .controller_services import (
     G2PRegistryConfigurationControllerService,
     G2PRegistryThemeControllerService,
     G2PRegistryLanguageControllerService,
-    G2PUIHelperControllerService,
+    InputMechanismMetadataControllerService,
+    ImportFileConfigurationControllerService,
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
     G2PScoreControllerService,
     G2PCompletionScoreControllerService,
+    G2PRegistrantAuthenticationControllerService,
 )
 from .helpers import MinioClient, PatternMatcher, TemplateHelper
 from .models import (
@@ -67,7 +69,10 @@ from .models import (
     G2PRegistryTheme,
     G2PRegistryThemeValue,
     G2PRegistryDocument,
+    G2PRegistryImportFileConfiguration,
     G2PRegistryVcConfiguration,
+    ImportFileProcessQueue,
+    ImportFileProcessLog,
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingModelKeyPath,
@@ -86,6 +91,8 @@ from .models import (
     G2PCompletionScoreComputationQueue,
     DeduplicationIntakeFormRegisterResult,
     DeduplicationIntakeFormIntakeFormResult,
+    G2PRegistrantAuthenticationProvider,
+    G2PRegistrantAuthentication,
 )
 from .services import (
     G2PDataModelService,
@@ -106,12 +113,15 @@ from .services import (
     G2PRegisterVerificationService,
     G2PTemplateService,
     G2PTemplateFileService,
-    G2PUIHelperService,
     G2PVcConfigurationService,
     G2PChangeRequestCoreService,
     G2PScoreComputeService,
     G2PCompletionScoreService,
-    G2PGeoHierarchyService
+    G2PGeoHierarchyService,
+    G2PRegistrantAuthenticationService,
+    InputMechanismMetadataService,
+    InputMechanismDataService,
+    ImportFileConfigurationService,
 )
 
 _config = Settings.get_config(strict=False)
@@ -155,7 +165,9 @@ class Initializer(BaseInitializer):
         G2PTemplateFileService()
         G2PAttributeService()
         G2PVcConfigurationService()
-        G2PUIHelperService()
+        InputMechanismMetadataService()
+        InputMechanismDataService()
+        ImportFileConfigurationService()
         G2PIntakeFormDataService()
         G2PIntakeFormMetadataService()
         G2PRegisterVerificationService()
@@ -164,6 +176,7 @@ class Initializer(BaseInitializer):
         G2PScoreComputeService()
         G2PCompletionScoreService()
         G2PGeoHierarchyService()
+        G2PRegistrantAuthenticationService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -184,12 +197,14 @@ class Initializer(BaseInitializer):
         G2PRegistryLanguageControllerService()
         G2PAttributeControllerService()
         G2PVcConfigurationControllerService()
-        G2PUIHelperControllerService()
+        InputMechanismMetadataControllerService()
+        ImportFileConfigurationControllerService()
         G2PIntakeFormDataControllerService()
         G2PIntakeFormMetadataControllerService()
         G2PVerificationControllerService()
         G2PScoreControllerService()
         G2PCompletionScoreControllerService()
+        G2PRegistrantAuthenticationControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -256,12 +271,18 @@ class Initializer(BaseInitializer):
             # VC Configuration Models
             await G2PInputMechanism.create_migrate()
             await G2PRegistryVcConfiguration.create_migrate()
+            await G2PRegistryImportFileConfiguration.create_migrate()
 
             # Id Generation Queue Models
+            await ImportFileProcessQueue.create_migrate()
+            await ImportFileProcessLog.create_migrate()
             await G2PFunctionalIdGenerationQueue.create_migrate()
 
             # Completion Score Models
             await G2PCompletionScoreComputationQueue.create_migrate()
             await G2PRegisterSectionCompletionScore.create_migrate()
+            # Registrant Authentication Models
+            await G2PRegistrantAuthenticationProvider.create_migrate()
+            await G2PRegistrantAuthentication.create_migrate()
 
         asyncio.run(migrate())

@@ -14,7 +14,7 @@ from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PRespon
 
 class GetScoresRequestPayload(BaseModel):
     """Payload for getting scores for a record."""
-    internal_record_id: str = Field(..., description="Internal record ID")
+    link_internal_record_id: str = Field(..., description="Linked record internal record ID")
 
 
 class ScoreData(BaseModel):
@@ -23,6 +23,9 @@ class ScoreData(BaseModel):
     computed_score: float = Field(..., description="Computed score value")
     computed_at: Optional[str] = Field(None, description="Timestamp when score was computed")
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
+    triggered_by_submission_id: Optional[str] = Field(
+        None, description="Submission ID that triggered this computation (if any)"
+    )
 
 
 class GetScoresResponsePayload(BaseModel):
@@ -37,7 +40,7 @@ class GetScoresResponsePayload(BaseModel):
 
 class GetScoreHistoryRequestPayload(BaseModel):
     """Payload for getting score history for a record."""
-    internal_record_id: str = Field(..., description="Internal record ID")
+    link_internal_record_id: str = Field(..., description="Linked record internal record ID")
     score_type: str = Field(..., description="Type of score")
 
 
@@ -46,6 +49,9 @@ class ScoreHistoryData(BaseModel):
     computed_score: float = Field(..., description="Computed score value")
     computed_at: Optional[str] = Field(None, description="Timestamp when score was computed")
     triggered_by_cr_id: str = Field(..., description="Change request ID that triggered this computation")
+    triggered_by_submission_id: Optional[str] = Field(
+        None, description="Submission ID that triggered this computation (if any)"
+    )
 
 
 class GetScoreHistoryResponsePayload(BaseModel):
