@@ -11,7 +11,8 @@ class OutgoingRawData(BaseORMModel):
     __tablename__ = "outgoing_raw_data"
 
     outgest_id: Mapped[str] = mapped_column(String, primary_key=True)
-    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    payload_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     internal_record_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     register_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -39,7 +40,9 @@ class OutgoingRawDataPayload(BaseORMModel):
 
     __tablename__ = "outgoing_raw_data_payloads"
 
-    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    payload_id: Mapped[str] = mapped_column(String, primary_key=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     raw_data_json: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
     raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
 
@@ -47,6 +50,8 @@ class OutgoingTransformedDataPayload(BaseORMModel):
 
     __tablename__ = "outgoing_transformed_data_payloads"
 
-    change_request_id: Mapped[str] = mapped_column(String, nullable=False, index=True, primary_key=True)
+    payload_id: Mapped[str] = mapped_column(String, primary_key=True)
+    change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
+    intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     transformed_data_json: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
     transformed_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
