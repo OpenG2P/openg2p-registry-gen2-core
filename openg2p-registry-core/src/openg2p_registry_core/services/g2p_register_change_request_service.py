@@ -47,6 +47,7 @@ from ..schemas import (
     NumberOfPendingChangeRequestsData,
     VerificationData,
 )
+from .g2p_outgest_fanout_service import fanout_outgest_rows
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_register_history_service import G2PRegisterHistoryService
 
@@ -171,6 +172,7 @@ class G2PRegisterChangeRequestService(BaseService):
                 session=session,
                 approved_by=approved_by,
             )
+            await self._fanout_outgest_for_change_request(change_request, session)
             # Enqueue score computations for the change request
             _logger.debug(f"Enqueuing score computations for change_request_id: {change_request_id}")
             g2p_score_compute_service = G2PScoreComputeService.get_component()
@@ -903,6 +905,33 @@ class G2PRegisterChangeRequestService(BaseService):
         if not payload:
             raise self._invalid_request(f"Change request payload not found for {change_request_id}.")
         return payload
+
+    async def _fanout_outgest_for_change_request(self, change_request: G2PRegisterChangeRequest, session) -> None:
+        register_definition, register_class, _ = await self._get_register_class_and_schema(
+            change_request.register_id, session
+        )
+        register_row = await self._get_existing_record(
+            register_class, change_request.internal_record_id, session
+        )
+        if not register_row:
+            _logger.warning(
+                "Skipping outgest fanout — no register row for change_request_id=%s, internal_record_id=%s",
+                change_request.change_request_id,
+                change_request.internal_record_id,
+            )
+            return
+
+        await fanout_outgest_rows(
+            register_definition,
+            register_row,
+            session,
+            change_request_id=change_request.change_request_id,
+            changed_by=change_request.created_by,
+            changed_at=change_request.created_at,
+            approved_by=change_request.approved_by,
+            approved_at=change_request.approved_at,
+            changed_by_partner_id=change_request.source_partner_id,
+        )
 
     async def _get_register_class_and_schema(self, register_id: str, session):
         register_definition = await self.validate_register_definition(register_id, session)
