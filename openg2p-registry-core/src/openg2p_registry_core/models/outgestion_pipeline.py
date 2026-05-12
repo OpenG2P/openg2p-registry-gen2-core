@@ -50,7 +50,8 @@ class OutgoingTransformedDataPayload(BaseORMModel):
 
     __tablename__ = "outgoing_transformed_data_payloads"
 
-    payload_id: Mapped[str] = mapped_column(String, primary_key=True)
+    outgest_id: Mapped[str] = mapped_column(String, primary_key=True)
+    payload_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     change_request_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     transformed_data_json: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
