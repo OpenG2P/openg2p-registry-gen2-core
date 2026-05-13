@@ -84,7 +84,7 @@ class G2PIngestService(BaseService):
                     incoming_raw_data.classification_status = ProcessStatusEnum.PROCESSED.value
                     incoming_raw_data.classification_date_time = datetime.now()
 
-                    semantic_pattern_id = await self._get_semantic_pattern_id(register_id, intake_form_id, session)
+                    semantic_pattern_id = await self._get_semantic_pattern_id(data_model.data_model_id, register_id, intake_form_id, session)
 
                     session.add(
                         IncomingClassifiedData(
@@ -257,11 +257,12 @@ class G2PIngestService(BaseService):
         return ingest_data_payloads
 
     async def _get_semantic_pattern_id(
-        self, register_id: str, intake_form_id: str, session: Session
+        self, data_model_id: str, register_id: str, intake_form_id: str, session: Session
     ) -> str:
         semantic_pattern: IncomingModelSemanticPattern | None = (
             await session.execute(
                 select(IncomingModelSemanticPattern).where(
+                    IncomingModelSemanticPattern.data_model_id == data_model_id,
                     IncomingModelSemanticPattern.register_id == register_id,
                     IncomingModelSemanticPattern.intake_form_id == intake_form_id,
                 )
