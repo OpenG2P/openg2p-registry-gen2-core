@@ -10,6 +10,7 @@ class ApprovalStatusEnum(StrEnum):
 class ChangeRequestSourceEnum(StrEnum):
     # TODO: REMOVE INATKE_FORM and update worker
     PARTNER = "PARTNER"
+    INGESTION_PIPELINE = "PARTNER"
     # INTAKE_FORM = "INTAKE_FORM"
     # DIRECT -> STAFF_PORTAL
     STAFF_PORTAL = "STAFF_PORTAL"
@@ -58,6 +59,11 @@ class MaritalStatusEnum(StrEnum):
     WIDOWED = "WIDOWED"
     SEPARATED = "SEPARATED"
     UNKNOWN = "UNKNOWN"
+
+
+class PipelineActionEnum(StrEnum):
+    ADD = "ADD"
+    UPDATE = "UPDATE"
 
 
 class ProcessStatusEnum(StrEnum):
