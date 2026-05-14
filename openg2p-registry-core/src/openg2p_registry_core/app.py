@@ -76,6 +76,7 @@ from .models import (
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingModelKeyPath,
+    IncomingModelRegisterSemanticPattern,
     IncomingModelSemanticPattern,
     IncomingRawData,
     IncomingRawDataPayload,
@@ -255,6 +256,7 @@ class Initializer(BaseInitializer):
             await IncomingClassifiedData.create_migrate()
             await SubscriptionActivityLog.create_migrate()
             await IncomingModelSemanticPattern.create_migrate()
+            await IncomingModelRegisterSemanticPattern.create_migrate()
             await IncomingEnrichedTransformedData.create_migrate()
 
             # Outgoing Models
