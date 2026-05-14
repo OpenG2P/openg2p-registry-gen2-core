@@ -7,6 +7,7 @@ from .enum import (
     GenderEnum,
     IntakeFormStatusEnum,
     MaritalStatusEnum,
+    PipelineActionEnum,
     ProcessStatusEnum,
     RecordStatusEnum,
     RegisterPurposeEnum,
@@ -75,6 +76,7 @@ from .import_file_process_queue import ImportFileProcessQueue
 from .import_file_process_log import ImportFileProcessLog
 from .ingestion_configuration import (
     IncomingModelKeyPath,
+    IncomingModelRegisterSemanticPattern,
     IncomingModelSemanticPattern,
     IncomingPartner,
     IncomingTemplate,

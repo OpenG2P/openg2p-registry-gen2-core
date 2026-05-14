@@ -81,6 +81,7 @@ class G2PRegisterChangeRequestService(BaseService):
         change_request_request_payload: ChangeRequestRequestPayload,
         source_partner_id: str = None,
         created_by: str | None = None,
+        change_request_source: str | None = None,
     ):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -110,6 +111,7 @@ class G2PRegisterChangeRequestService(BaseService):
                 section_register_definition.register_mnemonic,
                 source_partner_id,
                 created_by,
+                change_request_source_override=change_request_source,
             )
 
             session.add(g2p_register_change_request)
@@ -1019,6 +1021,7 @@ class G2PRegisterChangeRequestService(BaseService):
         section_register_mnemonic: str,
         source_partner_id: str = None,
         created_by: str | None = None,
+        change_request_source_override: str | None = None,
     ) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         internal_record_id: str = change_request_request_payload.internal_record_id
@@ -1042,7 +1045,10 @@ class G2PRegisterChangeRequestService(BaseService):
             search_text=constructed_search_text,
         )
 
-        change_request_source = ChangeRequestSourceEnum.STAFF_PORTAL.value
+        change_request_source = (
+            change_request_source_override
+            or ChangeRequestSourceEnum.STAFF_PORTAL.value
+        )
         no_of_verifications_required = register_section.no_of_verifications_required if register_section else 0
         actor_name = created_by or source_partner_id or "system"
 
