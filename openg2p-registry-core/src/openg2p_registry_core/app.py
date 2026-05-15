@@ -73,6 +73,7 @@ from .models import (
     G2PRegistryImportFileConfiguration,
     G2PRegistryVcConfiguration,
     G2PRegistryAwePolicyConfiguration,
+    G2PAweReqEvent,
     ImportFileProcessQueue,
     ImportFileProcessLog,
     IncomingClassifiedData,
@@ -122,6 +123,7 @@ from .services import (
     G2PGeoHierarchyService,
     G2PRegistrantAuthenticationService,
     G2PAwePolicyConfigurationService,
+    G2PAweWebhookService,
     InputMechanismMetadataService,
     InputMechanismDataService,
     ImportFileConfigurationService,
@@ -181,6 +183,7 @@ class Initializer(BaseInitializer):
         G2PGeoHierarchyService()
         G2PRegistrantAuthenticationService()
         G2PAwePolicyConfigurationService()
+        G2PAweWebhookService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -231,6 +234,7 @@ class Initializer(BaseInitializer):
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
             await G2PRegistryAwePolicyConfiguration.create_migrate()
+            await G2PAweReqEvent.create_migrate()
             await G2PRegisterScoreDefinition.create_migrate()
             await G2PScoreComputeQueue.create_migrate()
             await G2PRegisterScore.create_migrate()

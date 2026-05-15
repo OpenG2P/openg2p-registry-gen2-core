@@ -48,3 +48,6 @@ class Settings(IamSettings):
     # AWE (Approval Workflow Engine) client
     awe_base_url: str = "http://localhost:8000"
     awe_http_timeout_seconds: float = 30.0
+    # Inbound AWE webhook (terminal decision callbacks)
+    awe_callback_hmac_secret: str | None = None
+    awe_webhook_timestamp_tolerance_seconds: int = 300

@@ -455,6 +455,77 @@ class G2PIntakeFormDataService(BaseService):
             await session.commit()
             return await self.get_submission_payload(submission.submission_id)
 
+    async def approve_submission_with_session(
+        self,
+        submission_id: str,
+        session,
+        approved_by: str | None = None,
+    ) -> G2PIntakeFormSubmission:
+        submission = await self._get_submission_or_error(submission_id, session)
+        if submission.approval_status == ApprovalStatusEnum.APPROVED.value:
+            return submission
+        if submission.approval_status != ApprovalStatusEnum.PENDING.value:
+            self._invalid_request(
+                f"Submission '{submission_id}' is already in approval_status "
+                f"'{submission.approval_status}'"
+            )
+        now = datetime.now()
+        submission.approval_status = ApprovalStatusEnum.APPROVED.value
+        submission.approved_by = approved_by or "system"
+        submission.approved_at = now
+        submission.last_updated_at = now
+        submission.register_ingest_process_status = ProcessStatusEnum.PENDING.value
+        submission.register_ingest_process_last_error_code = None
+        session.add(submission)
+        await session.flush()
+        return submission
+
+    async def reject_submission_with_session(
+        self,
+        submission_id: str,
+        session,
+        rejected_by: str | None = None,
+    ) -> G2PIntakeFormSubmission:
+        submission = await self._get_submission_or_error(submission_id, session)
+        if submission.approval_status == ApprovalStatusEnum.REJECTED.value:
+            return submission
+        if submission.approval_status != ApprovalStatusEnum.PENDING.value:
+            self._invalid_request(
+                f"Submission '{submission_id}' is already in approval_status "
+                f"'{submission.approval_status}'"
+            )
+        now = datetime.now()
+        submission.approval_status = ApprovalStatusEnum.REJECTED.value
+        submission.approved_by = rejected_by or "system"
+        submission.approved_at = now
+        submission.last_updated_at = now
+        session.add(submission)
+        await session.flush()
+        return submission
+
+    async def cancel_submission_with_session(
+        self,
+        submission_id: str,
+        session,
+        cancelled_by: str | None = None,
+    ) -> G2PIntakeFormSubmission:
+        submission = await self._get_submission_or_error(submission_id, session)
+        if submission.approval_status == ApprovalStatusEnum.CANCELLED.value:
+            return submission
+        if submission.approval_status != ApprovalStatusEnum.PENDING.value:
+            self._invalid_request(
+                f"Submission '{submission_id}' is already in approval_status "
+                f"'{submission.approval_status}'"
+            )
+        now = datetime.now()
+        submission.approval_status = ApprovalStatusEnum.CANCELLED.value
+        submission.approved_by = cancelled_by or "system"
+        submission.approved_at = now
+        submission.last_updated_at = now
+        session.add(submission)
+        await session.flush()
+        return submission
+
     async def delete_submission(self, submission_id: str) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
