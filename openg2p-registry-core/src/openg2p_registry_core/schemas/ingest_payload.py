@@ -35,6 +35,13 @@ class IngestionDataSearchResultData(BaseModel):
     register_id: Optional[str] = None
     register_mnemonic: Optional[str] = None
     semantic_pattern_id: Optional[str] = None
+
+    pipeline_action: Optional[str] = None
+    section_id: Optional[str] = None
+    section_mnemonic: Optional[str] = None
+    internal_record_id: Optional[str] = None
+    change_request_id: Optional[str] = None
+
     template_id: Optional[str] = None
     template_file_id: Optional[str] = None
     transformation_status: Optional[str] = None
