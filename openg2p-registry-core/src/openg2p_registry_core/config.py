@@ -44,3 +44,7 @@ class Settings(IamSettings):
     registrant_auth_session_store_backend: str = "redis"  # memory|redis
     registrant_auth_redis_url: str | None = "redis://localhost:6379/0"  # Redis URL for storing session data
     registrant_auth_claims_encryption_key: str | None = None
+
+    # AWE (Approval Workflow Engine) client
+    awe_base_url: str = "http://localhost:8000"
+    awe_http_timeout_seconds: float = 30.0
