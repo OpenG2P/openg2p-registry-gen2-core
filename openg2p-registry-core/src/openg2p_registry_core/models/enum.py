@@ -81,6 +81,14 @@ class RegisterPurposeEnum(StrEnum):
     CORE_TABLE = "CORE_TABLE"
 
 
+class AwePolicyScopeEnum(StrEnum):
+    """Which registry artefact an AWE policy configuration row applies to."""
+
+    REGISTER = "REGISTER"
+    INTAKE_FORM = "INTAKE_FORM"
+    SECTION = "SECTION"
+
+
 class ShapeTypeEnum(StrEnum):
     POINT = "POINT"
     LINESTRING = "LINESTRING"
