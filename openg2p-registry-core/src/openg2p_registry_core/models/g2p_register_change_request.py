@@ -50,9 +50,9 @@ class G2PRegisterChangeRequest(BaseORMModel):
     # master data PARTNER_ID
     source_partner_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
-    # Set after async callback to AWE (external correlation id and status string).
+    # Set after async callback to AWE (external correlation id and status summary).
     awe_request_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-    awe_request_status: Mapped[str | None] = mapped_column(Text, nullable=True)
+    awe_request_status_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class G2PRegisterChangeRequestPayload(BaseORMModel):
