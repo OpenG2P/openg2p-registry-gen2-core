@@ -5,6 +5,7 @@ class ApprovalStatusEnum(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
 
 
 class ChangeRequestSourceEnum(StrEnum):

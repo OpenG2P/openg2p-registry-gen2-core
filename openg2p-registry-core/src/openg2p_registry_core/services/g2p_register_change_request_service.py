@@ -232,6 +232,92 @@ class G2PRegisterChangeRequestService(BaseService):
 
         return change_request
 
+    async def approve_change_request_from_awe_webhook(
+        self,
+        change_request_id: str,
+        session,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
+        """Apply terminal AWE approval using the same section-specific paths as register workflows."""
+        change_request = await self.validate_change_request_exists(change_request_id, session)
+        if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
+            return change_request
+
+        register_section = await self.validate_change_request_section(change_request, session)
+        section_register_definition = await self.validate_register_definition(
+            register_section.section_register_id, session
+        )
+        section_register_purpose = section_register_definition.register_purpose
+        is_primary_section = bool(getattr(register_section, "is_primary_section", False))
+        approval_kwargs = {
+            "skip_verification": True,
+            "skip_sequence_check": False,
+            "approved_by": approved_by,
+        }
+        used_consolidated_core_flow = False
+
+        if section_register_purpose in {
+            RegisterPurposeEnum.TABLE.value,
+            RegisterPurposeEnum.CORE_TABLE.value,
+        } or register_section.is_core_section:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                **approval_kwargs,
+            )
+            used_consolidated_core_flow = True
+        elif (
+            is_primary_section
+            and register_section.section_register_id == register_section.register_id
+        ):
+            change_request, _ = await self.approve_primary_master_section_change_request(
+                change_request_id,
+                session,
+                **approval_kwargs,
+            )
+        elif register_section.section_register_id == register_section.register_id:
+            change_request = await self.approve_non_primary_master_section_change_request(
+                change_request_id,
+                session,
+                **approval_kwargs,
+            )
+        elif (
+            section_register_purpose == RegisterPurposeEnum.PROGRAM_REGISTER.value
+            or register_section.section_register_id != change_request.register_id
+        ):
+            change_request = await self.approve_child_section_change_request(
+                change_request_id,
+                change_request.internal_record_id,
+                session,
+                **approval_kwargs,
+            )
+        else:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                **approval_kwargs,
+            )
+            used_consolidated_core_flow = True
+
+        if not used_consolidated_core_flow:
+            completion_score_service = (
+                G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+            )
+            await completion_score_service.enqueue_completion_score_computations(
+                register_id=register_section.register_id,
+                internal_record_id=change_request.internal_record_id,
+                session=session,
+                change_request_id=change_request.change_request_id,
+                section_id=change_request.section_id,
+            )
+
+        score_service = G2PScoreComputeService.get_component()
+        await score_service.enqueue_score_computations(
+            change_request=change_request,
+            session=session,
+        )
+        return change_request
+
     async def approve_register(self, change_request: G2PRegisterChangeRequest, section: G2PRegisterSection, session) -> None:
         register_definition, register_class, schema_class = await self._get_register_class_and_schema(
             section.section_register_id,
@@ -340,6 +426,39 @@ class G2PRegisterChangeRequestService(BaseService):
         await self._run_post_approve_hook(change_request.section_register_id, change_request, session)
 
         return change_request, subject_internal_record_id
+
+    async def approve_non_primary_master_section_change_request(
+        self,
+        change_request_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(
+            change_request_id, session
+        )
+        self._set_change_request_approval_state(
+            change_request,
+            approval_status=ApprovalStatusEnum.APPROVED.value,
+            actor_name=approved_by,
+            session=session,
+        )
+
+        _logger.info("Approving non-primary master section change request: %s", change_request)
+        register_section = await self.validate_change_request_core(
+            change_request, session, skip_verification, skip_sequence_check
+        )
+        await self.insert_into_register_history(change_request, session)
+        await self.insert_non_primary_master_section_into_register(
+            change_request, change_request.internal_record_id, session
+        )
+        if register_section and register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, register_section, session)
+        await self._run_post_approve_hook(
+            change_request.section_register_id, change_request, session
+        )
+        return change_request
 
     async def insert_primary_master_section_into_register(self, change_request: G2PRegisterChangeRequest, session) -> str:
         subject_internal_record_id: str | None = None
