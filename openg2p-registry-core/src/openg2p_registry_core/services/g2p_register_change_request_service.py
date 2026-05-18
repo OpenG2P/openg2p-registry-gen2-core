@@ -174,7 +174,7 @@ class G2PRegisterChangeRequestService(BaseService):
             # Enqueue score computations for the change request
             _logger.debug(f"Enqueuing score computations for change_request_id: {change_request_id}")
             g2p_score_compute_service = G2PScoreComputeService.get_component()
-            await g2p_score_compute_service.enqueue_score_computations(
+            await g2p_score_compute_service.enqueue_score_computations_for_change_request(
                 change_request=change_request,
                 session=session,
             )
