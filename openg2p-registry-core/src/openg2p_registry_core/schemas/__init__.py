@@ -31,6 +31,7 @@ from .awe_payload import *
 from .awe_request import *
 from .awe_response import *
 from .awe_webhook import *
+from .awe_proxy import *
 
 from .import_file_payload import *
 from .import_file_request import *

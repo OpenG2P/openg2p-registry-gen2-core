@@ -9,6 +9,7 @@ from sqlalchemy import Date as SQLDate, func, inspect, select, case
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
+from .g2p_awe_integration_service import G2PAweIntegrationService
 from ..models import (
     ApprovalStatusEnum,
     ChangeRequestSourceEnum,
@@ -394,10 +395,22 @@ class G2PIntakeFormDataService(BaseService):
         await session.flush()
         return submission
 
-    async def finalize_submission(self, submission_id: str, finalized_by: str | None = None) -> SubmissionResponsePayload:
+    async def finalize_submission(
+        self,
+        submission_id: str,
+        finalized_by: str | None = None,
+        bearer_token: str | None = None,
+        requester_sub: str | None = None,
+    ) -> SubmissionResponsePayload:
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
-            submission = await self.finalize_submission_with_session(submission_id, session, finalized_by)
+            submission = await self.finalize_submission_with_session(
+                submission_id,
+                session,
+                finalized_by,
+                bearer_token=bearer_token,
+                requester_sub=requester_sub,
+            )
             await session.commit()
             return await self.get_submission_payload(submission.submission_id)
 
@@ -406,6 +419,8 @@ class G2PIntakeFormDataService(BaseService):
         submission_id: str,
         session,
         finalized_by: str | None = None,
+        bearer_token: str | None = None,
+        requester_sub: str | None = None,
     ) -> G2PIntakeFormSubmission:
         _ = finalized_by
         submission = await self._get_submission_or_error(submission_id, session)
@@ -415,6 +430,12 @@ class G2PIntakeFormDataService(BaseService):
         submission.last_updated_at = now
         session.add(submission)
         await session.flush()
+        await G2PAweIntegrationService.get_component().start_intake_submission_workflow(
+            session,
+            submission,
+            bearer_token=bearer_token,
+            requester=requester_sub or submission.created_by,
+        )
         return submission
 
     async def approve_submission(self, submission_id: str, approved_by: str) -> SubmissionResponsePayload:
@@ -1287,6 +1308,8 @@ class G2PIntakeFormDataService(BaseService):
             created_by=submission.created_by,
             first_created_at=submission.first_created_at.isoformat() if submission.first_created_at else None,
             last_updated_at=submission.last_updated_at.isoformat() if submission.last_updated_at else None,
+            awe_request_id=submission.awe_request_id,
+            awe_request_status_summary=submission.awe_request_status_summary,
             section_payloads=section_payloads,
         )
 
