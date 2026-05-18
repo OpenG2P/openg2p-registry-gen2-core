@@ -112,6 +112,7 @@ class G2PRegisterChangeRequestService(BaseService):
                 source_partner_id,
                 created_by,
                 change_request_source_override=change_request_source,
+                session=session,
             )
 
             session.add(g2p_register_change_request)
@@ -1013,6 +1014,58 @@ class G2PRegisterChangeRequestService(BaseService):
             message=G2PRegistryErrorCodes.UNKNOWN_CHANGE_REQUEST_ACTION.value[0]
         )
 
+    def _register_row_to_metadata_dict(self, existing_record) -> dict:
+        """ORM row → plain dict for merging into change payloads (display metadata only)."""
+        mapper = inspect(existing_record.__class__)
+        base_fields: set[str] = {"search_text"}
+        row_dict: dict = {}
+        for column in mapper.columns:
+            column_name = column.name
+            if column_name in base_fields:
+                continue
+            value = getattr(existing_record, column_name, None)
+            if value is not None and hasattr(value, "isoformat"):
+                value = value.isoformat()
+            row_dict[column_name] = value
+        return row_dict
+
+    async def _payloads_for_display_metadata(
+        self,
+        session: AsyncSession | None,
+        section_register_id: str | None,
+        serialized_payloads: list[dict],
+    ) -> list[dict]:
+        """Merge live register rows into UPDATE payloads so record_name/search_text match UI-sized data."""
+        if not session or not section_register_id or not serialized_payloads:
+            return serialized_payloads
+
+        merged: list[dict] = []
+        register_class = None
+        for payload_dict in serialized_payloads:
+            if not isinstance(payload_dict, dict):
+                merged.append(payload_dict)
+                continue
+            if payload_dict.get("edit_action") != ChangeActionEnum.UPDATE.value:
+                merged.append(payload_dict)
+                continue
+            internal_record_id = payload_dict.get("internal_record_id")
+            if not internal_record_id:
+                merged.append(payload_dict)
+                continue
+            if register_class is None:
+                try:
+                    _, register_class, _ = await self._get_register_class_and_schema(section_register_id, session)
+                except Exception as error:
+                    _logger.warning("Could not resolve register class for display metadata merge: %s", error)
+                    return serialized_payloads
+            existing = await self._get_existing_record(register_class, internal_record_id, session)
+            if not existing:
+                merged.append(payload_dict)
+                continue
+            row_dict = self._register_row_to_metadata_dict(existing)
+            merged.append({**row_dict, **payload_dict})
+        return merged
+
     async def construct_change_request(
         self,
         change_request_request_payload: ChangeRequestRequestPayload,
@@ -1022,6 +1075,7 @@ class G2PRegisterChangeRequestService(BaseService):
         source_partner_id: str = None,
         created_by: str | None = None,
         change_request_source_override: str | None = None,
+        session: AsyncSession | None = None,
     ) -> G2PRegisterChangeRequest:
         change_request_id = str(uuid.uuid4())
         internal_record_id: str = change_request_request_payload.internal_record_id
@@ -1029,12 +1083,18 @@ class G2PRegisterChangeRequestService(BaseService):
         serialized_payloads: list[dict] = [item.model_dump() for item in change_request_request_payload.change_payload] if change_request_request_payload.change_payload else []
 
         register_domain_service: G2PRegisterDomainService | None = self._get_domain_service_by_register_mnemonic(section_register_mnemonic)
-        
-        constructed_record_name = self._construct_record_name_for_change_request(register_domain_service, serialized_payloads)
+
+        display_payloads = await self._payloads_for_display_metadata(
+            session,
+            change_request_request_payload.section_register_id,
+            serialized_payloads,
+        )
+
+        constructed_record_name = self._construct_record_name_for_change_request(register_domain_service, display_payloads)
 
         constructed_search_text = self._construct_search_text_for_change_request(
             register_domain_service,
-            serialized_payloads,
+            display_payloads,
             constructed_record_name,
         )
 
@@ -1799,6 +1859,8 @@ class G2PRegisterChangeRequestService(BaseService):
         payload: list[dict],
     ) -> str | None:
         """Construct the record_name for a change request using the domain service."""
+        if not register_domain_service:
+            return None
         for payload_dict in payload:
             if not isinstance(payload_dict, dict):
                 continue
