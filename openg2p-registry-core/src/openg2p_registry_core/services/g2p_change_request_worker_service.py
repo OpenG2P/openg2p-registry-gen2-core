@@ -46,6 +46,7 @@ class G2PChangeRequestWorkerService(BaseService):
             source_partner_id,
             created_by,
             change_request_source_override=change_request_source,
+            session=session,
         )
 
         session.add(g2p_register_change_request)
