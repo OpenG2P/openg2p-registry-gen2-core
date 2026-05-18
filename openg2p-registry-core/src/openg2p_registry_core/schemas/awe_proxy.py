@@ -4,8 +4,18 @@ from openg2p_fastapi_common.schemas import G2PRequest, G2PRequestBody, G2PRespon
 from pydantic import BaseModel, Field
 
 
-class ListMyOpenAweTasksRequestPayload(BaseModel):
+class ListMyAweTasksRequestPayload(BaseModel):
+    """List tasks for the current user (assignee=me).
+
+    Omit ``status`` to return tasks in every status (open, claimed, completed, …).
+    Pass ``status='open'`` to return only open tasks.
+    """
+
     request_id: Optional[str] = None
+    status: Optional[str] = Field(
+        default=None,
+        description="Filter by task status (open, claimed, completed, …). Omit for all.",
+    )
     artifact_type: Optional[str] = None
     policy_key: Optional[str] = None
     page: int = 1
@@ -35,12 +45,12 @@ class AweProxyDataResponsePayload(BaseModel):
     data: Any
 
 
-class ListMyOpenAweTasksRequestBody(G2PRequestBody):
-    request_payload: ListMyOpenAweTasksRequestPayload
+class ListMyAweTasksRequestBody(G2PRequestBody):
+    request_payload: ListMyAweTasksRequestPayload
 
 
-class ListMyOpenAweTasksRequest(G2PRequest):
-    request_body: ListMyOpenAweTasksRequestBody
+class ListMyAweTasksRequest(G2PRequest):
+    request_body: ListMyAweTasksRequestBody
 
 
 class SubmitAweTaskDecisionRequestBody(G2PRequestBody):

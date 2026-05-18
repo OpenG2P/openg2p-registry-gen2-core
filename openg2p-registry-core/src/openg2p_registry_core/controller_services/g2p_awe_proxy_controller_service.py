@@ -9,7 +9,7 @@ from ..schemas.awe_proxy import (
     ClaimAweTaskRequestPayload,
     GetAweRequestEventsRequestPayload,
     GetAweRequestRequestPayload,
-    ListMyOpenAweTasksRequestPayload,
+    ListMyAweTasksRequestPayload,
     SubmitAweTaskDecisionRequestPayload,
 )
 
@@ -24,16 +24,17 @@ class G2PAweProxyControllerService(BaseService):
             message=f"{G2PRegistryErrorCodes.AWE_REQUEST_FAILED.value[0]}: {exc.message}",
         )
 
-    async def list_my_open_tasks(
+    async def list_my_tasks(
         self,
-        payload: ListMyOpenAweTasksRequestPayload,
+        payload: ListMyAweTasksRequestPayload,
         *,
         bearer_token: str,
     ) -> dict[str, Any]:
         try:
-            return await AweHelper.get_component().list_my_open_tasks(
+            return await AweHelper.get_component().list_my_tasks(
                 bearer_token,
                 request_id=payload.request_id,
+                status=payload.status,
                 artifact_type=payload.artifact_type,
                 policy_key=payload.policy_key,
                 page=payload.page,

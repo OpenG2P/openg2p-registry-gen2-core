@@ -1636,6 +1636,8 @@ class G2PRegisterChangeRequestService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
+            awe_request_id=change_request.awe_request_id,
+            awe_request_status_summary=change_request.awe_request_status_summary,
             change_payload=change_payloads,
             current_register_data=current_register_data_list
         )

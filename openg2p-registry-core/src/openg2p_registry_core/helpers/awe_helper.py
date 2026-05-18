@@ -200,21 +200,24 @@ class AweHelper(BaseService):
     # 2. List my open tasks
     # ------------------------------------------------------------------
 
-    async def list_my_open_tasks(
+    async def list_my_tasks(
         self,
         token: str,
         *,
         request_id: Optional[str] = None,
+        status: Optional[str] = None,
         artifact_type: Optional[str] = None,
         policy_key: Optional[str] = None,
         page: int = 1,
         page_size: int = 25,
     ) -> Dict[str, Any]:
-        """Return open tasks assigned to the caller (``assignee=me``).
+        """Return tasks assigned to the caller (``assignee=me``).
 
         Args:
             token:         Bearer token; its ``sub`` claim is used as the assignee.
             request_id:    Optional filter — list tasks for a single request.
+            status:        Optional filter (``open``, ``claimed``, ``completed``, …).
+                           Omit to return tasks in every status.
             artifact_type: Optional filter by artifact type.
             policy_key:    Optional filter by policy.
             page:          1-based page number.
@@ -230,6 +233,27 @@ class AweHelper(BaseService):
         return await self._list_tasks(
             token,
             assignee="me",
+            request_id=request_id,
+            status=status,
+            artifact_type=artifact_type,
+            policy_key=policy_key,
+            page=page,
+            page_size=page_size,
+        )
+
+    async def list_my_open_tasks(
+        self,
+        token: str,
+        *,
+        request_id: Optional[str] = None,
+        artifact_type: Optional[str] = None,
+        policy_key: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> Dict[str, Any]:
+        """Return only open tasks for the caller. Convenience wrapper around ``list_my_tasks``."""
+        return await self.list_my_tasks(
+            token,
             request_id=request_id,
             status="open",
             artifact_type=artifact_type,

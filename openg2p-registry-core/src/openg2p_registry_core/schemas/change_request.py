@@ -204,6 +204,8 @@ class ChangeRequestData(BaseModel):
     approval_status: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
+    awe_request_id: Optional[str] = None
+    awe_request_status_summary: Optional[str] = None
     change_payload: Optional[dict | List[dict]] = None
     current_register_data: Optional[dict | List[dict]] = None
 
