@@ -8,10 +8,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
-from ..models import AwePolicyScopeEnum, G2PRegisterDefinition, G2PRegistryAwePolicyConfiguration
+from ..models import (
+    AwePolicyScopeEnum,
+    G2PRegisterDefinition,
+    G2PRegistryAwePolicyConfiguration,
+)
 from ..schemas import AwePolicyConfigurationData
 
 _logger = logging.getLogger("g2p-awe-policy-configuration-service")
+
+CHANGE_REQUEST_POLICY_TYPES = (
+    "registry.change_request",
+    "change_request",
+)
+INTAKE_FORM_POLICY_TYPES = (
+    "registry.intake_form",
+    "intake_form",
+)
 
 
 class G2PAwePolicyConfigurationService(BaseService):
@@ -188,6 +201,66 @@ class G2PAwePolicyConfigurationService(BaseService):
                 code=G2PRegistryErrorCodes.REGISTER_NOT_FOUND.value[1],
                 message=f"Register with id {register_id} not found",
             )
+
+    @staticmethod
+    def _policy_type_filter(policy_type: str):
+        if policy_type == "registry.change_request":
+            types = CHANGE_REQUEST_POLICY_TYPES
+        elif policy_type == "registry.intake_form":
+            types = INTAKE_FORM_POLICY_TYPES
+        else:
+            types = (policy_type,)
+        return G2PRegistryAwePolicyConfiguration.policy_type.in_(types)
+
+    async def find_effective_policy_configuration(
+        self,
+        session: AsyncSession,
+        *,
+        register_id: str,
+        policy_type: str,
+        section_id: str | None = None,
+        intake_form_id: str | None = None,
+    ) -> G2PRegistryAwePolicyConfiguration | None:
+        """Resolve policy: SECTION (if section_id) → INTAKE_FORM (if form_id) → REGISTER."""
+        type_filter = self._policy_type_filter(policy_type)
+
+        if section_id:
+            row = (
+                await session.execute(
+                    select(G2PRegistryAwePolicyConfiguration).where(
+                        G2PRegistryAwePolicyConfiguration.register_id == register_id,
+                        type_filter,
+                        G2PRegistryAwePolicyConfiguration.policy_scope == AwePolicyScopeEnum.SECTION.value,
+                        G2PRegistryAwePolicyConfiguration.section_id == section_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if row is not None:
+                return row
+
+        if intake_form_id:
+            row = (
+                await session.execute(
+                    select(G2PRegistryAwePolicyConfiguration).where(
+                        G2PRegistryAwePolicyConfiguration.register_id == register_id,
+                        type_filter,
+                        G2PRegistryAwePolicyConfiguration.policy_scope == AwePolicyScopeEnum.INTAKE_FORM.value,
+                        G2PRegistryAwePolicyConfiguration.intake_form_id == intake_form_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if row is not None:
+                return row
+
+        return (
+            await session.execute(
+                select(G2PRegistryAwePolicyConfiguration).where(
+                    G2PRegistryAwePolicyConfiguration.register_id == register_id,
+                    type_filter,
+                    G2PRegistryAwePolicyConfiguration.policy_scope == AwePolicyScopeEnum.REGISTER.value,
+                )
+            )
+        ).scalar_one_or_none()
 
     async def _get_configuration_or_error(
         self, awe_policy_config_id: str, session: AsyncSession

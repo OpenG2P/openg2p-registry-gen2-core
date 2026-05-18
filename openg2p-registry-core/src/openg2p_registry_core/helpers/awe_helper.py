@@ -27,15 +27,15 @@ Configuration (env prefix ``registry_core_``):
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 import httpx
 from openg2p_fastapi_common.service import BaseService
 
-from ..config import Settings
+from .awe_config import get_awe_settings, normalize_awe_base_url
 
 logger = logging.getLogger(__name__)
-_config = Settings.get_config()
 
 
 class AWEClientError(Exception):
@@ -88,8 +88,9 @@ class AweHelper(BaseService):
 
     def __init__(self) -> None:
         super().__init__()
-        self._base_url: str = _config.awe_base_url.rstrip("/")
-        self._timeout: float = _config.awe_http_timeout_seconds
+        config = get_awe_settings()
+        self._base_url: str = normalize_awe_base_url(config.awe_base_url)
+        self._timeout: float = config.awe_http_timeout_seconds
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -117,10 +118,13 @@ class AweHelper(BaseService):
         try:
             body = response.json()
             error_code = body.get("errorCode", "AWE-UNKNOWN")
-            message = body.get("message", response.text)
+            message = body.get("message") or body.get("detail") or response.text
         except Exception:
             error_code = "AWE-UNKNOWN"
             message = response.text
+        request_url = str(response.request.url) if response.request else ""
+        if request_url:
+            message = f"{message} (url={request_url})"
         raise AWEClientError(response.status_code, error_code, message)
 
     # ------------------------------------------------------------------
@@ -196,19 +200,24 @@ class AweHelper(BaseService):
     # 2. List my open tasks
     # ------------------------------------------------------------------
 
-    async def list_my_open_tasks(
+    async def list_my_tasks(
         self,
         token: str,
         *,
+        request_id: Optional[str] = None,
+        status: Optional[str] = None,
         artifact_type: Optional[str] = None,
         policy_key: Optional[str] = None,
         page: int = 1,
         page_size: int = 25,
     ) -> Dict[str, Any]:
-        """Return open tasks assigned to the caller (``assignee=me``).
+        """Return tasks assigned to the caller (``assignee=me``).
 
         Args:
             token:         Bearer token; its ``sub`` claim is used as the assignee.
+            request_id:    Optional filter — list tasks for a single request.
+            status:        Optional filter (``open``, ``claimed``, ``completed``, …).
+                           Omit to return tasks in every status.
             artifact_type: Optional filter by artifact type.
             policy_key:    Optional filter by policy.
             page:          1-based page number.
@@ -224,6 +233,28 @@ class AweHelper(BaseService):
         return await self._list_tasks(
             token,
             assignee="me",
+            request_id=request_id,
+            status=status,
+            artifact_type=artifact_type,
+            policy_key=policy_key,
+            page=page,
+            page_size=page_size,
+        )
+
+    async def list_my_open_tasks(
+        self,
+        token: str,
+        *,
+        request_id: Optional[str] = None,
+        artifact_type: Optional[str] = None,
+        policy_key: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> Dict[str, Any]:
+        """Return only open tasks for the caller. Convenience wrapper around ``list_my_tasks``."""
+        return await self.list_my_tasks(
+            token,
+            request_id=request_id,
             status="open",
             artifact_type=artifact_type,
             policy_key=policy_key,
@@ -510,6 +541,31 @@ class AweHelper(BaseService):
     # Shared task listing implementation
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _normalize_paged_tasks(
+        result: Any,
+        *,
+        page: int,
+        page_size: int,
+    ) -> Dict[str, Any]:
+        """Coerce AWE task list responses into ``PagedTasksOut`` shape.
+
+        Some deployments return a bare JSON array instead of the paginated
+        envelope; accept both so callers always receive a dict.
+        """
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, list):
+            total = len(result)
+            return {
+                "items": result,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "pages": math.ceil(total / page_size) if total and page_size else 1,
+            }
+        return {"items": [], "total": 0, "page": page, "page_size": page_size, "pages": 1}
+
     async def _list_tasks(
         self,
         token: str,
@@ -540,9 +596,16 @@ class AweHelper(BaseService):
             response = await client.get("/v1/awe/tasks", params=params)
 
         self._raise_for_awe_error(response)
-        result = response.json()
+        result = self._normalize_paged_tasks(
+            response.json(),
+            page=page,
+            page_size=page_size,
+        )
         logger.debug(
             "AWE list_tasks assignee=%s status=%s → %s/%s item(s)",
-            assignee, status, len(result.get("items", [])), result.get("total"),
+            assignee,
+            status,
+            len(result.get("items", [])),
+            result.get("total"),
         )
         return result

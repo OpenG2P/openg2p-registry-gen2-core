@@ -35,8 +35,9 @@ from .controller_services import (
     G2PCompletionScoreControllerService,
     G2PRegistrantAuthenticationControllerService,
     G2PAwePolicyConfigurationControllerService,
+    G2PAweProxyControllerService,
 )
-from .helpers import MinioClient, PatternMatcher, TemplateHelper
+from .helpers import AweHelper, MinioClient, PatternMatcher, TemplateHelper
 from .models import (
     DataModel,
     DeduplicationChangerequestResult,
@@ -123,6 +124,7 @@ from .services import (
     G2PGeoHierarchyService,
     G2PRegistrantAuthenticationService,
     G2PAwePolicyConfigurationService,
+    G2PAweIntegrationService,
     G2PAweWebhookService,
     InputMechanismMetadataService,
     InputMechanismDataService,
@@ -153,6 +155,7 @@ class Initializer(BaseInitializer):
         )
         PatternMatcher()
         KeymanagerCryptoHelper()
+        AweHelper()
 
         # Services
         G2PDataModelService()
@@ -183,6 +186,7 @@ class Initializer(BaseInitializer):
         G2PGeoHierarchyService()
         G2PRegistrantAuthenticationService()
         G2PAwePolicyConfigurationService()
+        G2PAweIntegrationService()
         G2PAweWebhookService()
 
         # Controller Services
@@ -213,6 +217,7 @@ class Initializer(BaseInitializer):
         G2PCompletionScoreControllerService()
         G2PRegistrantAuthenticationControllerService()
         G2PAwePolicyConfigurationControllerService()
+        G2PAweProxyControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)

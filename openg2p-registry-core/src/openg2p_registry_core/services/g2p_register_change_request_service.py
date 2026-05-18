@@ -47,6 +47,7 @@ from ..schemas import (
     NumberOfPendingChangeRequestsData,
     VerificationData,
 )
+from .g2p_awe_integration_service import G2PAweIntegrationService
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_register_history_service import G2PRegisterHistoryService
 
@@ -80,6 +81,8 @@ class G2PRegisterChangeRequestService(BaseService):
         change_request_request_payload: ChangeRequestRequestPayload,
         source_partner_id: str = None,
         created_by: str | None = None,
+        bearer_token: str | None = None,
+        requester_sub: str | None = None,
     ):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -126,8 +129,20 @@ class G2PRegisterChangeRequestService(BaseService):
                     )
                     session.add(change_request_document)
 
+            serialized_payloads: list[dict] = (
+                [item.model_dump() for item in change_request_request_payload.change_payload]
+                if change_request_request_payload.change_payload
+                else []
+            )
+            await session.flush()
+            await G2PAweIntegrationService.get_component().start_change_request_workflow(
+                session,
+                g2p_register_change_request,
+                serialized_payloads,
+                bearer_token=bearer_token,
+                requester=requester_sub or created_by,
+            )
             await session.commit()
-            # Refresh to get any DB defaults
             await session.refresh(g2p_register_change_request)
 
             return g2p_register_change_request
@@ -1621,6 +1636,8 @@ class G2PRegisterChangeRequestService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
+            awe_request_id=change_request.awe_request_id,
+            awe_request_status_summary=change_request.awe_request_status_summary,
             change_payload=change_payloads,
             current_register_data=current_register_data_list
         )
