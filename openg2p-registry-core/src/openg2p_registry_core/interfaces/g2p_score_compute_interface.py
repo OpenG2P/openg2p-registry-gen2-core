@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class G2PScoreComputeInterface(ABC):
@@ -11,16 +12,18 @@ class G2PScoreComputeInterface(ABC):
     async def compute_score(
         self,
         link_internal_record_id: str,
-        contributing_attribute_values: dict,
-        score_config: dict,
+        contributing_attribute_config: list[dict[str, Any]],
+        contributing_attribute_values: dict[str, Any],
     ) -> float:
         """
         Compute and return the score for the given record.
 
         Args:
             link_internal_record_id: Registrant / domain record internal ID.
-            contributing_attribute_values: Snapshot keyed by attribute_name (from the queue).
-            score_config: Assembled from `g2p_register_score_contributing_attributes`, including
-                ``contributing_attributes`` (list of definition rows) and a ``weights`` map
-                ``{attribute_name: attribute_weightage}`` for backward compatibility.
+            contributing_attribute_config: Metadata from ``g2p_register_score_contributing_attributes``.
+                Each row: attribute_name, attribute_computation_required,
+                attribute_computation_value (lookup map), attribute_weightage.
+            contributing_attribute_values: Field snapshots from the queue at enqueue time,
+                keyed by attribute_name.
         """
+        pass
