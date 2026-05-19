@@ -1,7 +1,9 @@
+import json
+
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from openg2p_fastapi_common.models import BaseORMModel
 
 from .data_models import ProcessStatusEnum
@@ -45,6 +47,25 @@ class OutgoingRawDataPayload(BaseORMModel):
     intake_form_submission_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
     raw_data_json: Mapped[JSONB] = mapped_column(JSONB, nullable=True)
     raw_data_xml: Mapped[Text] = mapped_column(Text, nullable=True)
+    raw_data_text: Mapped[str] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "ix_outgoing_raw_data_payloads_raw_data_text_gin",
+            "raw_data_text",
+            postgresql_using="gin",
+            postgresql_ops={"raw_data_text": "gin_trgm_ops"},
+        ),
+    )
+
+    @validates("raw_data_json")
+    def update_raw_data_text(self, key, value):
+        if value:
+            if isinstance(value, (dict, list)):
+                self.raw_data_text = json.dumps(value)
+            else:
+                self.raw_data_text = str(value)
+        return value
 
 class OutgoingTransformedDataPayload(BaseORMModel):
 
