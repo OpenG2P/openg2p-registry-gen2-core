@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import AWEClientError, AweHelper, get_awe_settings
-from ..models import G2PIntakeFormSubmission, G2PRegisterChangeRequest
+from ..models import (
+    G2PIntakeFormSubmission,
+    G2PRegisterChangeRequest,
+    G2PRegisterDefinition,
+    G2PRegisterSection,
+)
 from .g2p_awe_policy_configuration_service import G2PAwePolicyConfigurationService
 
 _config = Settings.get_config(strict=False)
@@ -38,6 +43,19 @@ class G2PAweIntegrationService(BaseService):
         return token
 
     @staticmethod
+    def _apply_display_context(
+        context: dict[str, Any],
+        *,
+        record_name: str | None,
+        register_mnemonic: str | None,
+        section_mnemonic: str | None,
+    ) -> dict[str, Any]:
+        context["record_name"] = record_name
+        context["register_mnemonic"] = register_mnemonic
+        context["section_mnemonic"] = section_mnemonic
+        return context
+
+    @staticmethod
     def _build_context(
         base: dict[str, Any],
         source_data: dict[str, Any] | list[dict[str, Any]] | None,
@@ -57,6 +75,22 @@ class G2PAweIntegrationService(BaseService):
             if name in flat:
                 context[name] = flat[name]
         return context
+
+    async def _resolve_register_mnemonic(
+        self,
+        session: AsyncSession,
+        register_id: str,
+    ) -> str | None:
+        register = await session.get(G2PRegisterDefinition, register_id)
+        return register.register_mnemonic if register else None
+
+    async def _resolve_section_mnemonic(
+        self,
+        session: AsyncSession,
+        section_id: str,
+    ) -> str | None:
+        section = await session.get(G2PRegisterSection, section_id)
+        return section.section_mnemonic if section else None
 
     def _callback_params(self) -> tuple[str | None, str | None]:
         cfg = self._config()
@@ -93,6 +127,12 @@ class G2PAweIntegrationService(BaseService):
             "tab_id": change_request.tab_id,
             "change_request_id": change_request.change_request_id,
         }
+        self._apply_display_context(
+            base,
+            record_name=change_request.record_name,
+            register_mnemonic=await self._resolve_register_mnemonic(session, change_request.register_id),
+            section_mnemonic=await self._resolve_section_mnemonic(session, change_request.section_id),
+        )
         context = self._build_context(base, change_payload, policy.context_field_names)
         callback_url, callback_secret_id = self._callback_params()
 
@@ -130,6 +170,9 @@ class G2PAweIntegrationService(BaseService):
         *,
         bearer_token: str | None,
         requester: str | None,
+        record_name: str | None = None,
+        register_mnemonic: str | None = None,
+        section_mnemonic: str | None = None,
     ) -> None:
         if not self._awe_enabled():
             return
@@ -150,6 +193,16 @@ class G2PAweIntegrationService(BaseService):
             "form_id": submission.form_id,
             "submission_id": submission.submission_id,
         }
+        self._apply_display_context(
+            base,
+            record_name=record_name,
+            register_mnemonic=(
+                register_mnemonic
+                if register_mnemonic is not None
+                else await self._resolve_register_mnemonic(session, submission.register_id)
+            ),
+            section_mnemonic=section_mnemonic,
+        )
         context = self._build_context(base, None, policy.context_field_names)
         callback_url, callback_secret_id = self._callback_params()
 

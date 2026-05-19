@@ -18,8 +18,16 @@ class ListMyAweTasksRequestPayload(BaseModel):
     )
     artifact_type: Optional[str] = None
     policy_key: Optional[str] = None
+    search_text: Optional[str] = None
     page: int = 1
     page_size: int = 25
+
+
+class MyAweTaskStatsRequestPayload(BaseModel):
+    status: Optional[str] = Field(
+        default=None,
+        description="Filter by task status. Omit to count tasks in every status.",
+    )
 
 
 class SubmitAweTaskDecisionRequestPayload(BaseModel):
@@ -51,6 +59,14 @@ class ListMyAweTasksRequestBody(G2PRequestBody):
 
 class ListMyAweTasksRequest(G2PRequest):
     request_body: ListMyAweTasksRequestBody
+
+
+class MyAweTaskStatsRequestBody(G2PRequestBody):
+    request_payload: MyAweTaskStatsRequestPayload
+
+
+class MyAweTaskStatsRequest(G2PRequest):
+    request_body: MyAweTaskStatsRequestBody
 
 
 class SubmitAweTaskDecisionRequestBody(G2PRequestBody):
