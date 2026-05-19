@@ -48,6 +48,10 @@ from ..schemas import (
     VerificationData,
 )
 from .g2p_awe_integration_service import G2PAweIntegrationService
+from .g2p_awe_status_reconcile import (
+    REGISTRY_CHANGE_REQUEST_ARTIFACT,
+    reconcile_artifact_status_summary,
+)
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_register_history_service import G2PRegisterHistoryService
 
@@ -167,6 +171,7 @@ class G2PRegisterChangeRequestService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             change_request_data: ChangeRequestData = await self._fetch_change_request(change_request_id, session)
+            await session.commit()
             return change_request_data
 
     async def get_change_requests_flattened(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestFlattenedData], int]:
@@ -1496,6 +1501,13 @@ class G2PRegisterChangeRequestService(BaseService):
             )
 
         change_request, change_request_payload = change_request_row
+
+        if change_request.awe_request_id:
+            await reconcile_artifact_status_summary(
+                session,
+                artifact_type=REGISTRY_CHANGE_REQUEST_ARTIFACT,
+                artifact_id=change_request.change_request_id,
+            )
 
         # Convert datetime objects to strings
         created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None

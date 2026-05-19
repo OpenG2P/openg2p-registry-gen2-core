@@ -35,6 +35,16 @@ class SubmitAweTaskDecisionRequestPayload(BaseModel):
     action: str = Field(description="approve, reject, or abstain")
     comment: Optional[str] = None
     attachments_ref: Optional[str] = None
+    artifact_id: str = Field(
+        description="Registry artifact id (change_request_id or submission_id)",
+    )
+    artifact_type: str = Field(
+        description="AWE artifact type, e.g. registry.change_request",
+    )
+    current_stage: int = Field(
+        ge=1,
+        description="Stage order the client saw when loading the approval UI",
+    )
 
 
 class ClaimAweTaskRequestPayload(BaseModel):

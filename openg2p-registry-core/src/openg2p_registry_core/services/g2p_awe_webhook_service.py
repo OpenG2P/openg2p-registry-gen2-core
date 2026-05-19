@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from openg2p_fastapi_common.service import BaseService
 from openg2p_fastapi_common.context import dbengine
@@ -17,6 +17,12 @@ from ..helpers.awe_webhook_signature import verify_awe_webhook_signature
 from ..models import G2PAweReqEvent, G2PIntakeFormSubmission, G2PRegisterChangeRequest
 from ..models.enum import ApprovalStatusEnum
 from ..schemas.awe_webhook import AweWebhookEvent, AweWebhookDecisionResponse
+from .g2p_awe_status_reconcile import (
+    REGISTRY_CHANGE_REQUEST_ARTIFACT,
+    REGISTRY_INTAKE_FORM_ARTIFACT,
+    derive_status_summary_from_event_log,
+    reconcile_artifact_status_summary as _reconcile_artifact_status_summary,
+)
 from .g2p_register_change_request_service import G2PRegisterChangeRequestService
 from .intake_form_data_service import G2PIntakeFormDataService
 
@@ -26,8 +32,9 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 TERMINAL_EVENT_TYPES = frozenset(
     {"request_approved", "request_rejected", "request_cancelled"}
 )
-REGISTRY_CHANGE_REQUEST_ARTIFACT = "registry.change_request"
-REGISTRY_INTAKE_FORM_ARTIFACT = "registry.intake_form"
+SUMMARY_SKIP_EVENT_TYPES = frozenset({"request_approved", "request_rejected"})
+# stage_completed for stage N is delivered concurrently with stage_started for N+1;
+# applying it can overwrite the summary back to the old stage.
 
 
 def _try_parse_submission_uuid(artifact_id: str) -> str | None:
@@ -105,6 +112,9 @@ class G2PAweWebhookService(BaseService):
                     await self._apply_terminal_event(event, session)
                 log_row.applied = True
                 log_row.error = None
+                await session.flush()
+                if event.event_type not in SUMMARY_SKIP_EVENT_TYPES:
+                    await self._update_status_summary(event, session)
             except Exception as exc:
                 log_row.applied = False
                 log_row.error = str(exc)[:2000]
@@ -115,6 +125,45 @@ class G2PAweWebhookService(BaseService):
             return AweWebhookDecisionResponse(
                 event_id=event.event_id,
                 applied=True,
+            )
+
+    async def _update_status_summary(self, event: AweWebhookEvent, session: AsyncSession) -> None:
+        if event.artifact_type not in (
+            REGISTRY_CHANGE_REQUEST_ARTIFACT,
+            REGISTRY_INTAKE_FORM_ARTIFACT,
+        ):
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.AWE_WEBHOOK_UNSUPPORTED_ARTIFACT.value[1],
+                message=(
+                    f"{G2PRegistryErrorCodes.AWE_WEBHOOK_UNSUPPORTED_ARTIFACT.value[0]}: "
+                    f"{event.artifact_type}"
+                ),
+            )
+        prior_summary = None
+        if event.artifact_type == REGISTRY_CHANGE_REQUEST_ARTIFACT:
+            change_request = await self._resolve_change_request(event, session)
+            prior_summary = change_request.awe_request_status_summary
+        else:
+            submission = await self._resolve_intake_form_submission(event, session)
+            prior_summary = submission.awe_request_status_summary
+
+        await _reconcile_artifact_status_summary(
+            session,
+            artifact_type=event.artifact_type,
+            artifact_id=event.artifact_id,
+        )
+
+        summary = await derive_status_summary_from_event_log(
+            session,
+            artifact_type=event.artifact_type,
+            artifact_id=event.artifact_id,
+        )
+        if summary is not None and summary != prior_summary:
+            _logger.info(
+                "AWE summary updated for %s/%s -> %s",
+                event.artifact_type,
+                event.artifact_id,
+                summary,
             )
 
     async def _apply_terminal_event(self, event: AweWebhookEvent, session) -> None:
@@ -136,7 +185,6 @@ class G2PAweWebhookService(BaseService):
         self, event: AweWebhookEvent, session
     ) -> None:
         change_request = await self._resolve_change_request(event, session)
-        change_request.awe_request_status_summary = event.status
 
         if event.event_type == "request_approved":
             if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
@@ -187,7 +235,6 @@ class G2PAweWebhookService(BaseService):
         self, event: AweWebhookEvent, session
     ) -> None:
         submission = await self._resolve_intake_form_submission(event, session)
-        submission.awe_request_status_summary = event.status
         intake_service = G2PIntakeFormDataService.get_component()
 
         if event.event_type == "request_approved":
