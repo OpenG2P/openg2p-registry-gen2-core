@@ -10,6 +10,7 @@ from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import AWEClientError, AweHelper, get_awe_settings
 from ..models import (
+    G2PIntakeFormDefinition,
     G2PIntakeFormSubmission,
     G2PRegisterChangeRequest,
     G2PRegisterDefinition,
@@ -41,19 +42,6 @@ class G2PAweIntegrationService(BaseService):
                 message=G2PRegistryErrorCodes.AWE_BEARER_TOKEN_REQUIRED.value[0],
             )
         return token
-
-    @staticmethod
-    def _apply_display_context(
-        context: dict[str, Any],
-        *,
-        record_name: str | None,
-        register_mnemonic: str | None,
-        section_mnemonic: str | None,
-    ) -> dict[str, Any]:
-        context["record_name"] = record_name
-        context["register_mnemonic"] = register_mnemonic
-        context["section_mnemonic"] = section_mnemonic
-        return context
 
     @staticmethod
     def _build_context(
@@ -92,6 +80,14 @@ class G2PAweIntegrationService(BaseService):
         section = await session.get(G2PRegisterSection, section_id)
         return section.section_mnemonic if section else None
 
+    async def _resolve_intake_form_mnemonic(
+        self,
+        session: AsyncSession,
+        form_id: str,
+    ) -> str | None:
+        intake_form = await session.get(G2PIntakeFormDefinition, form_id)
+        return intake_form.form_mnemonic if intake_form else None
+
     def _callback_params(self) -> tuple[str | None, str | None]:
         cfg = self._config()
         url = (cfg.awe_default_callback_url or "").strip() or None
@@ -122,17 +118,15 @@ class G2PAweIntegrationService(BaseService):
 
         token = self._require_bearer(bearer_token)
         base = {
-            "register_id": change_request.register_id,
-            "section_id": change_request.section_id,
-            "tab_id": change_request.tab_id,
+            "record_name": change_request.record_name,
+            "section_mnemonic": await self._resolve_section_mnemonic(
+                session, change_request.section_id
+            ),
+            "register_mnemonic": await self._resolve_register_mnemonic(
+                session, change_request.register_id
+            ),
             "change_request_id": change_request.change_request_id,
         }
-        self._apply_display_context(
-            base,
-            record_name=change_request.record_name,
-            register_mnemonic=await self._resolve_register_mnemonic(session, change_request.register_id),
-            section_mnemonic=await self._resolve_section_mnemonic(session, change_request.section_id),
-        )
         context = self._build_context(base, change_payload, policy.context_field_names)
         callback_url, callback_secret_id = self._callback_params()
 
@@ -172,7 +166,8 @@ class G2PAweIntegrationService(BaseService):
         requester: str | None,
         record_name: str | None = None,
         register_mnemonic: str | None = None,
-        section_mnemonic: str | None = None,
+        intake_form_mnemonic: str | None = None,
+        source_data: list[dict] | None = None,
     ) -> None:
         if not self._awe_enabled():
             return
@@ -189,21 +184,20 @@ class G2PAweIntegrationService(BaseService):
 
         token = self._require_bearer(bearer_token)
         base = {
-            "register_id": submission.register_id,
-            "form_id": submission.form_id,
-            "submission_id": submission.submission_id,
-        }
-        self._apply_display_context(
-            base,
-            record_name=record_name,
-            register_mnemonic=(
+            "record_name": record_name,
+            "intake_form_mnemonic": (
+                intake_form_mnemonic
+                if intake_form_mnemonic is not None
+                else await self._resolve_intake_form_mnemonic(session, submission.form_id)
+            ),
+            "register_mnemonic": (
                 register_mnemonic
                 if register_mnemonic is not None
                 else await self._resolve_register_mnemonic(session, submission.register_id)
             ),
-            section_mnemonic=section_mnemonic,
-        )
-        context = self._build_context(base, None, policy.context_field_names)
+            "submission_id": submission.submission_id,
+        }
+        context = self._build_context(base, source_data, policy.context_field_names)
         callback_url, callback_secret_id = self._callback_params()
 
         try:
