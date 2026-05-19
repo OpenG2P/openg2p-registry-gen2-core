@@ -15,6 +15,7 @@ Endpoint reference (all under ``awe_base_url``):
     POST   /v1/awe/requests/{id}/cancel            cancel_request
     GET    /v1/awe/requests/{id}/events             get_request_events
     GET    /v1/awe/tasks                            list_my_open_tasks / list_all_open_tasks
+    GET    /v1/awe/tasks/stats                      my_task_stats
     POST   /v1/awe/tasks/{id}/claim                claim_task
     POST   /v1/awe/tasks/{id}/decision             submit_decision
 
@@ -200,6 +201,23 @@ class AweHelper(BaseService):
     # 2. List my open tasks
     # ------------------------------------------------------------------
 
+    async def my_task_stats(
+        self,
+        token: str,
+        *,
+        status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return task counts for the caller grouped by artifact type."""
+        params: Dict[str, Any] = {}
+        if status is not None:
+            params["status"] = status
+
+        async with self._client(token) as client:
+            response = await client.get("/v1/awe/tasks/stats", params=params)
+
+        self._raise_for_awe_error(response)
+        return response.json()
+
     async def list_my_tasks(
         self,
         token: str,
@@ -208,6 +226,7 @@ class AweHelper(BaseService):
         status: Optional[str] = None,
         artifact_type: Optional[str] = None,
         policy_key: Optional[str] = None,
+        search_text: Optional[str] = None,
         page: int = 1,
         page_size: int = 25,
     ) -> Dict[str, Any]:
@@ -237,6 +256,7 @@ class AweHelper(BaseService):
             status=status,
             artifact_type=artifact_type,
             policy_key=policy_key,
+            search_text=search_text,
             page=page,
             page_size=page_size,
         )
@@ -575,6 +595,7 @@ class AweHelper(BaseService):
         status: Optional[str] = None,
         artifact_type: Optional[str] = None,
         policy_key: Optional[str] = None,
+        search_text: Optional[str] = None,
         page: int = 1,
         page_size: int = 25,
     ) -> Dict[str, Any]:
@@ -591,6 +612,8 @@ class AweHelper(BaseService):
             params["artifact_type"] = artifact_type
         if policy_key is not None:
             params["policy_key"] = policy_key
+        if search_text is not None:
+            params["search_text"] = search_text
 
         async with self._client(token) as client:
             response = await client.get("/v1/awe/tasks", params=params)

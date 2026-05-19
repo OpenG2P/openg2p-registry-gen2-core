@@ -430,11 +430,20 @@ class G2PIntakeFormDataService(BaseService):
         submission.last_updated_at = now
         session.add(submission)
         await session.flush()
+        section_payloads = await self._build_section_payloads(submission, session)
+        register_definition = await self._get_register_definition(submission.register_id, session)
         await G2PAweIntegrationService.get_component().start_intake_submission_workflow(
             session,
             submission,
             bearer_token=bearer_token,
             requester=requester_sub or submission.created_by,
+            record_name=self._extract_record_name(section_payloads),
+            register_mnemonic=register_definition.register_mnemonic,
+            section_mnemonic=self._resolve_intake_section_mnemonic(
+                section_payloads,
+                await self._get_form_sections(submission.form_id, session),
+                submission.register_id,
+            ),
         )
         return submission
 
@@ -1319,6 +1328,25 @@ class G2PIntakeFormDataService(BaseService):
                 if record.get("record_name"):
                     return record["record_name"]
         return None
+
+    @staticmethod
+    def _resolve_intake_section_mnemonic(
+        section_payloads: list[SectionPayloadResponseItem],
+        form_sections: list[G2PRegisterSection],
+        register_id: str,
+    ) -> str | None:
+        section_ids_with_data = {
+            section.section_id
+            for section in section_payloads
+            if section.records or section.documents
+        }
+        for section in form_sections:
+            if section.section_register_id == register_id:
+                return section.section_mnemonic
+        for section in form_sections:
+            if section.section_id in section_ids_with_data:
+                return section.section_mnemonic
+        return form_sections[0].section_mnemonic if form_sections else None
 
     def _apply_submission_filters(
         self,
