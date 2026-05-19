@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from .g2p_awe_integration_service import G2PAweIntegrationService
+from .g2p_awe_status_reconcile import (
+    REGISTRY_INTAKE_FORM_ARTIFACT,
+    reconcile_artifact_status_summary,
+)
 from ..models import (
     ApprovalStatusEnum,
     ChangeRequestSourceEnum,
@@ -612,12 +616,20 @@ class G2PIntakeFormDataService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             submission = await self._get_submission_or_error(submission_id, session)
+            if submission.awe_request_id:
+                await reconcile_artifact_status_summary(
+                    session,
+                    artifact_type=REGISTRY_INTAKE_FORM_ARTIFACT,
+                    artifact_id=submission.submission_id,
+                )
             sections = await self._build_section_payloads(submission, session)
-            return self._build_submission_response_payload(
+            response = self._build_submission_response_payload(
                 submission,
                 sections,
                 self._extract_record_name(sections),
             )
+            await session.commit()
+            return response
 
     async def search_submissions(
         self,

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import Settings
 from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import AWEClientError, AweHelper, get_awe_settings
+from ..helpers.awe_status_summary import format_awe_request_status_summary
 from ..models import (
     G2PIntakeFormDefinition,
     G2PIntakeFormSubmission,
@@ -149,7 +150,10 @@ class G2PAweIntegrationService(BaseService):
             ) from exc
 
         change_request.awe_request_id = result.get("request_id")
-        change_request.awe_request_status_summary = result.get("status")
+        change_request.awe_request_status_summary = format_awe_request_status_summary(
+            result.get("status"),
+            result.get("current_stage_order"),
+        )
         session.add(change_request)
         _logger.info(
             "AWE workflow started for change_request_id=%s awe_request_id=%s",
@@ -219,7 +223,10 @@ class G2PAweIntegrationService(BaseService):
             ) from exc
 
         submission.awe_request_id = result.get("request_id")
-        submission.awe_request_status_summary = result.get("status")
+        submission.awe_request_status_summary = format_awe_request_status_summary(
+            result.get("status"),
+            result.get("current_stage_order"),
+        )
         session.add(submission)
         _logger.info(
             "AWE workflow started for submission_id=%s awe_request_id=%s",
