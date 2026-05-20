@@ -34,8 +34,10 @@ from .controller_services import (
     G2PScoreControllerService,
     G2PCompletionScoreControllerService,
     G2PRegistrantAuthenticationControllerService,
+    G2PAwePolicyConfigurationControllerService,
+    G2PAweProxyControllerService,
 )
-from .helpers import MinioClient, PatternMatcher, TemplateHelper
+from .helpers import AweHelper, MinioClient, PatternMatcher, TemplateHelper
 from .models import (
     DataModel,
     DeduplicationChangerequestResult,
@@ -71,6 +73,8 @@ from .models import (
     G2PRegistryDocument,
     G2PRegistryImportFileConfiguration,
     G2PRegistryVcConfiguration,
+    G2PRegistryAwePolicyConfiguration,
+    G2PAweReqEvent,
     ImportFileProcessQueue,
     ImportFileProcessLog,
     IncomingClassifiedData,
@@ -119,6 +123,9 @@ from .services import (
     G2PCompletionScoreService,
     G2PGeoHierarchyService,
     G2PRegistrantAuthenticationService,
+    G2PAwePolicyConfigurationService,
+    G2PAweIntegrationService,
+    G2PAweWebhookService,
     InputMechanismMetadataService,
     InputMechanismDataService,
     ImportFileConfigurationService,
@@ -148,6 +155,7 @@ class Initializer(BaseInitializer):
         )
         PatternMatcher()
         KeymanagerCryptoHelper()
+        AweHelper()
 
         # Services
         G2PDataModelService()
@@ -177,6 +185,9 @@ class Initializer(BaseInitializer):
         G2PCompletionScoreService()
         G2PGeoHierarchyService()
         G2PRegistrantAuthenticationService()
+        G2PAwePolicyConfigurationService()
+        G2PAweIntegrationService()
+        G2PAweWebhookService()
 
         # Controller Services
         G2PDataModelControllerService()
@@ -205,6 +216,8 @@ class Initializer(BaseInitializer):
         G2PScoreControllerService()
         G2PCompletionScoreControllerService()
         G2PRegistrantAuthenticationControllerService()
+        G2PAwePolicyConfigurationControllerService()
+        G2PAweProxyControllerService()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -225,6 +238,8 @@ class Initializer(BaseInitializer):
             await G2PRegisterDefinition.create_migrate()
             await G2PRegisterVerification.create_migrate()
             await G2PRegisterChangeRequest.create_migrate()
+            await G2PRegistryAwePolicyConfiguration.create_migrate()
+            await G2PAweReqEvent.create_migrate()
             await G2PRegisterScoreDefinition.create_migrate()
             await G2PScoreComputeQueue.create_migrate()
             await G2PRegisterScore.create_migrate()
