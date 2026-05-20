@@ -32,6 +32,8 @@ from .controller_services import (
     G2PVcConfigurationControllerService,
     G2PVerificationControllerService,
     G2PScoreControllerService,
+    G2PScoreDefinitionControllerService,
+    G2PScoreContributingAttributeControllerService,
     G2PCompletionScoreControllerService,
     G2PRegistrantAuthenticationControllerService,
     G2PAwePolicyConfigurationControllerService,
@@ -56,6 +58,7 @@ from .models import (
     G2PRegisterChangeRequestPayload,
     G2PRegisterDefinition,
     G2PRegisterScoreDefinition,
+    G2PRegisterScoreContributingAttribute,
     G2PRegisterDocumentHistory,
     G2PScoreComputeQueue,
     G2PRegisterScore,
@@ -214,6 +217,8 @@ class Initializer(BaseInitializer):
         G2PIntakeFormMetadataControllerService()
         G2PVerificationControllerService()
         G2PScoreControllerService()
+        G2PScoreDefinitionControllerService()
+        G2PScoreContributingAttributeControllerService()
         G2PCompletionScoreControllerService()
         G2PRegistrantAuthenticationControllerService()
         G2PAwePolicyConfigurationControllerService()
@@ -241,6 +246,7 @@ class Initializer(BaseInitializer):
             await G2PRegistryAwePolicyConfiguration.create_migrate()
             await G2PAweReqEvent.create_migrate()
             await G2PRegisterScoreDefinition.create_migrate()
+            await G2PRegisterScoreContributingAttribute.create_migrate()
             await G2PScoreComputeQueue.create_migrate()
             await G2PRegisterScore.create_migrate()
             await G2PRegisterScoreHistory.create_migrate()

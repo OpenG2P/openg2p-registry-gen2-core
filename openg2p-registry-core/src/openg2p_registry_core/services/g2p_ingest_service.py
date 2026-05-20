@@ -84,7 +84,7 @@ class G2PIngestService(BaseService):
                     incoming_raw_data.classification_status = ProcessStatusEnum.PROCESSED.value
                     incoming_raw_data.classification_date_time = datetime.now()
 
-                    semantic_pattern_id = await self._get_semantic_pattern_id(register_id, intake_form_id, session)
+                    semantic_pattern_id = await self._get_semantic_pattern_id(data_model.data_model_id, register_id, intake_form_id, session)
 
                     session.add(
                         IncomingClassifiedData(
@@ -257,13 +257,22 @@ class G2PIngestService(BaseService):
         return ingest_data_payloads
 
     async def _get_semantic_pattern_id(
-        self, register_id: str, intake_form_id: str, session: Session
+        self, data_model_id: str, register_id: str, intake_form_id: str, session: Session
     ) -> str:
-        semantic_pattern_id: str = await session.execute(
-            select(IncomingModelSemanticPattern).where(
-                IncomingModelSemanticPattern.register_id == register_id,
-                IncomingModelSemanticPattern.intake_form_id == intake_form_id,
-            )
+        semantic_pattern: IncomingModelSemanticPattern | None = (
+            await session.execute(
+                select(IncomingModelSemanticPattern).where(
+                    IncomingModelSemanticPattern.data_model_id == data_model_id,
+                    IncomingModelSemanticPattern.register_id == register_id,
+                    IncomingModelSemanticPattern.intake_form_id == intake_form_id,
+                )
+            )   
         ).scalar_one_or_none()
+        
+        if not semantic_pattern:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[1],
+                message=G2PRegistryErrorCodes.SEMANTIC_PATTERN_NOT_FOUND.value[0],
+            )
 
-        return semantic_pattern_id
+        return semantic_pattern.semantic_pattern_id
