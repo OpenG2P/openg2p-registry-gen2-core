@@ -42,7 +42,7 @@ class G2PIngestService(BaseService):
         async with session_maker() as session:
             data_model: DataModel = await self._get_data_model(ingest_data, data_model_mnemonic, session)
 
-            _logger.info("============== DATA MODEL MATCHED ==============")
+            print("============== DATA MODEL MATCHED ==============", data_model)
 
             incoming_partner, signature, signature_payload, incoming_model_key_path = await self._match_model_signature_pattern(
                 data_model.data_model_id, ingest_data, session
@@ -147,13 +147,13 @@ class G2PIngestService(BaseService):
         self, partner_mnemonic: str
     ) -> IncomingPartner:
         """Get incoming partner from master-data-db by partner mnemonic"""
-        _logger.info("============== partner_mnemonic: %s ==============", partner_mnemonic)
+        print("============== partner_mnemonic: %s ==============", partner_mnemonic)
         master_data_engine = get_engines().get("db_engine_master_data")
-        _logger.info("============== master_data_engine: %s ==============", master_data_engine)
+        print("============== master_data_engine: %s ==============", master_data_engine)
         master_data_session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
-        _logger.info("============== master_data_session_maker: %s ==============", master_data_session_maker)
+        print("============== master_data_session_maker: %s ==============", master_data_session_maker)
         async with master_data_session_maker() as master_data_session:
-            _logger.info("============== master_data_session: %s ==============", master_data_session)
+            print("============== master_data_session: %s ==============", master_data_session)
             partner: IncomingPartner | None = (
                 await master_data_session.execute(
                     select(IncomingPartner).where(
@@ -161,7 +161,7 @@ class G2PIngestService(BaseService):
                     )
                 )
             ).scalar_one_or_none()
-            _logger.info("============== partner: %s ==============", partner)
+            print("============== partner: %s ==============", partner)
             if not partner:
                 raise G2PRegistryException(
                     code=G2PRegistryErrorCodes.PARTNER_NOT_REGISTERED.value[1],
@@ -205,9 +205,9 @@ class G2PIngestService(BaseService):
                     f"data_model_id={data_model_id}; configure key paths for this model"
                 ),
             )
-        _logger.info("============== incoming_model_key_path: %s ==============", incoming_model_key_path)
-        _logger.info("============== ingest_data: %s ==============", ingest_data)
-        _logger.info("============== data_model_id: %s ==============", data_model_id)
+        print("============== incoming_model_key_path: %s ==============", incoming_model_key_path)
+        print("============== ingest_data: %s ==============", ingest_data)
+        print("============== data_model_id: %s ==============", data_model_id)
         partner_mnemonic, signature, signature_payload = pattern_matcher.get_signature_pattern_path(
             incoming_model_key_path, ingest_data
         )
@@ -233,12 +233,12 @@ class G2PIngestService(BaseService):
                     + "; ".join(missing_parts)
                 ),
             )
-        _logger.info("============== partner_mnemonic: %s ==============", partner_mnemonic)
+        print("============== partner_mnemonic: %s ==============", partner_mnemonic)
 
         incoming_partner = await self._get_partner_from_partner_mnemonic(
             partner_mnemonic
         )
-        _logger.info("============== incoming_partner: %s ==============", incoming_partner)
+        print("============== incoming_partner: %s ==============", incoming_partner)
         return incoming_partner, signature, signature_payload, incoming_model_key_path
 
     async def _validate_signature(self, keymanager_reference_id: str, signature: str, signature_payload: Dict):
