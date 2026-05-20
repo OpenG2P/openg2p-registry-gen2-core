@@ -1,5 +1,6 @@
 import re
 import json
+import logging
 from typing import Tuple, Dict, Optional, Any
 from jsonpath_ng import parse as jsonpath_parse
 
@@ -12,7 +13,7 @@ from ..models import (
     IncomingModelSemanticPattern,
 )
 
-
+_logger = logging.getLogger("g2p-registry-core")
 class PatternMatcher(BaseService):
     """
     Pattern format:
@@ -35,12 +36,15 @@ class PatternMatcher(BaseService):
         sender = self._extract_jsonpath(
             data, incoming_model_key_path.key_path_for_sender
         )
+        _logger.info("============== sender: %s ==============", sender)
         signature = self._extract_jsonpath(
             data, incoming_model_key_path.key_path_for_signature
         )
+        _logger.info("============== signature: %s ==============", signature)
         signature_payload = self._extract_jsonpath(
             data, incoming_model_key_path.key_path_for_signature_payload
         )
+        _logger.info("============== signature_payload: %s ==============", signature_payload)
         return sender, signature, signature_payload
     
     def get_message_id_pattern_match(
