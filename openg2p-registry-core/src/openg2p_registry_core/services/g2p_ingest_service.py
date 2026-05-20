@@ -149,7 +149,7 @@ class G2PIngestService(BaseService):
         master_data_session_maker = async_sessionmaker(master_data_engine, expire_on_commit=False)
 
         async with master_data_session_maker() as master_data_session:
-            partner: IncomingPartner = (
+            partner: IncomingPartner | None = (
                 await master_data_session.execute(
                     select(IncomingPartner).where(
                         IncomingPartner.partner_mnemonic == partner_mnemonic
