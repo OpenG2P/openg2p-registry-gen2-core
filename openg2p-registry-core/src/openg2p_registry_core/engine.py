@@ -37,13 +37,6 @@ def get_engine():
         _config.master_data_db_port,
         _config.master_data_db_dbname,
     )
-    print("============== db_datasource_master_data: %s ==============", db_datasource_master_data)
-    print("============== _config.master_data_db_driver: %s ==============", _config.master_data_db_driver)
-    print("============== _config.master_data_db_username: %s ==============", _config.master_data_db_username)
-    print("============== _config.master_data_db_password: %s ==============", _config.master_data_db_password)
-    print("============== _config.master_data_db_hostname: %s ==============", _config.master_data_db_hostname)
-    print("============== _config.master_data_db_port: %s ==============", _config.master_data_db_port)
-    print("============== _config.master_data_db_dbname: %s ==============", _config.master_data_db_dbname)
     db_engine_master_data = create_async_engine(db_datasource_master_data, poolclass=NullPool)
 
     return {
