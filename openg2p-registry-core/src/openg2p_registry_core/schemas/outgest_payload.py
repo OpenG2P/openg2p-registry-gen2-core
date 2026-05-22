@@ -9,7 +9,7 @@ from datetime import datetime
 
 class OutgestionSummaryData(BaseModel):
     no_of_messages: int
-    no_of_partners: int
+    no_of_topics: int
     no_of_data_models: int
 
 

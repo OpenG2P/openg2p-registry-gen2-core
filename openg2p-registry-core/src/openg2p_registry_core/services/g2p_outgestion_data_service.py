@@ -35,11 +35,9 @@ class G2POutgestionDataService(BaseService):
                 )
             ).scalar() or 0
 
-            no_of_partners: int = (
+            no_of_topics: int = (
                 await session.execute(
-                    select(func.count(func.distinct(OutgoingRawData.changed_by_partner_id))).where(
-                        OutgoingRawData.changed_by_partner_id.isnot(None)
-                    )
+                    select(func.count(func.distinct(OutgoingRawData.topic_id)))
                 )
             ).scalar() or 0
 
@@ -51,7 +49,7 @@ class G2POutgestionDataService(BaseService):
 
             return OutgestionSummaryData(
                 no_of_messages=no_of_messages,
-                no_of_partners=no_of_partners,
+                no_of_topics=no_of_topics,
                 no_of_data_models=no_of_data_models,
             )
 
