@@ -5,6 +5,7 @@ class ApprovalStatusEnum(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
 
 
 class ChangeRequestSourceEnum(StrEnum):
@@ -85,6 +86,14 @@ class RegisterPurposeEnum(StrEnum):
     PROGRAM_REGISTER = "PROGRAM_REGISTER"
     TABLE = "TABLE"
     CORE_TABLE = "CORE_TABLE"
+
+
+class AwePolicyScopeEnum(StrEnum):
+    """Which registry artefact an AWE policy configuration row applies to."""
+
+    REGISTER = "REGISTER"
+    INTAKE_FORM = "INTAKE_FORM"
+    SECTION = "SECTION"
 
 
 class ShapeTypeEnum(StrEnum):

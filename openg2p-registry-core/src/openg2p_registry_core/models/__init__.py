@@ -13,6 +13,7 @@ from .enum import (
     RegisterPurposeEnum,
     ShapeTypeEnum,
     InputMechanismTypeEnum,
+    AwePolicyScopeEnum,
 )
 SubmissionSourceEnum = ChangeRequestSourceEnum
 from .data_models import DataModel
@@ -72,6 +73,8 @@ from .g2p_registry_configuration import G2PRegistryConfiguration
 from .g2p_registry_document import G2PRegistryDocument
 from .g2p_registry_import_file_configuration import G2PRegistryImportFileConfiguration
 from .g2p_registry_vc_configuration import G2PRegistryVcConfiguration
+from .g2p_registry_awe_policy_configuration import G2PRegistryAwePolicyConfiguration
+from .g2p_awe_req_event import G2PAweReqEvent
 from .import_file_process_queue import ImportFileProcessQueue
 from .import_file_process_log import ImportFileProcessLog
 from .ingestion_configuration import (

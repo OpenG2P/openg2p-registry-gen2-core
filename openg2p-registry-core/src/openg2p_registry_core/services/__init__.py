@@ -28,3 +28,6 @@ from .g2p_change_request_core_service import G2PChangeRequestCoreService
 from .g2p_score_compute_service import G2PScoreComputeService
 from .g2p_completion_score_service import G2PCompletionScoreService
 from .g2p_registrant_authentication_service import G2PRegistrantAuthenticationService
+from .g2p_awe_policy_configuration_service import G2PAwePolicyConfigurationService
+from .g2p_awe_integration_service import G2PAweIntegrationService
+from .g2p_awe_webhook_service import G2PAweWebhookService
