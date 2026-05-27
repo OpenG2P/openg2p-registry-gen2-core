@@ -40,6 +40,7 @@ from ..schemas import (
     ChangeRequestFlattenedData,
     ChangeRequestRequestPayload,
     ChangeRequestSearchResultData,
+    ChangeRequestSequenceCheckData,
     ChangeRequestSummaryData,
     CrossRegisterChangeRequestData,
     ChangeActionEnum,
@@ -48,6 +49,11 @@ from ..schemas import (
     VerificationData,
 )
 from .g2p_outgest_fanout_service import fanout_outgest_rows
+from .g2p_awe_integration_service import G2PAweIntegrationService
+from .g2p_awe_status_reconcile import (
+    REGISTRY_CHANGE_REQUEST_ARTIFACT,
+    reconcile_artifact_status_summary,
+)
 from .g2p_register_domain_service import G2PRegisterDomainService
 from .g2p_register_history_service import G2PRegisterHistoryService
 
@@ -82,6 +88,8 @@ class G2PRegisterChangeRequestService(BaseService):
         source_partner_id: str = None,
         created_by: str | None = None,
         change_request_source: str | None = None,
+        bearer_token: str | None = None,
+        requester_sub: str | None = None,
     ):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
@@ -130,8 +138,20 @@ class G2PRegisterChangeRequestService(BaseService):
                     )
                     session.add(change_request_document)
 
+            serialized_payloads: list[dict] = (
+                [item.model_dump() for item in change_request_request_payload.change_payload]
+                if change_request_request_payload.change_payload
+                else []
+            )
+            await session.flush()
+            await G2PAweIntegrationService.get_component().start_change_request_workflow(
+                session,
+                g2p_register_change_request,
+                serialized_payloads,
+                bearer_token=bearer_token,
+                requester=requester_sub or created_by,
+            )
             await session.commit()
-            # Refresh to get any DB defaults
             await session.refresh(g2p_register_change_request)
 
             return g2p_register_change_request
@@ -156,7 +176,44 @@ class G2PRegisterChangeRequestService(BaseService):
         session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
         async with session_maker() as session:
             change_request_data: ChangeRequestData = await self._fetch_change_request(change_request_id, session)
+            await session.commit()
             return change_request_data
+
+    async def get_change_request_sequence_check(
+        self, change_request_id: str
+    ) -> ChangeRequestSequenceCheckData:
+        """Return whether earlier pending CRs block approval for this change request."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = (
+                await session.execute(
+                    select(G2PRegisterChangeRequest).where(
+                        G2PRegisterChangeRequest.change_request_id == change_request_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if change_request is None:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0],
+                )
+
+            number_of_earlier_pending = await self._count_earlier_pending_change_requests(
+                change_request, session
+            )
+            has_earlier_pending = number_of_earlier_pending > 0
+            approval_decision_blocked = (
+                change_request.approval_status == ApprovalStatusEnum.PENDING.value
+                and has_earlier_pending
+            )
+
+            return ChangeRequestSequenceCheckData(
+                change_request_id=change_request.change_request_id,
+                internal_record_id=change_request.internal_record_id,
+                has_earlier_pending_change_requests=has_earlier_pending,
+                number_of_earlier_pending_change_requests=number_of_earlier_pending,
+                approval_decision_blocked=approval_decision_blocked,
+            )
 
     async def get_change_requests_flattened(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestFlattenedData], int]:
         """Get all change requests for a specific internal record and tab with flattened change_payload fields"""
@@ -235,6 +292,92 @@ class G2PRegisterChangeRequestService(BaseService):
             section_id=change_request.section_id,
         )
 
+        return change_request
+
+    async def approve_change_request_from_awe_webhook(
+        self,
+        change_request_id: str,
+        session,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
+        """Apply terminal AWE approval using the same section-specific paths as register workflows."""
+        change_request = await self.validate_change_request_exists(change_request_id, session)
+        if change_request.approval_status == ApprovalStatusEnum.APPROVED.value:
+            return change_request
+
+        register_section = await self.validate_change_request_section(change_request, session)
+        section_register_definition = await self.validate_register_definition(
+            register_section.section_register_id, session
+        )
+        section_register_purpose = section_register_definition.register_purpose
+        is_primary_section = bool(getattr(register_section, "is_primary_section", False))
+        approval_kwargs = {
+            "skip_verification": True,
+            "skip_sequence_check": False,
+            "approved_by": approved_by,
+        }
+        used_consolidated_core_flow = False
+
+        if section_register_purpose in {
+            RegisterPurposeEnum.TABLE.value,
+            RegisterPurposeEnum.CORE_TABLE.value,
+        } or register_section.is_core_section:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                **approval_kwargs,
+            )
+            used_consolidated_core_flow = True
+        elif (
+            is_primary_section
+            and register_section.section_register_id == register_section.register_id
+        ):
+            change_request, _ = await self.approve_primary_master_section_change_request(
+                change_request_id,
+                session,
+                **approval_kwargs,
+            )
+        elif register_section.section_register_id == register_section.register_id:
+            change_request = await self.approve_non_primary_master_section_change_request(
+                change_request_id,
+                session,
+                **approval_kwargs,
+            )
+        elif (
+            section_register_purpose == RegisterPurposeEnum.PROGRAM_REGISTER.value
+            or register_section.section_register_id != change_request.register_id
+        ):
+            change_request = await self.approve_child_section_change_request(
+                change_request_id,
+                change_request.internal_record_id,
+                session,
+                **approval_kwargs,
+            )
+        else:
+            change_request = await self._approve_change_request_core(
+                change_request_id=change_request_id,
+                session=session,
+                **approval_kwargs,
+            )
+            used_consolidated_core_flow = True
+
+        if not used_consolidated_core_flow:
+            completion_score_service = (
+                G2PCompletionScoreService.get_component() or G2PCompletionScoreService()
+            )
+            await completion_score_service.enqueue_completion_score_computations(
+                register_id=register_section.register_id,
+                internal_record_id=change_request.internal_record_id,
+                session=session,
+                change_request_id=change_request.change_request_id,
+                section_id=change_request.section_id,
+            )
+
+        score_service = G2PScoreComputeService.get_component()
+        await score_service.enqueue_score_computations(
+            change_request=change_request,
+            session=session,
+        )
         return change_request
 
     async def approve_register(self, change_request: G2PRegisterChangeRequest, section: G2PRegisterSection, session) -> None:
@@ -345,6 +488,39 @@ class G2PRegisterChangeRequestService(BaseService):
         await self._run_post_approve_hook(change_request.section_register_id, change_request, session)
 
         return change_request, subject_internal_record_id
+
+    async def approve_non_primary_master_section_change_request(
+        self,
+        change_request_id: str,
+        session,
+        skip_verification: bool = False,
+        skip_sequence_check: bool = False,
+        approved_by: str | None = None,
+    ) -> G2PRegisterChangeRequest:
+        change_request: G2PRegisterChangeRequest = await self.validate_change_request_exists(
+            change_request_id, session
+        )
+        self._set_change_request_approval_state(
+            change_request,
+            approval_status=ApprovalStatusEnum.APPROVED.value,
+            actor_name=approved_by,
+            session=session,
+        )
+
+        _logger.info("Approving non-primary master section change request: %s", change_request)
+        register_section = await self.validate_change_request_core(
+            change_request, session, skip_verification, skip_sequence_check
+        )
+        await self.insert_into_register_history(change_request, session)
+        await self.insert_non_primary_master_section_into_register(
+            change_request, change_request.internal_record_id, session
+        )
+        if register_section and register_section.documents_required:
+            await self._handle_documents_on_approval(change_request, register_section, session)
+        await self._run_post_approve_hook(
+            change_request.section_register_id, change_request, session
+        )
+        return change_request
 
     async def insert_primary_master_section_into_register(self, change_request: G2PRegisterChangeRequest, session) -> str:
         subject_internal_record_id: str | None = None
@@ -634,21 +810,26 @@ class G2PRegisterChangeRequestService(BaseService):
                 message=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[0]
             )
 
-    async def validate_change_request_sequence(self, change_request: G2PRegisterChangeRequest, session) -> None:
-        # TODO: check internal_record_id != null
-        earlier_pending = (
+    async def _count_earlier_pending_change_requests(
+        self, change_request: G2PRegisterChangeRequest, session
+    ) -> int:
+        return (
             await session.execute(
-                select(G2PRegisterChangeRequest).where(
+                select(func.count()).select_from(G2PRegisterChangeRequest).where(
                     G2PRegisterChangeRequest.internal_record_id == change_request.internal_record_id,
-                    G2PRegisterChangeRequest.approval_status == "PENDING",
+                    G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value,
                     G2PRegisterChangeRequest.created_at < change_request.created_at,
                 )
             )
-        ).scalars().first()
-        if earlier_pending:
+        ).scalar_one()
+
+    async def validate_change_request_sequence(
+        self, change_request: G2PRegisterChangeRequest, session
+    ) -> None:
+        if await self._count_earlier_pending_change_requests(change_request, session) > 0:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                message="There are earlier pending change requests for this record"
+                message="There are earlier pending change requests for this record",
             )
 
     async def insert_into_register_history(self, change_request: G2PRegisterChangeRequest, session) -> None:
@@ -1458,6 +1639,13 @@ class G2PRegisterChangeRequestService(BaseService):
 
         change_request, change_request_payload = change_request_row
 
+        if change_request.awe_request_id:
+            await reconcile_artifact_status_summary(
+                session,
+                artifact_type=REGISTRY_CHANGE_REQUEST_ARTIFACT,
+                artifact_id=change_request.change_request_id,
+            )
+
         # Convert datetime objects to strings
         created_at_str = str(change_request.created_at.isoformat()) if change_request.created_at and hasattr(change_request.created_at, 'isoformat') else None
         approved_at_str = str(change_request.approved_at.isoformat()) if change_request.approved_at and hasattr(change_request.approved_at, 'isoformat') else None
@@ -1597,6 +1785,8 @@ class G2PRegisterChangeRequestService(BaseService):
             approval_status=change_request.approval_status,
             approved_by=change_request.approved_by,
             approved_at=approved_at_str,
+            awe_request_id=change_request.awe_request_id,
+            awe_request_status_summary=change_request.awe_request_status_summary,
             change_payload=change_payloads,
             current_register_data=current_register_data_list
         )
