@@ -10,10 +10,12 @@ from ..schemas.change_request import (
     ChangeRequestRequest, ChangeRequestRequestPayload, ChangeRequestResponsePayload,
     NumberOfPendingChangeRequestsData, NumberOfCrossRegisterChangesData,
     CrossRegisterChangeRequestData, ChangeRequestData,
+    ChangeRequestSequenceCheckData,
     VerificationData, AddVerificationPayload,
     GetNumberOfPendingChangeRequestsRequest, GetNumberOfCrossRegisterChangesRequest,
     GetCrossRegisterChangesRequest,
     GetChangeRequestsRequest, GetChangeRequestRequest,
+    CheckChangeRequestSequenceRequest,
     GetVerificationsRequest, AddVerificationRequest,
     GetChangeRequestSummaryDataRequest, ChangeRequestSummaryData,
     SearchChangeRequestRequest, ChangeRequestSearchResultData
@@ -132,6 +134,19 @@ class G2PRegisterChangerequestControllerService(BaseService):
         service = G2PRegisterChangeRequestService.get_component()
         change_request_data: ChangeRequestData = await service.get_change_request(change_request_id)
         return change_request_data
+
+    async def check_change_request_sequence(
+        self, check_change_request_sequence_request: CheckChangeRequestSequenceRequest
+    ) -> ChangeRequestSequenceCheckData:
+        change_request_id = (
+            check_change_request_sequence_request.request_body.request_payload.change_request_id
+        )
+        _logger.info(
+            "Checking change request sequence for change_request_id: %s through controller service",
+            change_request_id,
+        )
+        service = G2PRegisterChangeRequestService.get_component()
+        return await service.get_change_request_sequence_check(change_request_id)
 
     def _build_change_request_response_payload(self, change_request_request_payload: ChangeRequestRequestPayload, g2p_register_change_request: G2PRegisterChangeRequest) -> ChangeRequestResponsePayload:
         return ChangeRequestResponsePayload(
