@@ -13,6 +13,7 @@ from .g2p_template_file_service import G2PTemplateFileService
 from .filter_builder import FilterBuilder
 from .g2p_attribute_service import G2PAttributeService
 from .g2p_ingestion_data_service import G2PIngestionDataService
+from .g2p_outgestion_data_service import G2POutgestionDataService
 from .g2p_geo_hierarchy_service import G2PGeoHierarchyService
 from .g2p_vc_configuration_service import G2PVcConfigurationService
 from .input_mechanism_metadata_service import InputMechanismMetadataService

@@ -14,6 +14,7 @@ from .controller_services import (
     G2PIngestControllerService,
     G2PIngestionConfigurationControllerService,
     G2PIngestionDataControllerService,
+    G2POutgestionDataControllerService,
     G2PIntakeFormDataControllerService,
     G2PIntakeFormMetadataControllerService,
     G2POutgestionConfigurationControllerService,
@@ -76,6 +77,7 @@ from .models import (
     IncomingClassifiedData,
     IncomingEnrichedTransformedData,
     IncomingModelKeyPath,
+    IncomingModelRegisterSemanticPattern,
     IncomingModelSemanticPattern,
     IncomingRawData,
     IncomingRawDataPayload,
@@ -100,6 +102,7 @@ from .services import (
     G2PChangeRequestWorkerService,
     G2PIngestionConfigurationService,
     G2PIngestionDataService,
+    G2POutgestionDataService,
     G2PIngestService,
     G2PIntakeFormDataService,
     G2PIntakeFormMetadataService,
@@ -160,6 +163,7 @@ class Initializer(BaseInitializer):
         G2PRegisterHierarchicalService()
         G2PIngestionConfigurationService()
         G2PIngestionDataService()
+        G2POutgestionDataService()
         G2POutgestionConfigurationService()
         G2PTemplateService()
         G2PTemplateFileService()
@@ -189,6 +193,7 @@ class Initializer(BaseInitializer):
         G2PRegisterSectionMetadataControllerService()
         G2PIngestionConfigurationControllerService()
         G2PIngestionDataControllerService()
+        G2POutgestionDataControllerService()
         G2POutgestionConfigurationControllerService()
         G2PDocumentControllerService()
         G2PTemplateFileControllerService()
@@ -255,6 +260,7 @@ class Initializer(BaseInitializer):
             await IncomingClassifiedData.create_migrate()
             await SubscriptionActivityLog.create_migrate()
             await IncomingModelSemanticPattern.create_migrate()
+            await IncomingModelRegisterSemanticPattern.create_migrate()
             await IncomingEnrichedTransformedData.create_migrate()
 
             # Outgoing Models
