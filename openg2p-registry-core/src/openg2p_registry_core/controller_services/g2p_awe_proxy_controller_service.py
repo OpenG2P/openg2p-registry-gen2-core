@@ -10,6 +10,7 @@ from ..errors import G2PRegistryErrorCodes, G2PRegistryException
 from ..helpers import AWEClientError, AweHelper
 from ..helpers.awe_status_summary import parse_awe_request_status_summary
 from ..models import G2PIntakeFormSubmission, G2PRegisterChangeRequest
+from ..services.g2p_register_change_request_service import G2PRegisterChangeRequestService
 from ..models.enum import ApprovalStatusEnum
 from ..schemas.awe_proxy import (
     ClaimAweTaskRequestPayload,
@@ -94,6 +95,11 @@ class G2PAweProxyControllerService(BaseService):
         bearer_token: str,
     ) -> dict[str, Any]:
         await self._validate_artifact_in_flight(payload.artifact_type, payload.artifact_id, payload.current_stage)
+        await self._validate_change_request_sequence_for_decision(
+            payload.artifact_type,
+            payload.artifact_id,
+            payload.action,
+        )
 
         try:
             return await AweHelper.get_component().submit_decision(
@@ -105,6 +111,24 @@ class G2PAweProxyControllerService(BaseService):
             )
         except AWEClientError as exc:
             raise self._wrap_awe_error(exc) from exc
+
+    async def _validate_change_request_sequence_for_decision(
+        self,
+        artifact_type: str,
+        artifact_id: str,
+        action: str,
+    ) -> None:
+        if artifact_type != REGISTRY_CHANGE_REQUEST_ARTIFACT or action != "approve":
+            return
+
+        sequence_check = await G2PRegisterChangeRequestService.get_component().get_change_request_sequence_check(
+            artifact_id
+        )
+        if sequence_check.approval_decision_blocked:
+            raise G2PRegistryException(
+                code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
+                message="There are earlier pending change requests for this record",
+            )
 
     async def claim_task(
         self,

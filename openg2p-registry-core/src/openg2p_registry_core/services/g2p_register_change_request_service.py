@@ -40,6 +40,7 @@ from ..schemas import (
     ChangeRequestFlattenedData,
     ChangeRequestRequestPayload,
     ChangeRequestSearchResultData,
+    ChangeRequestSequenceCheckData,
     ChangeRequestSummaryData,
     CrossRegisterChangeRequestData,
     ChangeActionEnum,
@@ -173,6 +174,42 @@ class G2PRegisterChangeRequestService(BaseService):
             change_request_data: ChangeRequestData = await self._fetch_change_request(change_request_id, session)
             await session.commit()
             return change_request_data
+
+    async def get_change_request_sequence_check(
+        self, change_request_id: str
+    ) -> ChangeRequestSequenceCheckData:
+        """Return whether earlier pending CRs block approval for this change request."""
+        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        async with session_maker() as session:
+            change_request = (
+                await session.execute(
+                    select(G2PRegisterChangeRequest).where(
+                        G2PRegisterChangeRequest.change_request_id == change_request_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if change_request is None:
+                raise G2PRegistryException(
+                    code=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[1],
+                    message=G2PRegistryErrorCodes.CHANGE_REQUEST_NOT_FOUND.value[0],
+                )
+
+            number_of_earlier_pending = await self._count_earlier_pending_change_requests(
+                change_request, session
+            )
+            has_earlier_pending = number_of_earlier_pending > 0
+            approval_decision_blocked = (
+                change_request.approval_status == ApprovalStatusEnum.PENDING.value
+                and has_earlier_pending
+            )
+
+            return ChangeRequestSequenceCheckData(
+                change_request_id=change_request.change_request_id,
+                internal_record_id=change_request.internal_record_id,
+                has_earlier_pending_change_requests=has_earlier_pending,
+                number_of_earlier_pending_change_requests=number_of_earlier_pending,
+                approval_decision_blocked=approval_decision_blocked,
+            )
 
     async def get_change_requests_flattened(self, subject_register_id: str, subject_record_id: str, tab_id: str, current_page: int = 1, page_size: int = 10, sort_by: str = None, filter_by: dict = None) -> tuple[list[ChangeRequestFlattenedData], int]:
         """Get all change requests for a specific internal record and tab with flattened change_payload fields"""
@@ -768,21 +805,26 @@ class G2PRegisterChangeRequestService(BaseService):
                 message=G2PRegistryErrorCodes.VERIFICATIONS_PENDING.value[0]
             )
 
-    async def validate_change_request_sequence(self, change_request: G2PRegisterChangeRequest, session) -> None:
-        # TODO: check internal_record_id != null
-        earlier_pending = (
+    async def _count_earlier_pending_change_requests(
+        self, change_request: G2PRegisterChangeRequest, session
+    ) -> int:
+        return (
             await session.execute(
-                select(G2PRegisterChangeRequest).where(
+                select(func.count()).select_from(G2PRegisterChangeRequest).where(
                     G2PRegisterChangeRequest.internal_record_id == change_request.internal_record_id,
-                    G2PRegisterChangeRequest.approval_status == "PENDING",
+                    G2PRegisterChangeRequest.approval_status == ApprovalStatusEnum.PENDING.value,
                     G2PRegisterChangeRequest.created_at < change_request.created_at,
                 )
             )
-        ).scalars().first()
-        if earlier_pending:
+        ).scalar_one()
+
+    async def validate_change_request_sequence(
+        self, change_request: G2PRegisterChangeRequest, session
+    ) -> None:
+        if await self._count_earlier_pending_change_requests(change_request, session) > 0:
             raise G2PRegistryException(
                 code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],
-                message="There are earlier pending change requests for this record"
+                message="There are earlier pending change requests for this record",
             )
 
     async def insert_into_register_history(self, change_request: G2PRegisterChangeRequest, session) -> None:

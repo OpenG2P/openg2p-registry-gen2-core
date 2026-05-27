@@ -155,6 +155,14 @@ class NumberOfPendingChangeRequestsData(BaseModel):
     number_of_pending_change_requests: int
 
 
+class ChangeRequestSequenceCheckData(BaseModel):
+    change_request_id: str
+    internal_record_id: str
+    has_earlier_pending_change_requests: bool
+    number_of_earlier_pending_change_requests: int
+    approval_decision_blocked: bool
+
+
 class NumberOfCrossRegisterChangesData(BaseModel):
     subject_register_id: str
     subject_record_id: str
@@ -286,6 +294,10 @@ class GetChangeRequestRequestPayload(BaseModel):
     change_request_id: str
 
 
+class CheckChangeRequestSequenceRequestPayload(BaseModel):
+    change_request_id: str
+
+
 class GetVerificationsRequestPayload(BaseModel):
     change_request_id: Optional[str] = None
     submission_id: Optional[str] = None
@@ -367,6 +379,14 @@ class GetChangeRequestRequest(G2PRequest):
     request_body: GetChangeRequestRequestBody
 
 
+class CheckChangeRequestSequenceRequestBody(G2PRequestBody):
+    request_payload: CheckChangeRequestSequenceRequestPayload
+
+
+class CheckChangeRequestSequenceRequest(G2PRequest):
+    request_body: CheckChangeRequestSequenceRequestBody
+
+
 class GetVerificationsRequestBody(G2PRequestBody):
     request_payload: GetVerificationsRequestPayload
 
@@ -417,6 +437,14 @@ class NumberOfPendingChangeRequestsResponseBody(G2PResponseBody):
 
 class NumberOfPendingChangeRequestsResponse(G2PResponse):
     response_body: Optional[NumberOfPendingChangeRequestsResponseBody] = None
+
+
+class ChangeRequestSequenceCheckResponseBody(G2PResponseBody):
+    response_payload: Optional[ChangeRequestSequenceCheckData] = None
+
+
+class ChangeRequestSequenceCheckResponse(G2PResponse):
+    response_body: Optional[ChangeRequestSequenceCheckResponseBody] = None
 
 
 class NumberOfCrossRegisterChangesResponseBody(G2PResponseBody):
